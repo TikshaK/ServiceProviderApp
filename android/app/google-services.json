@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "804297949780",
+    "firebase_url": "https://serviceprovider-1f504-default-rtdb.firebaseio.com",
+    "project_id": "serviceprovider-1f504",
+    "storage_bucket": "serviceprovider-1f504.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:804297949780:android:21b4ad410c2b61d738a3c1",
+        "android_client_info": {
+          "package_name": "com.serviceproviderapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAMavIFyHK8JMaVDOZWJbc90JI62tzpdxU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

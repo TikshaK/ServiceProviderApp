@@ -1,0 +1,160 @@
+import { StyleSheet } from 'react-native';
+import { colors, fonts, fontSize, scale, verticalScale } from '../../../constants';
+
+export const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: colors.purple[50],
+  },
+  scrollView: {
+    flex: 1,
+  },
+  content: {
+    flexGrow: 1,
+    paddingHorizontal: scale(16),
+    paddingBottom: verticalScale(28),
+  },
+  intro: {
+    alignItems: 'center',
+    paddingTop: verticalScale(24),
+    paddingBottom: verticalScale(20),
+  },
+  logoFrame: {
+    width: scale(64),
+    height: scale(64),
+    borderRadius: scale(16),
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.purple[200],
+    marginBottom: verticalScale(16),
+  },
+  heading: {
+    fontFamily: fonts.Bold,
+    color: colors.black[250],
+    fontSize: fontSize[26],
+    lineHeight: verticalScale(34),
+    fontWeight: '700',
+  },
+  subheading: {
+    maxWidth: scale(300),
+    marginTop: verticalScale(4),
+    fontFamily: fonts.Regular,
+    color: colors.grey[700],
+    fontSize: fontSize[14],
+    lineHeight: verticalScale(20),
+    textAlign: 'center',
+  },
+  roleSwitcher: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: scale(4),
+    padding: scale(4),
+    marginBottom: verticalScale(24),
+    borderRadius: scale(12),
+    backgroundColor: colors.purple[200],
+  },
+  roleButton: {
+    flex: 1,
+    minHeight: verticalScale(42),
+    borderRadius: scale(8),
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: scale(6),
+  },
+  activeRoleButton: {
+    backgroundColor: colors.white[100],
+    shadowColor: colors.black[250],
+    shadowOffset: { width: scale(0), height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: scale(3),
+    elevation: 2,
+  },
+  roleText: {
+    fontFamily: fonts.SemiBold,
+    color: colors.grey[700],
+    fontSize: fontSize[13],
+    fontWeight: '600',
+  },
+  activeRoleText: {
+    color: colors.purple[700],
+  },
+  form: {
+    gap: verticalScale(4),
+  },
+  optionsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    marginTop: verticalScale(2),
+    marginBottom: verticalScale(8),
+  },
+  rememberOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: scale(8),
+  },
+  checkbox: {
+    width: scale(18),
+    height: scale(18),
+    borderRadius: scale(4),
+    borderWidth: scale(1),
+    borderColor: colors.grey[450],
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  checkedBox: {
+    backgroundColor: colors.purple[600],
+    borderColor: colors.purple[600],
+  },
+  checkboxMark: {
+    fontFamily: fonts.Bold,
+    color: colors.white[100],
+    fontSize: fontSize[13],
+    fontWeight: '700',
+  },
+  optionText: {
+    fontFamily: fonts.Regular,
+    color: colors.grey[700],
+    fontSize: fontSize[13],
+  },
+  forgotText: {
+    fontFamily: fonts.SemiBold,
+    color: colors.purple[700],
+    fontSize: fontSize[12],
+    fontWeight: '600',
+  },
+  submitButton: {
+    height: verticalScale(48),
+    marginTop: verticalScale(4),
+  },
+  buttonArrow: {
+    fontFamily: fonts.Regular,
+    color: colors.white[100],
+    fontSize: fontSize[20],
+  },
+  footer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: scale(6),
+    paddingTop: verticalScale(28),
+    paddingBottom: verticalScale(16),
+  },
+  footerText: {
+    fontFamily: fonts.Regular,
+    color: colors.grey[700],
+    fontSize: fontSize[14],
+  },
+  footerLink: {
+    fontFamily: fonts.SemiBold,
+    color: colors.purple[700],
+    fontSize: fontSize[14],
+    fontWeight: '600',
+  },
+  validationError: {
+    color: colors.red[200],
+    fontSize: fontSize[13],
+    marginBottom: verticalScale(8),
+  },
+});

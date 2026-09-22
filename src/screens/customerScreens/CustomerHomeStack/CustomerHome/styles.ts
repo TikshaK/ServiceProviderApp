@@ -1,0 +1,256 @@
+import { StyleSheet, Platform } from 'react-native';
+import { colors, fonts } from '../../../../constants';
+import { fontSize, scale, sWidth, verticalScale } from '../../../../constants/metrics';
+
+export const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: colors.white[100] ?? '#FAFAFA',
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingBottom: verticalScale(40),
+  },
+  topSection: {
+    paddingHorizontal: scale(16),
+    paddingTop: verticalScale(12),
+    paddingBottom: verticalScale(8),
+  },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: verticalScale(16),
+  },
+  greetingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: scale(6),
+  },
+  greetingText: {
+    fontSize: fontSize[22],
+    fontFamily: fonts.Bold,
+    color: colors.black[500],
+    letterSpacing: scale(-0.5),
+  },
+  waveEmoji: {
+    fontSize: fontSize[18],
+  },
+  locationBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: scale(4),
+    marginTop: verticalScale(2),
+  },
+  locationText: {
+    fontSize: fontSize[14],
+    fontFamily: fonts.SemiBold,
+    color: colors.black[500],
+  },
+  notificationBtn: {
+    width: scale(40),
+    height: verticalScale(40),
+    borderRadius: scale(20),
+    backgroundColor: colors.grey[100] ?? '#F2F3FF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+  },
+  notificationDot: {
+    position: 'absolute',
+    top: verticalScale(8),
+    right: scale(8),
+    width: scale(8),
+    height: verticalScale(8),
+    borderRadius: scale(4),
+    backgroundColor: '#BA1A1A',
+    borderWidth: scale(1.5),
+    borderColor: colors.grey[100] ?? '#F2F3FF',
+  },
+  sectionContainer: {
+    marginTop: verticalScale(12),
+    paddingHorizontal: scale(16),
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: verticalScale(12),
+  },
+  sectionTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: scale(6),
+  },
+  sectionTitle: {
+    fontSize: fontSize[16],
+    fontFamily: fonts.Bold,
+    color: colors.black[500],
+  },
+  pulseDotSmall: {
+    width: scale(6),
+    height: verticalScale(6),
+    borderRadius: scale(3),
+    backgroundColor: colors.purple[700],
+  },
+  sectionSubtitle: {
+    fontSize: fontSize[12],
+    fontFamily: fonts.Medium,
+    color: colors.grey[700],
+  },
+  viewAllLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  viewAllText: {
+    fontSize: fontSize[12],
+    fontFamily: fonts.SemiBold,
+    color: colors.purple[700],
+  },
+  categoriesGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginHorizontal: scale(-5),
+  },
+  categoryItem: {
+    width: '25%',
+    padding: scale(5),
+    alignItems: 'center',
+  },
+  categoryIconContainer: {
+    width: scale(48),
+    height: verticalScale(48),
+    borderRadius: scale(12),
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: verticalScale(6),
+  },
+  categoryLabel: {
+    fontSize: fontSize[11],
+    fontFamily: fonts.SemiBold,
+    color: colors.black[500],
+    textAlign: 'center',
+  },
+  servicesList: {
+    gap: scale(12),
+  },
+  serviceCard: {
+    flexDirection: 'row',
+    backgroundColor: colors.white[100],
+    borderRadius: scale(16),
+    padding: scale(14),
+    gap: scale(12),
+    shadowColor: colors.grey[400],
+    shadowOffset: { width: scale(0), height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: scale(3),
+    elevation: 2,
+  },
+  serviceImageContainer: {
+    width: scale(96),
+    height: verticalScale(96),
+    borderRadius: scale(12),
+    overflow: 'hidden',
+    position: 'relative',
+    backgroundColor: colors.grey[100],
+  },
+  serviceImage: {
+    width: '100%',
+    height: '100%',
+  },
+  ratingBadge: {
+    position: 'absolute',
+    bottom: verticalScale(4),
+    left: scale(4),
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.9)',
+    paddingHorizontal: scale(6),
+    paddingVertical: verticalScale(2),
+    borderRadius: scale(4),
+    gap: scale(2),
+  },
+  ratingText: {
+    fontSize: fontSize[10],
+    fontFamily: fonts.Medium,
+    color: colors.black[500],
+  },
+  serviceContent: {
+    flex: 1,
+    justifyContent: 'space-between',
+  },
+  serviceContentTop: {},
+  providerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: verticalScale(4),
+  },
+  providerName: {
+    fontSize: fontSize[10],
+    fontFamily: fonts.SemiBold,
+    color: colors.purple[700],
+    textTransform: 'uppercase',
+    letterSpacing: scale(0.5),
+  },
+  durationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: scale(4),
+  },
+  durationText: {
+    fontSize: fontSize[10],
+    fontFamily: fonts.Regular,
+    color: colors.grey[700],
+  },
+  serviceTitle: {
+    fontSize: fontSize[14],
+    fontFamily: fonts.Bold,
+    color: colors.black[500],
+    marginBottom: verticalScale(4),
+  },
+  serviceDesc: {
+    fontSize: fontSize[12],
+    fontFamily: fonts.Regular,
+    color: colors.grey[700],
+  },
+  serviceContentBottom: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: verticalScale(8),
+  },
+  priceRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: scale(4),
+  },
+  priceLabel: {
+    fontSize: fontSize[10],
+    fontFamily: fonts.Regular,
+    color: colors.grey[700],
+  },
+  priceText: {
+    fontSize: fontSize[16],
+    fontFamily: fonts.Bold,
+    color: colors.black[500],
+  },
+  bookBtn: {
+    backgroundColor: colors.purple[700],
+    paddingHorizontal: scale(12),
+    paddingVertical: verticalScale(6),
+    borderRadius: scale(8),
+    shadowColor: colors.purple[700],
+    shadowOffset: { width: scale(0), height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: scale(2),
+    elevation: 2,
+  },
+  bookBtnText: {
+    fontSize: fontSize[12],
+    fontFamily: fonts.SemiBold,
+    color: colors.white[100],
+  }
+});

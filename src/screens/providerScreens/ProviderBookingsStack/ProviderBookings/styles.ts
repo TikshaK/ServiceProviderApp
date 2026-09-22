@@ -1,0 +1,276 @@
+import { Platform, StyleSheet } from 'react-native';
+import { colors, fonts, fontSize, scale, verticalScale } from '../../../../constants';
+
+export const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: colors.purple[50],
+  },
+  headerContainer: {
+    ...Platform.select({
+      ios: {
+        shadowColor: colors.black[400],
+        shadowOffset: { width: scale(0), height: 1 },
+        shadowOpacity: 0.04,
+        shadowRadius: scale(8),
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
+  },
+  searchSection: {
+    paddingHorizontal: scale(16),
+    paddingTop: verticalScale(12),
+    paddingBottom: verticalScale(4),
+  },
+  searchInputContainer: {
+    marginBottom: verticalScale(0),
+  },
+  tabsScrollView: {
+    maxHeight: verticalScale(50),
+    marginVertical: verticalScale(8),
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingHorizontal: scale(16),
+    paddingTop: verticalScale(4),
+    paddingBottom: verticalScale(28),
+  },
+  summaryBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: verticalScale(12),
+    paddingHorizontal: scale(4),
+  },
+  summaryText: {
+    fontFamily: fonts.Medium,
+    color: colors.grey[700],
+    fontSize: fontSize[13],
+    fontWeight: '500',
+  },
+  summaryHighlight: {
+    fontFamily: fonts.Bold,
+    color: colors.black[250],
+    fontWeight: '700',
+  },
+  sortButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: scale(4),
+  },
+  sortText: {
+    fontFamily: fonts.SemiBold,
+    color: colors.purple[700],
+    fontSize: fontSize[12],
+    fontWeight: '600',
+  },
+  bookingList: {
+    gap: verticalScale(12),
+  },
+  bookingCard: {
+    backgroundColor: colors.white[100],
+    borderRadius: scale(16),
+    padding: scale(14),
+    gap: verticalScale(10),
+    ...Platform.select({
+      ios: {
+        shadowColor: colors.black[400],
+        shadowOffset: { width: scale(0), height: 1 },
+        shadowOpacity: 0.06,
+        shadowRadius: scale(4),
+      },
+      android: {
+        elevation: 1,
+      },
+    }),
+  },
+  bookingCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: scale(8),
+  },
+  bookingClient: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: scale(10),
+    minWidth: scale(0),
+  },
+  bookingAvatar: {
+    width: scale(44),
+    height: scale(44),
+    borderRadius: scale(22),
+    backgroundColor: colors.purple[400],
+  },
+  bookingClientInfo: {
+    flex: 1,
+    minWidth: scale(0),
+  },
+  bookingClientName: {
+    fontFamily: fonts.SemiBold,
+    color: colors.black[250],
+    fontSize: fontSize[16],
+    fontWeight: '600',
+    lineHeight: verticalScale(22),
+  },
+  bookingServiceTitle: {
+    fontFamily: fonts.SemiBold,
+    color: colors.purple[600],
+    fontSize: fontSize[13],
+    fontWeight: '600',
+    lineHeight: verticalScale(18),
+  },
+  statusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: scale(4),
+    height: verticalScale(24),
+    paddingHorizontal: scale(10),
+    borderRadius: scale(999),
+  },
+  statusDot: {
+    width: scale(6),
+    height: scale(6),
+    borderRadius: scale(3),
+  },
+  statusBadgeText: {
+    fontFamily: fonts.SemiBold,
+    fontSize: fontSize[11],
+    fontWeight: '600',
+    lineHeight: verticalScale(14),
+  },
+  detailsDivider: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: colors.purple[200],
+    marginVertical: verticalScale(2),
+  },
+  detailsRow: {
+    gap: verticalScale(6),
+  },
+  infoItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: scale(6),
+  },
+  infoText: {
+    fontFamily: fonts.Regular,
+    color: colors.grey[700],
+    fontSize: fontSize[12],
+    lineHeight: verticalScale(16),
+    flex: 1,
+  },
+  bookingCardFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingTop: verticalScale(6),
+  },
+  priceContainer: {
+    flexDirection: 'column',
+  },
+  priceLabel: {
+    fontFamily: fonts.Medium,
+    color: colors.grey[700],
+    fontSize: fontSize[10],
+    fontWeight: '500',
+  },
+  priceValue: {
+    fontFamily: fonts.Bold,
+    color: colors.green[700],
+    fontSize: fontSize[16],
+    fontWeight: '700',
+  },
+  bookingActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: scale(8),
+  },
+  actionButtonOutline: {
+    height: verticalScale(34),
+    paddingHorizontal: scale(12),
+    borderRadius: scale(999),
+    borderWidth: scale(1),
+    borderColor: colors.purple[500],
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.white[100],
+  },
+  actionButtonOutlineText: {
+    fontFamily: fonts.SemiBold,
+    color: colors.purple[700],
+    fontSize: fontSize[12],
+    fontWeight: '600',
+  },
+  actionButtonDanger: {
+    height: verticalScale(34),
+    paddingHorizontal: scale(12),
+    borderRadius: scale(999),
+    borderWidth: scale(1),
+    borderColor: colors.red[100],
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.white[100],
+  },
+  actionButtonDangerText: {
+    fontFamily: fonts.SemiBold,
+    color: colors.red[100],
+    fontSize: fontSize[12],
+    fontWeight: '600',
+  },
+  actionButtonPrimary: {
+    height: verticalScale(34),
+    paddingHorizontal: scale(14),
+    borderRadius: scale(999),
+    backgroundColor: colors.purple[600],
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  actionButtonPrimaryText: {
+    fontFamily: fonts.SemiBold,
+    color: colors.white[100],
+    fontSize: fontSize[12],
+    fontWeight: '600',
+  },
+  iconActionButton: {
+    width: scale(34),
+    height: scale(34),
+    borderRadius: scale(17),
+    backgroundColor: colors.purple[100],
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: verticalScale(48),
+    paddingHorizontal: scale(24),
+  },
+  emptyIconBg: {
+    width: scale(64),
+    height: scale(64),
+    borderRadius: scale(32),
+    backgroundColor: colors.purple[200],
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: verticalScale(12),
+  },
+  emptyTitle: {
+    fontFamily: fonts.Bold,
+    color: colors.black[250],
+    fontSize: fontSize[16],
+    fontWeight: '700',
+    marginBottom: verticalScale(4),
+  },
+  emptySubtitle: {
+    fontFamily: fonts.Regular,
+    color: colors.grey[700],
+    fontSize: fontSize[13],
+    textAlign: 'center',
+    lineHeight: verticalScale(18),
+  },
+});
