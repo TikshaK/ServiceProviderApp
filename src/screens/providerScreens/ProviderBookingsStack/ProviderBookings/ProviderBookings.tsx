@@ -1,4 +1,5 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import {
   Image,
   Linking,
@@ -49,30 +50,32 @@ export default function ProviderBookings({ navigation }: ProviderBookingsProps) 
   const [activeTab, setActiveTab] = useState<FilterTab>('All');
   const [searchQuery, setSearchQuery] = useState('');
 
-  useEffect(() => {
-    let active = true;
-    if (!profile?.uid) return;
-    getBookings('providerId', profile.uid).then(items => {
-      if (!active) return;
-      setBookings(items.map(item => ({
-        id: item.id,
-        clientName: item.customerSnapshot.fullName,
-        customerPhone: item.customerSnapshot.phone,
-        serviceTitle: item.serviceSnapshot.title,
-        serviceImageUrl: item.serviceSnapshot.imageUrls?.[0] ?? '',
-        status: isBookingExpired(item) ? 'Expired' : item.status === 'accepted' || item.status === 'inProgress' ? 'Upcoming' : item.status === 'completed' ? 'Completed' : item.status === 'cancelled' ? 'Cancelled' : 'Pending',
-        dateText: `${item.scheduledDate} • ${item.scheduledTime}`,
-        address: item.addressSnapshot?.street ?? '',
-        amount: `$${item.totalAmount.toFixed(2)}`,
-        statusBgColor: isBookingExpired(item) ? '#FEF2F2' : item.status === 'pending' ? '#FFFBEB' : item.status === 'completed' ? '#ECFDF5' : '#EFF6FF',
-        statusTextColor: isBookingExpired(item) ? '#DC2626' : item.status === 'pending' ? '#B45309' : item.status === 'completed' ? '#047857' : '#1D4ED8',
-        dotColor: isBookingExpired(item) ? '#DC2626' : item.status === 'pending' ? '#D97706' : '#2563EB',
-        avatarUrl: '',
-        notes: item.specialInstructions,
-      })));
-    }).catch(() => setBookings([]));
-    return () => { active = false; };
-  }, [profile?.uid]);
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+      if (!profile?.uid) return;
+      getBookings('providerId', profile.uid).then(items => {
+        if (!active) return;
+        setBookings(items.map(item => ({
+          id: item.id,
+          clientName: item.customerSnapshot.fullName,
+          customerPhone: item.customerSnapshot.phone,
+          serviceTitle: item.serviceSnapshot.title,
+          serviceImageUrl: item.serviceSnapshot.imageUrls?.[0] ?? '',
+          status: isBookingExpired(item) ? 'Expired' : item.status === 'accepted' || item.status === 'inProgress' ? 'Upcoming' : item.status === 'completed' ? 'Completed' : item.status === 'cancelled' || item.status === 'declined' ? 'Cancelled' : 'Pending',
+          dateText: `${item.scheduledDate} • ${item.scheduledTime}`,
+          address: item.addressSnapshot?.street ?? '',
+          amount: `$${item.totalAmount.toFixed(2)}`,
+          statusBgColor: isBookingExpired(item) ? '#FEF2F2' : item.status === 'pending' ? '#FFFBEB' : item.status === 'completed' ? '#ECFDF5' : item.status === 'cancelled' || item.status === 'declined' ? '#FEF2F2' : '#EFF6FF',
+          statusTextColor: isBookingExpired(item) ? '#DC2626' : item.status === 'pending' ? '#B45309' : item.status === 'completed' ? '#047857' : item.status === 'cancelled' || item.status === 'declined' ? '#DC2626' : '#1D4ED8',
+          dotColor: isBookingExpired(item) ? '#DC2626' : item.status === 'pending' ? '#D97706' : item.status === 'cancelled' || item.status === 'declined' ? '#DC2626' : '#2563EB',
+          avatarUrl: '',
+          notes: item.specialInstructions,
+        })));
+      }).catch(() => setBookings([]));
+      return () => { active = false; };
+    }, [profile?.uid])
+  );
 
   const counts = useMemo(() => {
     const total = bookings.length;
@@ -105,10 +108,7 @@ export default function ProviderBookings({ navigation }: ProviderBookingsProps) 
     });
   }, [activeTab, searchQuery, bookings]);
 
-  // const changeStatus = async (bookingId: string, status: FirebaseBookingStatus) => {
-  //   await updateBookingStatus(bookingId, status);
-  //   setBookings(current => current.map(booking => booking.id === bookingId ? { ...booking, status: status === 'accepted' ? 'Upcoming' : 'Cancelled' } : booking));
-  // };
+
 
   const changeStatus = async (
     bookingId: string,
@@ -127,7 +127,9 @@ export default function ProviderBookings({ navigation }: ProviderBookingsProps) 
                   ? 'Upcoming'
                   : status === 'declined'
                     ? 'Cancelled'
-                    : booking.status,
+                    : status === 'completed'
+                      ? 'Completed'
+                      : booking.status,
             }
             : booking,
         ),
@@ -289,7 +291,7 @@ export default function ProviderBookings({ navigation }: ProviderBookingsProps) 
                             />
                           </TouchableOpacity>
 
-                          <TouchableOpacity activeOpacity={0.7} style={styles.actionButtonPrimary}>
+                          <TouchableOpacity activeOpacity={0.7} style={styles.actionButtonPrimary} onPress={() => changeStatus(booking.id, 'completed')}>
                             <Text style={styles.actionButtonPrimaryText}>
                               {strings.providerBookings?.complete ?? 'Complete Job'}
                             </Text>
@@ -298,8 +300,14 @@ export default function ProviderBookings({ navigation }: ProviderBookingsProps) 
                       )}
 
                       {booking.status === 'Completed' && (
-                        <TouchableOpacity activeOpacity={0.7} style={styles.actionButtonOutline}>
-                          <Text style={styles.actionButtonOutlineText}>
+                        <TouchableOpacity 
+                        activeOpacity={0.7} 
+                        style={styles.actionButtonOutline}
+                        onPress={() => navigation?.navigate(navigationStrings.PROVIDER_BOOKING_DETAILS, { booking })}
+                        >
+                          <Text 
+                          style={styles.actionButtonOutlineText}
+                          >
                             {strings.providerBookings?.viewReceipt ?? 'View Receipt'}
                           </Text>
                         </TouchableOpacity>

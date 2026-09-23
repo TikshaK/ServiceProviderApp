@@ -26,7 +26,8 @@ export interface EditableService {
 	title?: string;
 	description?: string;
 	duration?: string;
-	price?: string;
+	durationMinutes?: number;
+	price?: number | string;
 	imageUrl?: string;
 	isActive?: boolean;
 	category?: string;
@@ -40,19 +41,20 @@ type AddEditServicesProps = {
 
 const CATEGORIES = SERVICE_CATEGORIES;
 const DURATIONS = ['1 hour', '1.5 hours', '2 hours', '2.5 hours', '3 hours', '4 hours', '5+ hours'];
+const DURATION_MAP: Record<number, string> = { 60: '1 hour', 90: '1.5 hours', 120: '2 hours', 150: '2.5 hours', 180: '3 hours', 240: '4 hours', 300: '5+ hours' };
 
 export default function AddEditServices({ navigation, route }: AddEditServicesProps) {
 	const service = route?.params?.service;
 	const profile = useAppSelector(state => state.user.profile);
 	const [name, setName] = useState(service?.title ?? '');
 	const [category, setCategory] = useState(service?.category ?? CATEGORIES[0]);
-	const [price, setPrice] = useState(service?.price?.replace(/[^0-9.]/g, '') ?? '');
-	const [duration, setDuration] = useState(service?.duration ?? DURATIONS[0]);
+	const [price, setPrice] = useState(service?.price ? String(service.price) : '');
+	const [duration, setDuration] = useState(service?.durationMinutes ? (DURATION_MAP[service.durationMinutes] ?? DURATIONS[0]) : DURATIONS[0]);
 	const [description, setDescription] = useState(service?.description ?? '');
 	const [isActive, setIsActive] = useState(service?.isActive ?? true);
 	const [selector, setSelector] = useState<'category' | 'duration' | null>(null);
 	const [images, setImages] = useState<ImageAsset[]>(() => {
-		const imageUrls = service?.imageUrls ?? (service?.imageUrl ? [service.imageUrl] : []);
+		const imageUrls = service?.imageUrls ?? [];
 		return imageUrls.map(uri => ({ id: uri, uri, isExisting: true }));
 	});
 	const [isSaving, setIsSaving] = useState(false);
@@ -216,8 +218,18 @@ export default function AddEditServices({ navigation, route }: AddEditServicesPr
 						</ScrollView>
 					) : null}
 
-					<FieldLabel text={strings.signUp.serviceName} required />
-					<TextInput value={name} onChangeText={setName} placeholder={strings.services.serviceNamePlaceholder} placeholderTextColor={colors.grey[400]} style={styles.input} />
+					<FieldLabel
+					 text={strings.signUp.serviceName} 
+					required 
+					/>
+					<TextInput
+					 value={name} 
+					 onChangeText={setName} 
+					placeholder={strings.services.serviceNamePlaceholder} 
+					placeholderTextColor={colors.grey[400]} 
+					style={styles.input} 
+					maxLength={50}
+					/>
 
 					<FieldLabel text="Category" required />
 					<SelectField value={category} icon="chevron-down" onPress={() => setSelector('category')} />

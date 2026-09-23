@@ -392,6 +392,7 @@ export const styles = StyleSheet.create({
     fontSize: fontSize[12],
     fontWeight: '500',
     lineHeight: verticalScale(16),
+    width:"93%"
   },
   bookingTimeTextMuted: {
     fontFamily: fonts.Regular,

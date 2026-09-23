@@ -52,7 +52,14 @@ export default function BookingDetails({ navigation, route }: BookingDetailsProp
 	const cancelBooking = () => {
 		Alert.alert('Cancel this booking?', 'Cancelling close to the arrival time may affect your acceptance score.', [
 			{ text: 'Keep Booking', style: 'cancel' },
-			{ text: 'Confirm Cancellation', style: 'destructive', onPress: () => navigation.goBack() },
+			{ text: 'Confirm Cancellation', style: 'destructive', onPress: async () => {
+				try {
+					await updateBookingStatus(booking.id, 'cancelled');
+					navigation.goBack();
+				} catch (error) {
+					console.error('Failed to cancel booking:', error);
+				}
+			} },
 		]);
 	};
 
@@ -69,6 +76,7 @@ export default function BookingDetails({ navigation, route }: BookingDetailsProp
 					</View>
 				}
 			/>
+
 			<ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
 				{isAccepted ? (
 					<View style={styles.confirmationCard}>
@@ -81,7 +89,7 @@ export default function BookingDetails({ navigation, route }: BookingDetailsProp
 				<View style={styles.card}>
 					<View style={styles.clientHeader}>
 						<View style={styles.avatar}>
-							  {booking.avatarUrl ? <Image source={{ uri: booking.avatarUrl }} style={styles.avatarImage} /> : <Text style={styles.avatarInitial}>{booking.clientName.charAt(0)}</Text>}
+							{booking.avatarUrl ? <Image source={{ uri: booking.avatarUrl }} style={styles.avatarImage} /> : <Text style={styles.avatarInitial}>{booking.clientName.charAt(0)}</Text>}
 						</View>
 						<View style={styles.clientCopy}>
 							<Text style={styles.clientName}>{booking.clientName}</Text>
@@ -109,30 +117,161 @@ export default function BookingDetails({ navigation, route }: BookingDetailsProp
 				<View style={styles.card}>
 					<InfoRow icon="calendar-outline" label="Scheduled Window" value={booking.dateText} detail="Arrival window: 15 minutes before scheduled time" />
 					{booking.address ? <><View style={styles.cardDivider} />
-					<View style={styles.locationRow}>
-						<InfoRow icon="location-outline" label="Service Location" value={booking.address} detail="Springfield, OR 97477" />
-						<Pressable onPress={openMaps} style={styles.mapsButton}><Text style={styles.mapsButtonText}>Open in Maps</Text><IconX name="open-outline" origin={ICON_TYPE.IONICONS} size={15} color={colors.purple[700]} /></Pressable>
-					</View></> : null}
-					{booking.notes ? <><View style={styles.cardDivider} /><View style={styles.notesBox}><View style={styles.notesHeading}><IconX name="chatbox-ellipses-outline" origin={ICON_TYPE.IONICONS} size={16} color={colors.grey[700]} /><Text style={styles.cardLabel}>Customer Special Instructions</Text></View><Text style={styles.notesText}>“{booking.notes}”</Text></View></> : null}
+						<View style={styles.locationRow}>
+							<InfoRow icon="location-outline" label="Service Location" value={booking.address} detail="Springfield, OR 97477" />
+							{/* <Pressable
+								onPress={openMaps}
+								style={styles.mapsButton}
+							>
+								<Text
+									style={styles.mapsButtonText}
+								>
+									Open in Maps
+								</Text>
+								<IconX
+									name="open-outline"
+									origin={ICON_TYPE.IONICONS}
+									size={15}
+									color={colors.purple[700]}
+								/>
+							</Pressable> */}
+						</View>
+					</> : null}
+					{booking.notes ? <>
+						<View
+							style={styles.cardDivider}
+						/>
+						<View
+							style={styles.notesBox}
+						>
+							<View
+								style={styles.notesHeading}
+							>
+								<IconX
+									name="chatbox-ellipses-outline"
+									origin={ICON_TYPE.IONICONS}
+									size={16}
+									color={colors.grey[700]}
+								/>
+								<Text
+									style={styles.cardLabel}
+								>
+									Customer Special Instructions
+								</Text>
+							</View>
+							<Text
+								style={styles.notesText}
+							>
+								“{booking.notes}”
+							</Text>
+						</View>
+					</>
+						:
+						null
+					}
 				</View>
 
 				{isAccepted ? (
-					<View style={styles.card}>
-						<Text style={styles.cardLabel}>Current Phase</Text>
-						<View style={styles.phaseBar}>
+					<View style={styles.card}
+					>
+						<Text style={styles.cardLabel}
+						>
+							Current Phase
+						</Text>
+						{/* <View style={styles.phaseBar}>
 							<View style={[styles.phaseSegment, styles.phaseActive]} /><View style={[styles.phaseSegment, completed && styles.phaseActive]} /><View style={[styles.phaseSegment, completed && styles.phaseActive]} />
 						</View>
-						<View style={styles.phaseLabels}><Text style={styles.phaseActiveText}>Accepted</Text><Text style={completed ? styles.phaseActiveText : styles.mutedText}>In Progress</Text><Text style={completed ? styles.phaseActiveText : styles.mutedText}>Completed</Text></View>
-						{!completed ? <Pressable style={styles.acceptButton} onPress={() => { setCompleted(true); updateBookingStatus(booking.id, 'completed').catch(() => undefined); }}><IconX name="checkmark-circle" origin={ICON_TYPE.IONICONS} size={20} color={colors.white[100]} /><Text style={styles.acceptText}>Mark as Completed</Text></Pressable> : null}
-						{!completed ? <Pressable style={styles.cancelBookingButton} onPress={cancelBooking}><IconX name="close-circle-outline" origin={ICON_TYPE.IONICONS} size={16} color={colors.red[200]} /><Text style={styles.declineText}>Cancel Booking</Text></Pressable> : null}
+						<View style={styles.phaseLabels}>
+							<Text style={styles.phaseActiveText}>
+								Accepted</Text>
+							<Text
+								style={completed ? styles.phaseActiveText : styles.mutedText}
+							>In Progress</Text>
+							<Text
+								style={completed ? styles.phaseActiveText : styles.mutedText}
+							>Completed</Text>
+						</View> */}
+						{!completed ?
+							<Pressable
+								style={styles.acceptButton}
+								onPress={() => { setCompleted(true); updateBookingStatus(booking.id, 'completed').catch(() => undefined); }}
+							>
+								<IconX
+									name="checkmark-circle"
+									origin={ICON_TYPE.IONICONS}
+									size={20}
+									color={colors.white[100]}
+								/>
+								<Text
+									style={styles.acceptText}
+								>
+									Mark as Completed
+								</Text>
+							</Pressable>
+							:
+							null
+						}
+						{
+							!completed ?
+								<Pressable
+									style={styles.cancelBookingButton}
+									onPress={cancelBooking}
+								>
+									<IconX
+										name="close-circle-outline"
+										origin={ICON_TYPE.IONICONS}
+										size={16}
+										color={colors.red[200]}
+									/>
+									<Text
+										style={styles.declineText}
+									>
+										Cancel Booking
+									</Text>
+								</Pressable>
+								:
+								null
+						}
 					</View>
 				) : null}
 			</ScrollView>
 
-			{!isAccepted && !decision ? (
-				<View style={styles.bottomBar}>
-					<Pressable style={styles.acceptButton} onPress={() => handleDecision('accepted')}><IconX name="checkmark-circle" origin={ICON_TYPE.IONICONS} size={20} color={colors.white[100]} /><Text style={styles.acceptText}>Accept Booking</Text></Pressable>
-					<Pressable style={styles.declineButton} onPress={() => handleDecision('rejected')}><IconX name="close" origin={ICON_TYPE.IONICONS} size={18} color={colors.red[200]} /><Text style={styles.declineText}>Decline Request</Text></Pressable>
+			{booking.status === 'Pending' && !decision ? (
+				<View
+					style={styles.bottomBar}
+				>
+					<Pressable
+						style={styles.acceptButton}
+						onPress={() => handleDecision('accepted')}
+					>
+						<IconX
+							name="checkmark-circle"
+							origin={ICON_TYPE.IONICONS}
+							size={20} color={colors.white[100]}
+						/>
+						<Text
+
+							style={styles.acceptText}
+						>
+							Accept Booking
+						</Text>
+					</Pressable>
+					<Pressable
+						style={styles.declineButton}
+						onPress={() => handleDecision('rejected')}
+					>
+						<IconX
+							name="close"
+							origin={ICON_TYPE.IONICONS}
+							size={18}
+							color={colors.red[200]}
+						/>
+						<Text
+							style={styles.declineText}
+						>
+							Decline Request
+						</Text>
+					</Pressable>
 				</View>
 			) : null}
 		</View>
@@ -140,5 +279,37 @@ export default function BookingDetails({ navigation, route }: BookingDetailsProp
 }
 
 function InfoRow({ icon, label, value, detail }: { icon: string; label: string; value: string; detail: string }) {
-	return <View style={styles.infoRow}><View style={styles.infoIcon}><IconX name={icon} origin={ICON_TYPE.IONICONS} size={20} color={colors.purple[700]} /></View><View style={styles.infoCopy}><Text style={styles.cardLabel}>{label}</Text><Text style={styles.infoValue}>{value}</Text><Text style={styles.mutedText}>{detail}</Text></View></View>;
+	return <View
+		style={styles.infoRow}
+	>
+		<View
+			style={styles.infoIcon}
+		>
+			<IconX
+				name={icon}
+				origin={ICON_TYPE.IONICONS}
+				size={20}
+				color={colors.purple[700]}
+			/>
+		</View>
+		<View
+			style={styles.infoCopy}
+		>
+			<Text
+				style={styles.cardLabel}
+			>
+				{label}
+			</Text>
+			<Text
+				style={styles.infoValue}
+			>
+				{value}
+			</Text>
+			<Text
+				style={styles.mutedText}
+			>
+				{detail}
+			</Text>
+		</View>
+	</View>;
 }

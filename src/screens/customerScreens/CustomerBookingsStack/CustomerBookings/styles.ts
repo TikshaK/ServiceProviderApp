@@ -221,6 +221,13 @@ export const styles = StyleSheet.create({
     fontFamily: fonts.SemiBold,
     color: colors.white[100],
   },
+  btnPrimaryDisabled: {
+    backgroundColor: colors.purple[500],
+    opacity: 0.6,
+  },
+  btnPrimaryTextDisabled: {
+    color: colors.white[100],
+  },
   btnSecondary: {
     flex: 1,
     height: verticalScale(40),

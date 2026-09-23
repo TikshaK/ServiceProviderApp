@@ -14,8 +14,8 @@ const database = getDatabase(getApp());
 const now = () => Date.now();
 
 function snapshotValues<T>(snapshot: any): T[] {
-  const value = snapshot.val() as Record<string, T> | null;
-  return value ? Object.entries(value).map(([id, item]) => ({ ...(item as object), id } as T)) : [];
+  const value = snapshot.val() as Record<string, T | null> | null;
+  return value ? Object.entries(value).filter(([, item]) => item != null).map(([id, item]) => ({ ...(item as object), id } as T)) : [];
 }
 
 export async function saveUserProfile(uid: string, payload: SignUpProfilePayload): Promise<UserProfile> {
@@ -106,7 +106,8 @@ export async function deleteService(service: Service): Promise<void> {
 
 export async function getService(serviceId: string): Promise<Service | null> {
   const snapshot = await get(ref(database, `services/${serviceId}`));
-  return snapshot.exists() ? ({ id: serviceId, ...snapshot.val() } as Service) : null;
+  const val = snapshot.val();
+  return (snapshot.exists() && val != null) ? ({ id: serviceId, ...val } as Service) : null;
 }
 
 export async function getServices(options: { providerId?: string; category?: string; activeOnly?: boolean } = {}): Promise<Service[]> {
@@ -115,13 +116,13 @@ export async function getServices(options: { providerId?: string; category?: str
     : options.category
       ? query(ref(database, 'services'), orderByChild('category'), equalTo(options.category))
       : ref(database, 'services');
-  const services = snapshotValues<Service>(await get(serviceQuery));
+  const services = snapshotValues<Service>(await get(serviceQuery)).filter(s => s != null);
   const visibleServices = options.providerId
     ? services
     : await Promise.all(services.map(async service => {
       const provider = await getUserProfile(service.providerId);
       return provider?.availability === 'offlineToday' ? null : service;
-    })).then(items => items.filter((service): service is Service => service !== null));
+    })).then(items => items.filter((service): service is Service => service != null));
   return options.activeOnly === false ? visibleServices : visibleServices.filter(service => service.isActive !== false);
 }
 
@@ -175,7 +176,8 @@ export async function createBooking(payload: CreateBookingPayload): Promise<Book
 export async function getBookings(field: 'customerId' | 'providerId', value: string, status?: BookingStatus): Promise<Booking[]> {
   const bookingQuery = query(ref(database, 'bookings'), orderByChild(field), equalTo(value));
   const bookings = snapshotValues<Booking>(await get(bookingQuery));
-  return status ? bookings.filter(booking => booking.status === status) : bookings;
+  const result = status ? bookings.filter(booking => booking.status === status) : bookings;
+  return result.sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0));
 }
 
 export async function updateBookingStatus(
@@ -183,11 +185,50 @@ export async function updateBookingStatus(
   status: BookingStatus,
 ): Promise<void> {
   try {
-    console.log("Chaning status")
-    await update(ref(database, `bookings/${bookingId}`), {
-      status,
-      updatedAt: now(),
-    });
+    const bookingSnap = await get(ref(database, `bookings/${bookingId}`));
+    const booking = bookingSnap.exists() ? { id: bookingId, ...bookingSnap.val() } as any : null;
+    if (!booking) {
+      throw new Error('Booking not found');
+    }
+
+    const updatedAt = now();
+    await update(ref(database, `bookings/${bookingId}`), { status, updatedAt });
+
+    // Determine notification type and recipient
+    const isCancelled = status === 'cancelled';
+    let notificationType: NotificationType;
+    let title: string;
+    let body: string;
+    let recipientId: string;
+
+    if (status === 'accepted') {
+      notificationType = 'bookingAccepted';
+      title = 'Booking Accepted';
+      body = `${booking.providerSnapshot?.fullName ?? 'Provider'} accepted your booking.`;
+      recipientId = booking.customerId;
+    } else if (status === 'declined') {
+      notificationType = 'bookingDeclined';
+      title = 'Booking Declined';
+      body = `${booking.providerSnapshot?.fullName ?? 'Provider'} declined your booking.`;
+      recipientId = booking.customerId;
+    } else if (status === 'completed') {
+      notificationType = 'bookingCompleted';
+      title = 'Booking Completed';
+      body = `${booking.providerSnapshot?.fullName ?? 'Provider'} has completed the job.`;
+      recipientId = booking.customerId;
+    } else if (isCancelled) {
+      notificationType = 'bookingCancelled';
+      title = 'Booking Cancelled';
+      body = `This booking has been cancelled.`;
+      // Notify both parties
+      await createNotification(booking.customerId, 'bookingCancelled', 'Booking Cancelled', `This booking has been cancelled.`, bookingId, booking.providerId);
+      await createNotification(booking.providerId, 'bookingCancelled', 'Booking Cancelled', `This booking has been cancelled.`, bookingId, booking.customerId);
+      return;
+    } else {
+      return;
+    }
+
+    await createNotification(recipientId, notificationType, title, body, bookingId, booking.providerId);
   } catch (error) {
     console.error('[DB] updateBookingStatus FAILED', {
       bookingId,
@@ -220,6 +261,12 @@ export async function getAddresses(customerId: string): Promise<CustomerAddress[
   return snapshotValues<CustomerAddress>(await get(ref(database, `addresses/${customerId}`)));
 }
 
+export async function deleteAddress(customerId: string, addressId: string): Promise<void> {
+  await update(ref(database), {
+    [`addresses/${customerId}/${addressId}`]: null,
+  });
+}
+
 export async function createReview(review: Omit<Review, 'id' | 'createdAt'>): Promise<Review> {
   const reviewRef = push(ref(database, 'reviews'));
   const savedReview: Review = { ...review, id: reviewRef.key as string, createdAt: now() };
@@ -233,6 +280,11 @@ export async function createReview(review: Omit<Review, 'id' | 'createdAt'>): Pr
 
 export async function getReviews(revieweeId: string): Promise<Review[]> {
   const reviewQuery = query(ref(database, 'reviews'), orderByChild('revieweeId'), equalTo(revieweeId));
+  return snapshotValues<Review>(await get(reviewQuery));
+}
+
+export async function getReviewsByReviewerId(reviewerId: string): Promise<Review[]> {
+  const reviewQuery = query(ref(database, 'reviews'), orderByChild('reviewerId'), equalTo(reviewerId));
   return snapshotValues<Review>(await get(reviewQuery));
 }
 

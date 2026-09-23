@@ -7,9 +7,10 @@ import {
   View
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ICON_TYPE, IconX } from '../../../../components';
+import { ICON_TYPE, IconX, CustomHeader } from '../../../../components';
 import { colors, strings } from '../../../../constants';
-import { markNotificationRead, subscribeToNotifications } from '../../../../services/firebase';
+import { markNotificationRead, 
+  subscribeToNotifications } from '../../../../services/firebase';
 import { useAppSelector } from '../../../../store';
 import { styles } from './styles';
 
@@ -75,7 +76,7 @@ const NOTIFICATIONS_DATA = [
   }
 ];
 
-export default function CustomerNotifications() {
+export default function CustomerNotifications({navigation}) {
   const insets = useSafeAreaInsets();
   const [activeFilter, setActiveFilter] = useState<FilterType>('All');
   const [notifications, setNotifications] = useState<typeof NOTIFICATIONS_DATA>([]);
@@ -103,6 +104,15 @@ export default function CustomerNotifications() {
   return (
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" />
+
+      <CustomHeader
+      
+      title={strings.notifications.title}
+      showBackButton
+              backgroundColor={colors.white[100]}
+              onLeftPress={() => navigation.goBack()}
+
+      />
       
       <ScrollView
         contentContainerStyle={[styles.contentContainer, 
@@ -113,7 +123,7 @@ export default function CustomerNotifications() {
        
 
         {/* Filters */}
-        <ScrollView 
+        {/* <ScrollView 
           horizontal 
           showsHorizontalScrollIndicator={false}
           style={styles.filterScroll}
@@ -132,7 +142,7 @@ export default function CustomerNotifications() {
               {activeFilter === filter && <View style={styles.filterDot} />}
             </TouchableOpacity>
           ))}
-        </ScrollView>
+        </ScrollView> */}
 
         {/* Notifications List */}
         <View style={styles.notificationsList}>

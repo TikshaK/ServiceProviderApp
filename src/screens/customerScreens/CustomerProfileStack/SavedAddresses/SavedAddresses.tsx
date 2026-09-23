@@ -1,9 +1,9 @@
 import React, { useCallback, useState } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
-import { Pressable, ScrollView, StatusBar, Text, View } from 'react-native';
+import { Alert, Pressable, ScrollView, StatusBar, Text, View } from 'react-native';
 import { CustomHeader, ICON_TYPE, IconX } from '../../../../components';
 import { colors, navigationStrings } from '../../../../constants';
-import { getAddresses } from '../../../../services/firebase';
+import { getAddresses, deleteAddress } from '../../../../services/firebase';
 import { useAppSelector } from '../../../../store';
 import type { CustomerAddress } from '../../../../types/address';
 import { styles } from './styles';
@@ -16,6 +16,27 @@ export default function SavedAddresses({ navigation }: { navigation: any }) {
 		if (!profile?.uid) return;
 		getAddresses(profile.uid).then(setAddresses).catch(() => setAddresses([]));
 	}, [profile?.uid]);
+
+	const handleDelete = (address: CustomerAddress) => {
+		if (!profile?.uid) return;
+		Alert.alert(
+			'Delete Address?',
+			`Are you sure you want to delete "${address.label}"?`,
+			[
+				{ text: 'Cancel', style: 'cancel' },
+				{
+					text: 'Delete', style: 'destructive', onPress: async () => {
+						try {
+							await deleteAddress(profile.uid, address.id);
+							loadAddresses();
+						} catch {
+							// ignore
+						}
+					},
+				},
+			]
+		);
+	};
 
 	useFocusEffect(useCallback(() => {
 		loadAddresses();
@@ -138,6 +159,18 @@ export default function SavedAddresses({ navigation }: { navigation: any }) {
 										origin={ICON_TYPE.MATERIAL_ICONS}
 										size={15}
 										color={colors.purple[700]}
+									/>
+								</Pressable>
+								<Pressable
+									accessibilityLabel={`Delete ${address.label} address`}
+									onPress={() => handleDelete(address)}
+									style={styles.deleteButton}
+								>
+									<IconX
+										name="delete"
+										origin={ICON_TYPE.MATERIAL_ICONS}
+										size={15}
+										color={colors.red[200]}
 									/>
 								</Pressable>
 							</View>

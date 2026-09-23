@@ -81,33 +81,135 @@ export default function ProviderEditProfile({ navigation }: ProviderEditProfileP
     };
 
     return (
-        <View style={styles.container}>
-            <StatusBar barStyle="dark-content" />
-            <CustomHeader title={strings.profile.profileEditor} showBackButton onLeftPress={() => navigation.goBack()} backgroundColor={colors.purple[50]} />
-            <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-                <View style={styles.contextRow}>
-                    <Text style={styles.screenTitle}>Edit Profile</Text>
-                    <View style={styles.accountBadge}><IconX name="checkmark-circle" origin={ICON_TYPE.IONICONS} size={15} color={colors.purple[700]} /><Text style={styles.accountBadgeText}>Provider account</Text></View>
+        <View
+            style={styles.container}
+        >
+            <StatusBar
+                barStyle="dark-content"
+            />
+            <CustomHeader
+                title={strings.profile.profileEditor}
+                showBackButton onLeftPress={() => navigation.goBack()}
+                backgroundColor={colors.purple[50]}
+            />
+            <ScrollView
+                contentContainerStyle={styles.content}
+                keyboardShouldPersistTaps="handled"
+                showsVerticalScrollIndicator={false}
+            >
+                <View
+                    style={styles.contextRow}
+                >
+                    <Text
+                        style={styles.screenTitle}
+                    >
+                        Edit Profile
+
+                    </Text>
+                    <View
+                        style={styles.accountBadge}
+                    >
+                        <IconX
+                            name="checkmark-circle"
+                            origin={ICON_TYPE.IONICONS}
+                            size={15}
+                            color={colors.purple[700]}
+                        />
+                        <Text
+                            style={styles.accountBadgeText}
+                        >
+                            Provider account
+                        </Text>
+                    </View>
                 </View>
 
                 <View style={styles.avatarSection}>
                     <View style={styles.avatarWrap}>
-                        {avatarUri ? <Image source={{ uri: avatarUri }} style={styles.avatar} /> : <View style={styles.avatarPlaceholder}><IconX name="person" origin={ICON_TYPE.IONICONS} size={34} color={colors.purple[700]} /></View>}
-                        <Pressable accessibilityLabel="Change profile photo" disabled={pickerLoading} onPress={() => chooseSource(handleAvatarSelected, 1)} style={styles.cameraButton}><IconX name="camera" origin={ICON_TYPE.IONICONS} size={17} color={colors.white[100]} /></Pressable>
+                        {avatarUri ?
+                            <Image
+                                source={{ uri: avatarUri }}
+                                style={styles.avatar}
+                            />
+                            :
+                            <View
+                                style={styles.avatarPlaceholder}
+                            >
+                                <IconX
+                                    name="person"
+                                    origin={ICON_TYPE.IONICONS}
+                                    size={34}
+                                    color={colors.purple[700]}
+                                />
+                            </View>
+                        }
+                        <Pressable
+                            accessibilityLabel="Change profile photo"
+                            disabled={pickerLoading}
+                            onPress={() => chooseSource(handleAvatarSelected, 1)}
+                            style={styles.cameraButton}
+                        >
+                            <IconX
+                                name="camera"
+                                origin={ICON_TYPE.IONICONS}
+                                size={17} color={colors.white[100]}
+                            />
+                        </Pressable>
                     </View>
-                    <Pressable disabled={pickerLoading} onPress={() => chooseSource(handleAvatarSelected, 1)}><Text style={styles.changePhotoText}>Change Photo</Text></Pressable>
                 </View>
 
-                <Section title={strings.profile.personalInformation} step="Step 1 of 3">
-                    <Field label={strings.commonForms.fullName} value={fullName} onChangeText={setFullName} placeholder={strings.commonForms.yourFullName} icon="person-outline" />
-                    <Field label={strings.commonForms.phoneNumber} value={phone} onChangeText={setPhone} placeholder={strings.commonForms.yourPhoneNumber} keyboardType="phone-pad" icon="call-outline" />
-                    <Field label={strings.commonForms.emailAddress} value={profile?.email ?? authEmail ?? ''} onChangeText={() => undefined} placeholder={strings.commonForms.yourEmailAddress} icon="mail-outline" editable={false} helper={strings.commonForms.emailManaged} />
+                <Section
+                    title={strings.profile.personalInformation}
+                    step="Step 1 of 3"
+                >
+                    <Field
+                        label={strings.commonForms.fullName}
+                        value={fullName}
+                        onChangeText={setFullName}
+                        placeholder={strings.commonForms.yourFullName}
+                        icon="person-outline"
+                    />
+                    <Field
+                        label={strings.commonForms.phoneNumber}
+                        value={phone}
+                        onChangeText={setPhone}
+                        placeholder={strings.commonForms.yourPhoneNumber}
+                        keyboardType="phone-pad"
+                        icon="call-outline"
+                    />
+                    <Field
+                        label={strings.commonForms.emailAddress}
+                        value={profile?.email ?? authEmail ?? ''}
+                        onChangeText={() => undefined}
+                        placeholder={strings.commonForms.yourEmailAddress}
+                        icon="mail-outline"
+                        editable={false}
+                        helper={strings.commonForms.emailManaged}
+                    />
                 </Section>
 
-                <Section title={strings.profile.businessInformation} step="Step 2 of 3">
-                    <Field label={strings.profile.businessName} value={serviceName} onChangeText={setServiceName} placeholder={strings.profile.providerBusinessPlaceholder} icon="business-outline" />
-                    <Field label={strings.profile.businessCategory} value={category} onChangeText={setCategory} placeholder={strings.profile.categoryPlaceholder} icon="briefcase-outline" />
-                    <Field label={strings.profile.yearsExperience} value={experience} onChangeText={setExperience} placeholder={strings.profile.experiencePlaceholder} keyboardType="number-pad" icon="ribbon-outline" />
+                <Section
+                    title={strings.profile.businessInformation}
+                    step="Step 2 of 3"
+                >
+                    <Field
+                        label={strings.profile.businessName}
+                        value={serviceName} onChangeText={setServiceName}
+                        placeholder={strings.profile.providerBusinessPlaceholder}
+                        icon="business-outline"
+                    />
+                    <Field
+                        label={strings.profile.businessCategory}
+                        value={category} onChangeText={setCategory}
+                        placeholder={strings.profile.categoryPlaceholder}
+                        icon="briefcase-outline"
+                    />
+                    <Field
+                        label={strings.profile.yearsExperience}
+                        value={experience} onChangeText={setExperience}
+                        placeholder={strings.profile.experiencePlaceholder}
+                        keyboardType="number-pad"
+                        icon="ribbon-outline"
+                    />
                 </Section>
 
 

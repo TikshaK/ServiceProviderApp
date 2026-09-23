@@ -118,18 +118,46 @@ export const CustomerTabNavigator = () => {
             <Tab.Screen
                 name={navigationStrings.CUSTOMER_HOME_STACK}
                 component={CustomerHomeStack}
+                listeners={({ navigation }) => ({
+                    tabPress: () => {
+                        navigation.navigate(navigationStrings.CUSTOMER_HOME_STACK, {
+                            screen: navigationStrings.CUSTOMER_HOME,
+                        });
+                    },
+                })}
             />
             <Tab.Screen
                 name={navigationStrings.CUSTOMER_BOOKINGS_STACK}
                 component={CustomerBookingsStack}
+                listeners={({ navigation }) => ({
+                    tabPress: () => {
+                        navigation.navigate(navigationStrings.CUSTOMER_BOOKINGS_STACK, {
+                            screen: navigationStrings.CUSTOMER_BOOKINGS,
+                        });
+                    },
+                })}
             />
             <Tab.Screen
                 name={navigationStrings.CUSTOMER_NOTIFICATIONS_STACK}
                 component={CustomerNotificationsStack}
+                listeners={({ navigation }) => ({
+                    tabPress: () => {
+                        navigation.navigate(navigationStrings.CUSTOMER_NOTIFICATIONS_STACK, {
+                            screen: navigationStrings.NOTIFICATIONS,
+                        });
+                    },
+                })}
             />
             <Tab.Screen
                 name={navigationStrings.CUSTOMER_PROFILE_STACK}
                 component={CustomerProfileStack}
+                listeners={({ navigation }) => ({
+                    tabPress: () => {
+                        navigation.navigate(navigationStrings.CUSTOMER_PROFILE_STACK, {
+                            screen: navigationStrings.CUSTOMER_PROFILE,
+                        });
+                    },
+                })}
             />
         </Tab.Navigator>
     );

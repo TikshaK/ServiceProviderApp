@@ -110,31 +110,7 @@ export default function EditCustomerProfile({ navigation }: Props) {
 							/>
 						</Pressable>
 					</View>
-					<View
-						style={styles.photoActions}
-					>
-						<Pressable
-							disabled={pickerLoading}
-							onPress={() => chooseSource(handleAvatarSelected, 1)}
-						>
-							<Text
-								style={styles.photoActionText}
-							>
-								Change Photo
-							</Text>
-						</Pressable>
-						<View
-							style={styles.photoDot}
-						/>
-						<Pressable
-							onPress={() => setAvatarUri(FALLBACK_AVATAR)}
-						><Text
-							style={styles.removePhotoText}
-						>
-								Remove
-							</Text>
-						</Pressable>
-					</View>
+				
 				</View>
 				<View
 					style={styles.form}

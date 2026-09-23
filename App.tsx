@@ -1,19 +1,29 @@
 import { NavigationContainer } from '@react-navigation/native';
-import { StatusBar, useColorScheme, View } from 'react-native';
+import { 
+  StatusBar, useColorScheme, View 
+} from 'react-native';
 import { Provider } from 'react-redux';
-import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { 
+  SafeAreaProvider, useSafeAreaInsets 
+} from 'react-native-safe-area-context';
 import { RootNavigator } from './src/navigation';
 import { store, useAuthListener } from './src/store';
 import Toast from 'react-native-toast-message';
 
 function App() {
   const isDarkMode = useColorScheme() === 'dark';
-  
+
   return (
-    <SafeAreaProvider>
-      <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
-      <Provider store={store}>
-        <AppContent />
+    <SafeAreaProvider
+    >
+      <StatusBar
+        barStyle={isDarkMode ? 'light-content' : 'dark-content'}
+      />
+      <Provider
+        store={store}
+      >
+        <AppContent
+        />
       </Provider>
     </SafeAreaProvider>
   );
@@ -29,9 +39,11 @@ function AppContent() {
         flex: 1,
         paddingTop: insets.top
       }}>
-        <RootNavigator />
+        <RootNavigator
+        />
       </View>
-        <Toast />
+      <Toast
+      />
     </NavigationContainer>
   );
 }

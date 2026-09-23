@@ -2,6 +2,7 @@ import React from 'react';
 import { Alert, Image, Linking, Pressable, ScrollView, StatusBar, Text, View } from 'react-native';
 import { CustomHeader, ICON_TYPE, IconX } from '../../../../components';
 import { colors } from '../../../../constants';
+import { updateBookingStatus } from '../../../../services/firebase';
 import { styles } from './styles';
 
 type Booking = { id: string; date: string; status: string; title: string; provider: string; specialist: string; location: string; price: string; image: string };
@@ -12,11 +13,20 @@ const FALLBACK_BOOKING: Booking = { id: 'booking', date: 'Tomorrow, 25 Oct • 1
 export default function CustomerBookingDetails({ navigation, route }: Props) {
 	const booking = route?.params?.booking ?? FALLBACK_BOOKING;
 	const isAccepted = booking.status === 'Accepted';
+	const isCompleted = booking.status === 'Completed';
+	const isCancelled = booking.status === 'Cancelled';
 
 	const cancelBooking = () => {
 		Alert.alert('Cancel Booking?', 'Are you sure you want to cancel this booking? Free cancellation is available up to 2 hours before arrival.', [
 			{ text: 'Keep Booking', style: 'cancel' },
-			{ text: 'Cancel Booking', style: 'destructive', onPress: () => navigation.goBack() },
+			{ text: 'Cancel Booking', style: 'destructive', onPress: async () => {
+				try {
+					await updateBookingStatus(booking.id, 'cancelled');
+					navigation.goBack();
+				} catch (error) {
+					console.error('Failed to cancel booking:', error);
+				}
+			} },
 		]);
 	};
 
@@ -40,8 +50,8 @@ export default function CustomerBookingDetails({ navigation, route }: Props) {
 						style={styles.statusIcon}
 					>
 						<IconX
-							name={isAccepted ? 'check-decagram' : 'time-outline'}
-							origin={isAccepted ?ICON_TYPE.MATERIAL_COMMUNITY:ICON_TYPE.IONICONS}
+							name={isAccepted ? 'check-decagram' : isCompleted ? 'check-circle' : isCancelled ? 'close-circle' : 'time-outline'}
+							origin={isAccepted || isCompleted ? ICON_TYPE.MATERIAL_COMMUNITY : ICON_TYPE.IONICONS}
 							size={23}
 							color={colors.purple[700]}
 						/>
@@ -55,16 +65,16 @@ export default function CustomerBookingDetails({ navigation, route }: Props) {
 							<Text
 								style={styles.statusTitle}
 							>
-								{isAccepted ? 'Accepted & Confirmed' : 'Booking Pending'}
+								{isAccepted ? 'Accepted & Confirmed' : isCompleted ? 'Booking Completed' : isCancelled ? 'Booking Cancelled' : 'Booking Pending'}
 							</Text>
 							<Text style={styles.scheduleBadge}
-							>{isAccepted ? 'On Schedule' : 'Awaiting approval'}
+							>{isAccepted ? 'On Schedule' : isCompleted ? 'Completed' : isCancelled ? 'Cancelled' : 'Awaiting approval'}
 							</Text>
 						</View>
 						<Text
 							style={styles.statusDescription}
 						>
-							{isAccepted ? `Technician ${booking.specialist} is scheduled to arrive on ${booking.date}.` : 'Your request has been sent to the service provider.'}
+							{isAccepted ? `Technician ${booking.specialist} is scheduled to arrive on ${booking.date}.` : isCompleted ? `Your booking with ${booking.specialist} has been completed.` : isCancelled ? 'This booking has been cancelled.' : 'Your request has been sent to the service provider.'}
 						</Text>
 					</View>
 				</View>
@@ -240,31 +250,34 @@ export default function CustomerBookingDetails({ navigation, route }: Props) {
 						<Text
 							style={styles.totalAmount}
 						>
-							{isAccepted ? '$128.50' : booking.price}</Text>
+							{isAccepted ? '$128.50' : booking.price}
+						</Text>
 					</View>
 				</View>
 
-				<View
-					style={styles.cancelArea}
-				>
-					<Pressable
-						style={styles.cancelButton}
-						onPress={cancelBooking}
+				{!isCancelled && !isCompleted &&
+					<View
+						style={styles.cancelArea}
 					>
-						<IconX
-							name="close-circle-outline"
-							origin={ICON_TYPE.IONICONS}
-							size={20}
-							color={colors.red[200]}
-						/>
-						<Text
-							style={styles.cancelText}
+						<Pressable
+							style={styles.cancelButton}
+							onPress={cancelBooking}
 						>
-							Cancel Booking
-						</Text>
-					</Pressable>
+							<IconX
+								name="close-circle-outline"
+								origin={ICON_TYPE.IONICONS}
+								size={20}
+								color={colors.red[200]}
+							/>
+							<Text
+								style={styles.cancelText}
+							>
+								Cancel Booking
+							</Text>
+						</Pressable>
 
-				</View>
+					</View>
+				}
 			</ScrollView>
 		</View>
 	);

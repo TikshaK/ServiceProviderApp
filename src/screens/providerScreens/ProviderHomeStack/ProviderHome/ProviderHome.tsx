@@ -59,6 +59,7 @@ const OVERVIEW_STATS = [
     iconColor: '#059669',
     countColor: '#059669',
   },
+
 ] as const;
 
 const QUICK_ACTIONS = [
@@ -141,12 +142,12 @@ export default function ProviderHome({ navigation }: any) {
   const profile = useAppSelector(state => state.user.profile);
   const displayName = profile?.fullName?.trim() || 'Provider';
   const [recentBookings, setRecentBookings] = useState<any[]>([...RECENT_BOOKINGS]);
-  const [overviewCounts, setOverviewCounts] = useState({ pending: 0, upcoming: 0, completed: 0 });
+  const [overviewCounts, setOverviewCounts] = useState({ pending: 0, upcoming: 0, completed: 0, cancelled: 0 });
 
   useFocusEffect(useCallback(() => {
     if (!profile?.uid) {
       setRecentBookings([]);
-      setOverviewCounts({ pending: 0, upcoming: 0, completed: 0 });
+      setOverviewCounts({ pending: 0, upcoming: 0, completed: 0, cancelled: 0 });
       return;
     }
 
@@ -158,6 +159,7 @@ export default function ProviderHome({ navigation }: any) {
         pending: bookings.filter(booking => booking.status === 'pending' && !isBookingExpired(booking)).length,
         upcoming: bookings.filter(booking => (booking.status === 'accepted' || booking.status === 'inProgress') && isScheduledToday(booking.scheduledDate, booking.scheduledTime)).length,
         completed: bookings.filter(booking => booking.status === 'completed').length,
+        cancelled: bookings.filter(booking => booking.status === 'cancelled' || booking.status === 'declined').length,
       });
 
       const mappedBookings = bookings
@@ -249,14 +251,16 @@ export default function ProviderHome({ navigation }: any) {
           </Pressable>
         </View>
 
-        <View style={styles.section}
+        <View
+          style={styles.section}
         >
-          <Text style={styles.sectionTitle}
+          <Text
+            style={styles.sectionTitle}
           >
             {strings.home.todaysOverview}
-
           </Text>
-          <View style={styles.overviewGrid}
+          <View
+            style={styles.overviewGrid}
           >
             {OVERVIEW_STATS.map(stat => (
               <Pressable
@@ -472,7 +476,11 @@ export default function ProviderHome({ navigation }: any) {
                           color={timeIconColor}
                         />
                         <Text
-                          style={[styles.bookingTimeText, isCompleted && styles.bookingTimeTextMuted]}
+                          style={[
+                            styles.bookingTimeText,
+                            isCompleted && styles.bookingTimeTextMuted
+                          ]}
+                          adjustsFontSizeToFit
                         >
                           {booking.timeText}
                         </Text>

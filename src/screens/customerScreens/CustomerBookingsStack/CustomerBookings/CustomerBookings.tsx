@@ -1,4 +1,5 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import {
   Image,
   ScrollView,
@@ -9,7 +10,7 @@ import {
 } from 'react-native';
 import { CustomSearchBar, CustomTab, EmptyState, ICON_TYPE, IconX } from '../../../../components';
 import { colors, navigationStrings, strings } from '../../../../constants';
-import { getBookings } from '../../../../services/firebase';
+import { getBookings, getReviewsByReviewerId } from '../../../../services/firebase';
 import { useAppSelector } from '../../../../store';
 import { isBookingExpired } from '../../../../types/booking';
 import { styles } from './styles';
@@ -86,28 +87,38 @@ export default function CustomerBookings({ navigation }: { navigation: any }) {
   const [completedBookings, setCompletedBookings] = useState<DisplayBooking[]>([]);
   const [cancelledBookings, setCancelledBookings] = useState<DisplayBooking[]>([]);
   const [expiredBookings, setExpiredBookings] = useState<DisplayBooking[]>([]);
+  const [ratedBookingIds, setRatedBookingIds] = useState<Set<string>>(new Set());
 
-  useEffect(() => {
-    if (!profile?.uid) return;
-    getBookings('customerId', profile.uid).then(bookings => {
-      const mapBooking = (booking: any) => ({
-        id: booking.id,
-        providerId: booking.providerId,
-        date: `${booking.scheduledDate} • ${booking.scheduledTime}`,
-        status: isBookingExpired(booking) ? 'Expired' : booking.status === 'completed' ? 'Completed' : booking.status === 'accepted' || booking.status === 'inProgress' ? 'Accepted' : booking.status === 'cancelled' ? 'Cancelled' : 'Pending',
-        title: booking.serviceSnapshot.title,
-        provider: booking.providerSnapshot.serviceName ?? booking.providerSnapshot.fullName,
-        specialist: booking.providerSnapshot.fullName,
-        location: booking.addressSnapshot.street,
-        price: `$${booking.totalAmount.toFixed(2)}`,
-        image: booking.serviceSnapshot.imageUrls?.[0] ?? '',
-      });
-      setUpcomingBookings(bookings.filter(booking => booking.status !== 'completed' && booking.status !== 'cancelled' && !isBookingExpired(booking)).map(mapBooking));
-      setCompletedBookings(bookings.filter(booking => booking.status === 'completed').map(mapBooking));
-      setCancelledBookings(bookings.filter(booking => booking.status === 'cancelled').map(mapBooking));
-      setExpiredBookings(bookings.filter(isBookingExpired).map(mapBooking));
-    }).catch(() => undefined);
-  }, [profile?.uid]);
+  useFocusEffect(
+    useCallback(() => {
+      if (!profile?.uid) return;
+      Promise.all([
+        getBookings('customerId', profile.uid),
+        getReviewsByReviewerId(profile.uid),
+      ]).then(([bookings, reviews]) => {
+        const sortedBookings = bookings.sort((a, b) => b.createdAt - a.createdAt);
+        const ratedIds = new Set(reviews.map(review => review.bookingId));
+        setRatedBookingIds(ratedIds);
+        const mapBooking = (booking: any) => ({
+          id: booking.id,
+          providerId: booking.providerId,
+          date: `${booking.scheduledDate} • ${booking.scheduledTime}`,
+          status: isBookingExpired(booking) ? 'Expired' : booking.status === 'completed' ? 'Completed' : booking.status === 'accepted' || booking.status === 'inProgress' ? 'Accepted' : booking.status === 'cancelled' || booking.status === 'declined' ? 'Cancelled' : 'Pending',
+          title: booking.serviceSnapshot.title,
+          provider: booking.providerSnapshot.serviceName ?? booking.providerSnapshot.fullName,
+          specialist: booking.providerSnapshot.fullName,
+          location: booking.addressSnapshot.street,
+          price: `$${booking.totalAmount.toFixed(2)}`,
+          image: booking.serviceSnapshot.imageUrls?.[0] ?? '',
+        });
+        setUpcomingBookings(sortedBookings.filter(booking => booking.status !== 'completed' && booking.status !== 'cancelled' && booking.status !== 'declined' && !isBookingExpired(booking)).map(mapBooking));
+        setCompletedBookings(sortedBookings.filter(booking => booking.status === 'completed').map(mapBooking));
+        setCancelledBookings(sortedBookings.filter(booking => booking.status === 'cancelled' || booking.status === 'declined').map(mapBooking));
+        setExpiredBookings(sortedBookings.filter(isBookingExpired).map(mapBooking));
+      }).catch(() => undefined);
+      return () => {};
+    }, [profile?.uid])
+  );
 
   const matchesSearch = (booking: DisplayBooking) => {
     const query = searchQuery.trim().toLowerCase();
@@ -169,9 +180,13 @@ export default function CustomerBookings({ navigation }: { navigation: any }) {
               return (
                 <TouchableOpacity
                   key={item.id}
-                  style={styles.card} activeOpacity={0.9}
-                  onPress={() => navigation.navigate(navigationStrings.CUSTOMER_BOOKING_DETAILS, { booking: item })
-                  }>
+                  style={styles.card} 
+                  activeOpacity={1}
+                  // onPress={() => navigation.navigate(navigationStrings.CUSTOMER_BOOKING_DETAILS, { booking: item }
+
+                  // )
+                  // }
+                  >
 
                   {/* Top Row: Date & Status */}
                   <View style={styles.cardTop}>
@@ -204,6 +219,7 @@ export default function CustomerBookings({ navigation }: { navigation: any }) {
                       item.status === 'Accepted' && styles.statusBadgeAccepted,
                       item.status === 'Pending' && styles.statusBadgePending,
                       item.status === 'Completed' && styles.statusBadgeCompleted,
+                      item.status === 'Cancelled' && styles.statusBadgeCancelled,
                       item.status === 'Expired' && styles.statusBadgeCancelled,
                     ]}>
                       {
@@ -215,6 +231,13 @@ export default function CustomerBookings({ navigation }: { navigation: any }) {
                               origin={ICON_TYPE.MATERIAL_ICONS}
                               size={14}
                               color="#059669"
+                            />
+                          ) : item.status === 'Cancelled' ? (
+                            <IconX
+                              name="close-circle"
+                              origin={ICON_TYPE.MATERIAL_ICONS}
+                              size={14}
+                              color="#DC2626"
                             />
                           ) : (
                             <IconX
@@ -229,6 +252,7 @@ export default function CustomerBookings({ navigation }: { navigation: any }) {
                         item.status === 'Accepted' && styles.statusTextAccepted,
                         item.status === 'Pending' && styles.statusTextPending,
                         item.status === 'Completed' && styles.statusTextCompleted,
+                        item.status === 'Cancelled' && styles.statusTextCancelled,
                         item.status === 'Expired' && styles.statusTextCancelled,
                       ]}>
                         {item.status}
@@ -267,7 +291,8 @@ export default function CustomerBookings({ navigation }: { navigation: any }) {
                     <TouchableOpacity
                       style={styles.btnSecondary}
                       activeOpacity={0.8}
-                      onPress={() => navigation.navigate(navigationStrings.CUSTOMER_BOOKING_DETAILS, { booking: item })}
+                      onPress={() => 
+                        navigation.navigate(navigationStrings.CUSTOMER_BOOKING_DETAILS, { booking: item })}
                     >
                       <Text
                         style={styles.btnSecondaryText}
@@ -289,23 +314,40 @@ export default function CustomerBookings({ navigation }: { navigation: any }) {
                       </TouchableOpacity>
                     )}
                     {activeTab === 'completed' && (
-                      <TouchableOpacity
-                        style={styles.btnPrimary}
-                        activeOpacity={0.8}
-                        onPress={() => navigation.navigate(navigationStrings.CUSTOMER_REVIEW_BOOKING, { booking: item })}
-                      >
-                        <IconX
-                          name="star"
-                          origin={ICON_TYPE.MATERIAL_ICONS}
-                          size={16}
-                          color={colors.white[100]}
-                        />
-                        <Text
-                          style={styles.btnPrimaryText}
+                      ratedBookingIds.has(item.id) ? (
+                        <TouchableOpacity
+                          style={[styles.btnPrimary, styles.btnPrimaryDisabled]}
+                          disabled={true}
                         >
-                          {strings.customerBookings.rateBooking}
-                        </Text>
-                      </TouchableOpacity>
+                          <IconX
+                            name="star"
+                            origin={ICON_TYPE.MATERIAL_ICONS}
+                            size={16} color={colors.white[100]}
+                          />
+                          <Text
+                            style={[
+                              styles.btnPrimaryText,
+                              styles.btnPrimaryTextDisabled
+
+                            ]}
+                          >
+                            Already Rated
+                          </Text>
+                        </TouchableOpacity>
+                      ) : (
+                        <TouchableOpacity
+                          style={styles.btnPrimary}
+                          activeOpacity={0.8}
+                          onPress={() => navigation.navigate(navigationStrings.CUSTOMER_REVIEW_BOOKING, { booking: item })}
+                        >
+                          <IconX
+                            name="star"
+                            origin={ICON_TYPE.MATERIAL_ICONS}
+                            size={16} color={colors.white[100]}
+                          />
+                          <Text style={styles.btnPrimaryText}>{strings.customerBookings.rateBooking}</Text>
+                        </TouchableOpacity>
+                      )
                     )}
                   </View>
                 </TouchableOpacity>
@@ -341,10 +383,17 @@ export default function CustomerBookings({ navigation }: { navigation: any }) {
                     {item.date}
                   </Text>
                 </View>
-                <Text
-                  style={styles.statusText}>
-                  {item.status}
-                </Text>
+                <View style={[
+                  styles.statusBadge,
+                  styles.statusBadgeCancelled,
+                ]}>
+                  <Text style={[
+                    styles.statusText,
+                    styles.statusTextCancelled,
+                  ]}>
+                    {item.status}
+                  </Text>
+                </View>
               </View>
               <View
                 style={styles.cardMain}

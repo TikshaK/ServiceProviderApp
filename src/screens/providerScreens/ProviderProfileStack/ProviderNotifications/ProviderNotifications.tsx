@@ -7,7 +7,7 @@ import {
   View
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ICON_TYPE, IconX } from '../../../../components';
+import { CustomHeader, ICON_TYPE, IconX } from '../../../../components';
 import { colors, strings } from '../../../../constants';
 import { markNotificationRead, subscribeToNotifications } from '../../../../services/firebase';
 import { useAppSelector } from '../../../../store';
@@ -75,7 +75,7 @@ const NOTIFICATIONS_DATA = [
   }
 ];
 
-export default function ProviderNotifications() {
+export default function ProviderNotifications({ navigation }) {
   const insets = useSafeAreaInsets();
   const [activeFilter, setActiveFilter] = useState<FilterType>('All');
   const [notifications, setNotifications] = useState<typeof NOTIFICATIONS_DATA>([]);
@@ -101,79 +101,168 @@ export default function ProviderNotifications() {
   );
 
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="dark-content" />
-      
+    <View
+      style={styles.container}
+    >
+      <StatusBar
+        barStyle="dark-content"
+      />
+      <CustomHeader
+        title={strings.notifications.title}
+        showBackButton
+        backgroundColor={colors.white[100]}
+        onLeftPress={() => navigation.goBack()}
+      />
       <ScrollView
-        contentContainerStyle={[styles.contentContainer, 
+        contentContainerStyle={[styles.contentContainer,
           // { paddingTop: insets.top }
         ]}
         showsVerticalScrollIndicator={false}
       >
-       
-
         {/* Filters */}
-        <ScrollView 
-          horizontal 
+        {/* <ScrollView
+          horizontal
           showsHorizontalScrollIndicator={false}
           style={styles.filterScroll}
           contentContainerStyle={styles.filterContent}
         >
-          {FILTERS.map((filter) => (
-            <TouchableOpacity
-              key={filter}
-              style={[styles.filterChip, activeFilter === filter && styles.filterChipActive]}
-              onPress={() => setActiveFilter(filter)}
-              activeOpacity={0.8}
-            >
-              <Text style={[styles.filterText, activeFilter === filter && styles.filterTextActive]}>
-                {filter}
-              </Text>
-              {activeFilter === filter && <View style={styles.filterDot} />}
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
+          {
+            FILTERS.map((filter) => (
+              <TouchableOpacity
+                key={filter}
+                style={[styles.filterChip, activeFilter === filter && styles.filterChipActive]}
+                onPress={() => setActiveFilter(filter)}
+                activeOpacity={0.8}
+              >
+                <Text
+                  style={[styles.filterText, activeFilter === filter && styles.filterTextActive]}
+                >
+                  {filter}
+                </Text>
+                {activeFilter === filter &&
+                  <View
+                    style={styles.filterDot}
+                  />
+                }
+              </TouchableOpacity>
+            )
+            )
+          }
+        </ScrollView> */}
 
         {/* Notifications List */}
-        <View style={styles.notificationsList}>
+        <View
+          style={styles.notificationsList}
+        >
           {filteredNotifications.length > 0 ? (
             filteredNotifications.map((notif) => (
-              <TouchableOpacity key={notif.id} style={styles.notificationCard} activeOpacity={0.8}>
-                <View style={[styles.iconContainer, { backgroundColor: notif.bgColor }]}>
-                  <IconX name={notif.icon} origin={ICON_TYPE.MATERIAL_ICONS} size={24} color={notif.iconColor} />
+              <TouchableOpacity
+                key={notif.id}
+                style={styles.notificationCard}
+                activeOpacity={0.8}
+              >
+                <View
+                  style={[styles.iconContainer, { backgroundColor: notif.bgColor }]}
+                >
+                  <IconX
+                    name={notif.icon}
+                    origin={ICON_TYPE.MATERIAL_ICONS}
+                    size={24}
+                    color={notif.iconColor}
+                  />
                 </View>
-                <View style={styles.cardContent}>
-                  <View style={styles.cardHeader}>
-                    <Text style={styles.cardTitle} numberOfLines={1}>{notif.title}</Text>
-                    <View style={styles.timeContainer}>
-                      {notif.unread && <View style={styles.unreadDot} />}
-                      <Text style={styles.timeText}>{notif.time}</Text>
+                <View
+                  style={styles.cardContent}
+                >
+                  <View
+                    style={styles.cardHeader}
+                  >
+                    <Text
+                      style={styles.cardTitle}
+                      numberOfLines={1}
+                    >
+                      {notif.title}
+                    </Text>
+                    <View
+                      style={styles.timeContainer}
+                    >
+                      {
+                        notif.unread &&
+                        <View
+                          style={styles.unreadDot}
+                        />
+                      }
+                      <Text
+                        style={styles.timeText}
+                      >
+                        {notif.time}
+                      </Text>
                     </View>
                   </View>
-                  <Text style={styles.cardMessage} numberOfLines={2}>{notif.message}</Text>
+                  <Text
+                    style={styles.cardMessage}
+                    numberOfLines={2}
+                  >
+                    {notif.message}
+                  </Text>
                 </View>
               </TouchableOpacity>
             ))
           ) : (
-            <View style={styles.emptyState}>
-              <View style={styles.emptyIcon}>
-                <IconX name="notifications-off" origin={ICON_TYPE.MATERIAL_ICONS} size={24} color={colors.grey[400]} />
+            <View
+              style={styles.emptyState}
+            >
+              <View
+                style={styles.emptyIcon}
+              >
+                <IconX
+                  name="notifications-off"
+                  origin={ICON_TYPE.MATERIAL_ICONS}
+                  size={24}
+                  color={colors.grey[400]}
+                />
               </View>
-              <Text style={styles.emptyTitle}>{strings.notifications.noNotifications}</Text>
-              <Text style={styles.emptyDesc}>You have no {activeFilter.toLowerCase()} notifications at the moment.</Text>
+              <Text
+                style={styles.emptyTitle}
+              >
+                {strings.notifications.noNotifications}
+              </Text>
+              <Text
+                style={styles.emptyDesc}
+              >
+                You have no {activeFilter.toLowerCase()} notifications at the moment.
+              </Text>
             </View>
           )}
 
           {/* Caught Up State */}
-          {filteredNotifications.length > 0 && activeFilter === 'All' && (
-            <View style={styles.emptyState}>
-              <View style={styles.emptyIcon}>
-                <IconX name="mark-email-read" origin={ICON_TYPE.MATERIAL_ICONS} size={24} color={colors.purple[700]} />
+          {filteredNotifications.length
+            > 0 && activeFilter === 'All' && (
+              <View
+                style={styles.emptyState}
+              >
+                <View
+                  style={styles.emptyIcon}
+                >
+                  <IconX
+                    name="mark-email-read"
+                    origin={ICON_TYPE.MATERIAL_ICONS}
+                    size={24}
+                    color={colors.purple[700]}
+                  />
+                </View>
+                <Text
+                  style={styles.emptyTitle}
+                >
+                  {strings.notifications.caughtUp}
+                </Text>
+                <Text
+                  style={styles.emptyDesc}
+                >
+                  {strings.notifications.caughtUpMessage}
+                </Text>
               </View>
-              <Text style={styles.emptyTitle}>{strings.notifications.caughtUp}</Text>
-              <Text style={styles.emptyDesc}>{strings.notifications.caughtUpMessage}</Text>
-            </View>
-          )}
+            )}
         </View>
       </ScrollView>
     </View>

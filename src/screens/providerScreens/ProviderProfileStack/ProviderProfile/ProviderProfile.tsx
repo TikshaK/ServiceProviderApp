@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import {
   Image,
   ScrollView,
@@ -11,7 +12,7 @@ import { ConfirmModal, ICON_TYPE, IconX } from '../../../../components';
 import { colors, images, navigationStrings, strings } from '../../../../constants';
 import { useAuth } from '../../../../hooks/useAuth';
 import { setUserProfile, useAppDispatch, useAppSelector } from '../../../../store';
-import { getReviews, updateUserProfile } from '../../../../services/firebase';
+import { getReviews, updateUserProfile, getBookings } from '../../../../services/firebase';
 import { showToast } from '../../../../utils';
 import { styles } from './styles';
 
@@ -24,32 +25,33 @@ export default function ProviderProfile({ navigation }: { navigation: any }) {
   const [modal, setModal] = useState<'logout' | 'delete' | null>(null);
   const [averageRating, setAverageRating] = useState(0);
   const [reviewCount, setReviewCount] = useState(0);
+  const [totalEarnings, setTotalEarnings] = useState(0);
   const authEmail = useAppSelector(state => state.auth.email);
 
   useEffect(() => {
     setIsOnline(profile?.availability !== 'offlineToday');
   }, [profile?.availability]);
 
-  useEffect(() => {
-    let active = true;
-    if (!profile?.uid) {
-      setAverageRating(0);
-      setReviewCount(0);
-      return () => { active = false; };
-    }
+  useFocusEffect(
+	useCallback(() => {
+		if (!profile?.uid) {
+			setAverageRating(0);
+			setReviewCount(0);
+			setTotalEarnings(0);
+			return;
+		}
 
-    getReviews(profile.uid).then(reviews => {
-      if (!active) return;
-      setReviewCount(reviews.length);
-      setAverageRating(reviews.length ? reviews.reduce((total, review) => total + review.rating, 0) / reviews.length : 0);
-    }).catch(() => {
-      if (!active) return;
-      setAverageRating(0);
-      setReviewCount(0);
-    });
-
-    return () => { active = false; };
-  }, [profile?.uid]);
+		Promise.all([getReviews(profile.uid), getBookings('providerId', profile.uid, 'completed')]).then(([reviews, completedBookings]) => {
+			setReviewCount(reviews.length);
+			setAverageRating(reviews.length ? reviews.reduce((total, review) => total + review.rating, 0) / reviews.length : 0);
+			setTotalEarnings(completedBookings.reduce((total, booking) => total + booking.totalAmount, 0));
+		}).catch(() => {
+			setAverageRating(0);
+			setReviewCount(0);
+			setTotalEarnings(0);
+		});
+	}, [profile?.uid])
+  );
 
   const toggleAvailability = async () => {
     if (!profile || availabilitySaving) return;
@@ -180,7 +182,7 @@ export default function ProviderProfile({ navigation }: { navigation: any }) {
                   {strings.providerProfile.earnings}
                 </Text>
               </View>
-              <Text style={styles.insightValue}>${0}</Text>
+              <Text style={styles.insightValue}>${totalEarnings.toFixed(0)}</Text>
 
             </View>
             <View style={styles.insightBox}>
