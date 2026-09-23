@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { Alert, Image, Linking, Pressable, ScrollView, StatusBar, Text, View } from 'react-native';
-import { ICON_TYPE, IconX } from '../../../../components';
+import { CustomHeader, ICON_TYPE, IconX } from '../../../../components';
 import { colors } from '../../../../constants';
 import { updateBookingStatus } from '../../../../services/firebase';
 import type { BookingItem } from '../ProviderBookings/ProviderBookings';
 import { styles } from './styles';
+import { showToast } from '../../../../utils';
 
 type BookingDetailsProps = {
 	navigation: any;
@@ -35,15 +36,16 @@ export default function BookingDetails({ navigation, route }: BookingDetailsProp
 	const handleDecision = (nextDecision: 'accepted' | 'rejected') => {
 		setDecision(nextDecision);
 		updateBookingStatus(booking.id, nextDecision === 'accepted' ? 'accepted' : 'declined').catch(() => undefined);
-		Alert.alert(
-			nextDecision === 'accepted' ? 'Booking accepted' : 'Booking declined',
-			nextDecision === 'accepted' ? 'This booking has been added to your schedule.' : 'This request has been declined.',
-		);
+		showToast({
+			type: nextDecision === 'accepted' ? 'success' : 'info',
+			title: nextDecision === 'accepted' ? 'Booking accepted' : 'Booking declined',
+			message: nextDecision === 'accepted' ? 'This booking has been added to your schedule.' : 'This request has been declined.',
+		});
 	};
 
 	const openMaps = () => {
 		Linking.openURL(`https://maps.google.com/?q=${encodeURIComponent(booking.address)}`).catch(() => {
-			Alert.alert('Unable to open maps', 'No maps application is available on this device.');
+			showToast({ type: 'error', title: 'Unable to open maps', message: 'No maps application is available on this device.' });
 		});
 	};
 
@@ -57,16 +59,16 @@ export default function BookingDetails({ navigation, route }: BookingDetailsProp
 	return (
 		<View style={styles.container}>
 			<StatusBar barStyle="dark-content" />
-			<View style={styles.header}>
-				<Pressable accessibilityLabel="Go back" accessibilityRole="button" onPress={() => navigation.goBack()} style={styles.backButton}>
-					<IconX name="arrow-back-outline" origin={ICON_TYPE.IONICONS} size={24} color={colors.black[250]} />
-				</Pressable>
-				<Text numberOfLines={1} style={styles.headerTitle}>Booking #{booking.id.replace('booking_', 'BK-')}</Text>
-				<View style={[styles.headerStatus, { backgroundColor: decision === 'accepted' ? colors.green[100] : booking.statusBgColor }]}>
-					<View style={[styles.headerStatusDot, { backgroundColor: decision === 'accepted' ? colors.green[500] : booking.dotColor ?? colors.grey[700] }]} />
-				</View>
-			</View>
-
+			<CustomHeader
+				title={`Booking #${booking.id.replace('booking_', 'BK-')}`}
+				showBackButton
+				onLeftPress={() => navigation.goBack()}
+				rightComponent={
+					<View style={[styles.headerStatus, { backgroundColor: decision === 'accepted' ? colors.green[100] : booking.statusBgColor }]}>
+						<View style={[styles.headerStatusDot, { backgroundColor: decision === 'accepted' ? colors.green[500] : booking.dotColor ?? colors.grey[700] }]} />
+					</View>
+				}
+			/>
 			<ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
 				{isAccepted ? (
 					<View style={styles.confirmationCard}>

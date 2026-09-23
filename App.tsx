@@ -4,6 +4,7 @@ import { Provider } from 'react-redux';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { RootNavigator } from './src/navigation';
 import { store, useAuthListener } from './src/store';
+import Toast from 'react-native-toast-message';
 
 function App() {
   const isDarkMode = useColorScheme() === 'dark';
@@ -30,6 +31,7 @@ function AppContent() {
       }}>
         <RootNavigator />
       </View>
+        <Toast />
     </NavigationContainer>
   );
 }

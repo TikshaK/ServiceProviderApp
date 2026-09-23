@@ -6,6 +6,7 @@ import navigationStrings from './navigationString';
 import storageKeys from './storageKeys';
 import strings from './strings';
 import cloudinary from './cloudinary';
+import { SERVICE_CATEGORIES } from './serviceCategories';
 
 export {
     colors,
@@ -22,4 +23,5 @@ export {
     storageKeys,
     sWidth,
     sHeight,
+    SERVICE_CATEGORIES,
 };

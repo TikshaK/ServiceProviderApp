@@ -7,6 +7,18 @@ export const styles = StyleSheet.create({
 		flex: 1,
 		backgroundColor: colors.purple[50]
 	},
+	savingOverlay: {
+		...StyleSheet.absoluteFill,
+		alignItems: 'center',
+		justifyContent: 'center',
+		gap: scale(10),
+		backgroundColor: 'rgba(19,27,46,0.72)',
+	},
+	savingText: {
+		fontFamily: fonts.SemiBold,
+		fontSize: fontSize[14],
+		color: colors.white[100],
+	},
 	content: {
 		padding: scale(16),
 		paddingBottom: verticalScale(48),

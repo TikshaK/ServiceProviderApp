@@ -40,7 +40,34 @@ export default function CustomerBookingDetails({ navigation, route }: Props) {
 						style={styles.statusIcon}
 					>
 						<IconX
-							name={isAccepted ? 'verified' : 'time-outline'} origin={ICON_TYPE.IONICONS} size={23} color={colors.purple[700]} /></View><View style={styles.statusCopy}><View style={styles.statusHeading}><Text style={styles.statusTitle}>{isAccepted ? 'Accepted & Confirmed' : 'Booking Pending'}</Text><Text style={styles.scheduleBadge}>{isAccepted ? 'On Schedule' : 'Awaiting approval'}</Text></View><Text style={styles.statusDescription}>{isAccepted ? `Technician ${booking.specialist} is scheduled to arrive on ${booking.date}.` : 'Your request has been sent to the service provider.'}</Text></View></View>
+							name={isAccepted ? 'check-decagram' : 'time-outline'}
+							origin={isAccepted ?ICON_TYPE.MATERIAL_COMMUNITY:ICON_TYPE.IONICONS}
+							size={23}
+							color={colors.purple[700]}
+						/>
+					</View>
+					<View
+						style={styles.statusCopy}
+					>
+						<View
+							style={styles.statusHeading}
+						>
+							<Text
+								style={styles.statusTitle}
+							>
+								{isAccepted ? 'Accepted & Confirmed' : 'Booking Pending'}
+							</Text>
+							<Text style={styles.scheduleBadge}
+							>{isAccepted ? 'On Schedule' : 'Awaiting approval'}
+							</Text>
+						</View>
+						<Text
+							style={styles.statusDescription}
+						>
+							{isAccepted ? `Technician ${booking.specialist} is scheduled to arrive on ${booking.date}.` : 'Your request has been sent to the service provider.'}
+						</Text>
+					</View>
+				</View>
 
 				<View
 					style={styles.card}

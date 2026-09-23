@@ -1,10 +1,11 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Alert, Image, Pressable, ScrollView, StatusBar, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Image, Pressable, ScrollView, StatusBar, Text, TextInput, View } from 'react-native';
 import { CalendarInput, CustomHeader, ICON_TYPE, IconX } from '../../../../components';
 import { colors, navigationStrings, strings } from '../../../../constants';
 import { createBooking, getAddresses, getService, getUserProfile } from '../../../../services/firebase';
 import { useAppSelector } from '../../../../store';
 import { styles } from './styles';
+import { showToast } from '../../../../utils';
 
 type Service = { id: string; providerName: string; title: string; duration: string; rating: string; price: string; description: string; imageUrl: string };
 type Props = { navigation: any; route?: { params?: { service?: Service } } };
@@ -78,19 +79,19 @@ export default function CustomerBookService({ navigation, route }: Props) {
 			return;
 		}
 		if (!selectedDate || !selectedTime) {
-			Alert.alert('Select a schedule', 'Choose a service date and arrival time before continuing.');
+			showToast({ type: 'error', title: 'Select a schedule', message: 'Choose a service date and arrival time before continuing.' });
 			return;
 		}
 		if (selectedTime < getMinimumTime(selectedDate)) {
-			Alert.alert('Choose a later time', 'For today, arrival must be at least 10 minutes from now.');
+			showToast({ type: 'error', title: 'Choose a later time', message: 'For today, arrival must be at least 10 minutes from now.' });
 			return;
 		}
 		if (!customer) {
-			Alert.alert(strings.alerts.sessionExpired, strings.alerts.pleaseSignInAgain);
+			showToast({ type: 'error', title: strings.alerts.sessionExpired, message: strings.alerts.pleaseSignInAgain });
 			return;
 		}
 		if (!address) {
-			Alert.alert('Add a service address', 'Save an address before booking this service.');
+			showToast({ type: 'error', title: 'Add a service address', message: 'Save an address before booking this service.' });
 			return;
 		}
 		setIsBooking(true);
@@ -99,7 +100,7 @@ export default function CustomerBookService({ navigation, route }: Props) {
 			const providerId = storedService?.providerId ?? service.providerName;
 			const provider = await getUserProfile(providerId);
 			if (!storedService || !provider) {
-				Alert.alert('Service unavailable', 'This service is no longer available.');
+				showToast({ type: 'error', title: 'Service unavailable', message: 'This service is no longer available.' });
 				return;
 			}
 			await createBooking({
@@ -126,7 +127,7 @@ export default function CustomerBookService({ navigation, route }: Props) {
 			// Extract custom error message from backend response if available, or fall back to default
 			const errorMessage = error?.response?.data?.message || error?.message || strings.alerts.tryAgain;
 
-			Alert.alert('Unable to book service', errorMessage);
+			showToast({ type: 'error', title: 'Unable to book service', message: errorMessage });
 		} finally {
 			setIsBooking(false);
 		}
@@ -135,11 +136,7 @@ export default function CustomerBookService({ navigation, route }: Props) {
 	return (
 		<View style={styles.container}>
 			<StatusBar barStyle="dark-content" />
-			<View style={styles.header}>
-				<Pressable accessibilityLabel="Go back" accessibilityRole="button" onPress={() => navigation.goBack()} style={styles.headerButton}><IconX name="arrow-back-outline" origin={ICON_TYPE.IONICONS} size={24} color={colors.black[250]} /></Pressable>
-				<Text style={styles.headerTitle}>{strings.booking.bookService}</Text>
-				<View style={styles.headerSpacer} />
-			</View>
+			<CustomHeader title={strings.booking.bookService} showBackButton onLeftPress={() => navigation.goBack()} />
 
 
 			<ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
@@ -160,7 +157,7 @@ export default function CustomerBookService({ navigation, route }: Props) {
 
 				<View style={styles.section}><View style={styles.sectionTitleRow}><IconX name="chatbubble-ellipses-outline" origin={ICON_TYPE.IONICONS} size={20} color={colors.purple[700]} /><Text style={styles.sectionTitle}>Special Instructions</Text></View><Text style={styles.helper}>Any delicate surfaces, focus areas, or pet instructions?</Text><TextInput value={instructions} onChangeText={setInstructions} multiline numberOfLines={3} placeholder="Add notes for your service provider..." placeholderTextColor={colors.grey[700]} style={styles.instructionsInput} textAlignVertical="top" /></View>
 
-				<View style={styles.section}><View style={styles.sectionTitleRow}><IconX name="location-outline" origin={ICON_TYPE.IONICONS} size={20} color={colors.purple[700]} /><Text style={styles.sectionTitle}>Service Address</Text><Pressable style={styles.changeButton} onPress={() => Alert.alert('Address', 'Address management will be available soon.')}><Text style={styles.changeText}>Change</Text></Pressable></View><View style={styles.addressCard}><View style={styles.addressTop}><Text style={styles.homeBadge}>{address ? 'Saved address' : 'Address required'}</Text>{address ? <IconX name="checkmark-circle" origin={ICON_TYPE.IONICONS} size={18} color={colors.purple[700]} /> : null}</View><Text style={styles.addressValue}>{address?.street ?? 'No saved address found'}</Text><Text style={styles.helper}>{address ? `${address.city}${address.state ? `, ${address.state}` : ''} ${address.postalCode}` : 'Add an address before booking.'}</Text></View></View>
+				<View style={styles.section}><View style={styles.sectionTitleRow}><IconX name="location-outline" origin={ICON_TYPE.IONICONS} size={20} color={colors.purple[700]} /><Text style={styles.sectionTitle}>Service Address</Text><Pressable style={styles.changeButton} onPress={() => showToast({ type: 'info', title: 'Address', message: 'Address management will be available soon.' })}><Text style={styles.changeText}>Change</Text></Pressable></View><View style={styles.addressCard}><View style={styles.addressTop}><Text style={styles.homeBadge}>{address ? 'Saved address' : 'Address required'}</Text>{address ? <IconX name="checkmark-circle" origin={ICON_TYPE.IONICONS} size={18} color={colors.purple[700]} /> : null}</View><Text style={styles.addressValue}>{address?.street ?? 'No saved address found'}</Text><Text style={styles.helper}>{address ? `${address.city}${address.state ? `, ${address.state}` : ''} ${address.postalCode}` : 'Add an address before booking.'}</Text></View></View>
 			</ScrollView>
 
 			<View style={styles.bottomBar}><View style={styles.totalCopy}><View style={styles.slotSummary}><IconX name="event-available" origin={ICON_TYPE.MATERIAL_ICONS} size={16} color={colors.purple[700]} /><Text style={styles.slotText}>{selectedDate && selectedTime ? `${formatDate(selectedDate)} • ${formatTime(selectedTime)}` : 'Select a date and time'}</Text></View><Text style={styles.total}>{price}<Text style={styles.totalLabel}> total</Text></Text></View><Pressable style={styles.continueButton} onPress={submitBooking} disabled={isBooking}><Text style={styles.continueText}>Book the service</Text><IconX name="arrow-forward" origin={ICON_TYPE.IONICONS} size={18} color={colors.white[100]} /></Pressable></View>

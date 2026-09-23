@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import {
-    Alert,
     Image, Pressable, ScrollView, StatusBar, Text,
 
     TextInput, View
@@ -18,6 +17,7 @@ import {
 } from '../../../../store';
 import { UserProfile } from '../../../../types/user';
 import { styles } from './styles';
+import { showToast } from '../../../../utils';
 
 type ProviderEditProfileProps = { navigation: any };
 
@@ -37,13 +37,13 @@ export default function ProviderEditProfile({ navigation }: ProviderEditProfileP
 
     const saveChanges = async () => {
         if (!fullName.trim() || !serviceName.trim() || !phone.trim()) {
-            Alert.alert(strings.alerts.missingInformation, 'Name, business name, and phone are required.');
+            showToast({ type: 'error', title: strings.alerts.missingInformation, message: 'Name, business name, and phone are required.' });
             return;
         }
 
         const uid = profile?.uid ?? firebaseAuth.currentUser?.uid;
         if (!uid) {
-            Alert.alert(strings.alerts.sessionExpired, 'Please sign in again before editing your profile.');
+            showToast({ type: 'error', title: strings.alerts.sessionExpired, message: 'Please sign in again before editing your profile.' });
             return;
         }
 
@@ -67,7 +67,7 @@ export default function ProviderEditProfile({ navigation }: ProviderEditProfileP
             storage.set(storageKeys.USER_DATA, JSON.stringify(savedProfile));
             navigation.goBack();
         } catch {
-            Alert.alert(strings.alerts.unableToSave, 'Your profile could not be updated. Please try again.');
+            showToast({ type: 'error', title: strings.alerts.unableToSave, message: 'Your profile could not be updated. Please try again.' });
         } finally {
             setLoading(false);
         }

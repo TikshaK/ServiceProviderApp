@@ -1,5 +1,6 @@
 import { Alert, Linking, Platform } from 'react-native';
 import { check, openSettings, request, PERMISSIONS, RESULTS } from 'react-native-permissions';
+import { showToast } from '../utils';
 
 type PermissionKind = 'camera' | 'gallery';
 
@@ -33,10 +34,11 @@ async function requestPermission(kind: PermissionKind) {
   result = await request(permission);
   if (result === RESULTS.GRANTED || result === RESULTS.LIMITED) return true;
 
-  Alert.alert(
-    `${kind === 'camera' ? 'Camera' : 'Photo library'} permission denied`,
-    `Please allow ${kind === 'camera' ? 'camera' : 'photo library'} access before selecting an image.`,
-  );
+  showToast({
+    type: 'error',
+    title: `${kind === 'camera' ? 'Camera' : 'Photo library'} permission denied`,
+    message: `Please allow ${kind === 'camera' ? 'camera' : 'photo library'} access before selecting an image.`,
+  });
   return false;
 }
 

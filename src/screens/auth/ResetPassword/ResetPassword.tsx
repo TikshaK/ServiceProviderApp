@@ -5,7 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { sendPasswordResetEmail } from '@react-native-firebase/auth';
 import { colors, navigationStrings, strings } from '../../../constants';
 import { CustomButton, CustomHeader, CustomInput, ICON_TYPE, IconX } from '../../../components';
-import { getEmailError, validateEmail } from '../../../utils';
+import { getEmailError, showToast, validateEmail } from '../../../utils';
 import { firebaseAuth, isRegisteredEmail } from '../../../services/firebase';
 import { styles } from './styles';
 
@@ -38,7 +38,7 @@ export default function ResetPassword({ navigation, route }: ResetPasswordProps)
       const normalizedEmail = email.trim().toLowerCase();
       const registered = await isRegisteredEmail(normalizedEmail);
       if (!registered) {
-        Alert.alert(strings.alerts.accountNotFound, strings.alerts.notRegistered);
+        showToast({ type: 'error', title: strings.alerts.accountNotFound, message: strings.alerts.notRegistered });
         return;
       }
 
@@ -50,11 +50,11 @@ export default function ResetPassword({ navigation, route }: ResetPasswordProps)
       );
     } catch (error: any) {
       if (error?.code === 'auth/invalid-email') {
-        Alert.alert(strings.alerts.invalidEmail, strings.alerts.validEmail);
+        showToast({ type: 'error', title: strings.alerts.invalidEmail, message: strings.alerts.validEmail });
       } else if (error?.code === 'auth/user-not-found') {
-        Alert.alert(strings.alerts.accountNotFound, strings.alerts.notRegistered);
+        showToast({ type: 'error', title: strings.alerts.accountNotFound, message: strings.alerts.notRegistered });
       } else {
-        Alert.alert(strings.alerts.unableToSendEmail, strings.alerts.resetEmailFailed);
+        showToast({ type: 'error', title: strings.alerts.unableToSendEmail, message: strings.alerts.resetEmailFailed });
       }
     } finally {
       setLoading(false);

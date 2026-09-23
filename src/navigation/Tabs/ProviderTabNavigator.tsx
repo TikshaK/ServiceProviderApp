@@ -106,21 +106,33 @@ export const ProviderTabNavigator = () => {
         >
             <Tab.Screen
                 name={navigationStrings.PROVIDER_HOME_STACK}
-                component={ProviderHomeStack} />
+                component={ProviderHomeStack}
+                listeners={({ navigation }) => ({
+                    tabPress: () => {
+                        navigation.navigate(navigationStrings.PROVIDER_HOME_STACK, {
+                            screen: navigationStrings.PROVIDER_HOME,
+                        });
+                    },
+                })} />
 
             <Tab.Screen
                 name={navigationStrings.PROVIDER_BOOKINGS_STACK}
-                component={ProviderBookingsStack} />
+                component={ProviderBookingsStack}
+                listeners={({ navigation }) => ({
+                    tabPress: () => {
+                        navigation.navigate(navigationStrings.PROVIDER_BOOKINGS_STACK, {
+                            screen: navigationStrings.PROVIDER_BOOKINGS,
+                        });
+                    },
+                })} />
             <Tab.Screen
                 name={navigationStrings.PROVIDER_SERVICES_STACK}
                 component={ProviderServicesStack}
                 listeners={({ navigation }) => ({
-                    // Create Listing stays mounted as a tab and may have been left in edit
-                    // mode (opened from Vehicle Details' pencil). Flag a reset so a normal
-                    // "Sell" tap always opens a blank create form; the screen consumes the
-                    // flag on focus.
                     tabPress: () => {
-
+                        navigation.navigate(navigationStrings.PROVIDER_SERVICES_STACK, {
+                            screen: navigationStrings.PROVIDER_SERVICES,
+                        });
                     },
                 })}
             />
@@ -128,13 +140,10 @@ export const ProviderTabNavigator = () => {
                 name={navigationStrings.PROVIDER_PROFILE_STACK}
                 component={ProviderProfileStack}
                 listeners={({ navigation }) => ({
-                    // Tapping Profile always returns to the Profile root — navigating to a
-                    // screen already in the stack (Profile) pops everything above it (Edit
-                    // Profile, My Listings, etc.), so the tab never reopens on a sub-screen.
                     tabPress: () => {
-                        // navigation.navigate(navigationStrings.PROFILE_STACK, {
-                        //   screen: navigationStrings.PROFILE,
-                        // });
+                        navigation.navigate(navigationStrings.PROVIDER_PROFILE_STACK, {
+                            screen: navigationStrings.PROVIDER_PROFILE,
+                        });
                     },
                 })}
             />

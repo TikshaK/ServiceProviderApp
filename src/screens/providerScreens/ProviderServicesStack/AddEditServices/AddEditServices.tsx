@@ -1,5 +1,6 @@
 import React, { useRef, useState } from 'react';
 import {
+	ActivityIndicator,
 	Alert,
 	Image,
 	Modal,
@@ -11,13 +12,14 @@ import {
 	TextInput,
 	View,
 } from 'react-native';
-import { ICON_TYPE, IconX } from '../../../../components';
-import { colors, strings } from '../../../../constants';
+import { CustomHeader, ICON_TYPE, IconX } from '../../../../components';
+import { colors, SERVICE_CATEGORIES, strings } from '../../../../constants';
 import { useImagePicker, type ImageAsset } from '../../../../hooks/useImagePicker';
 import { uploadImageToCloudinary } from '../../../../services/cloudinary';
 import { createService, deleteService, updateService } from '../../../../services/firebase';
 import { useAppSelector } from '../../../../store';
 import { styles } from './styles';
+import { showToast } from '../../../../utils';
 
 export interface EditableService {
 	id?: string;
@@ -36,7 +38,7 @@ type AddEditServicesProps = {
 	route?: { params?: { service?: EditableService } };
 };
 
-const CATEGORIES = ['Home Cleaning', 'Commercial Janitorial', 'Carpet & Fabric Restoration', 'Window & Glass Polishing', 'Move-In / Move-Out Deep Clean'];
+const CATEGORIES = SERVICE_CATEGORIES;
 const DURATIONS = ['1 hour', '1.5 hours', '2 hours', '2.5 hours', '3 hours', '4 hours', '5+ hours'];
 
 export default function AddEditServices({ navigation, route }: AddEditServicesProps) {
@@ -69,12 +71,12 @@ export default function AddEditServices({ navigation, route }: AddEditServicesPr
 		if (savingRef.current) return;
 
 		if (!name.trim() || !price.trim()) {
-			Alert.alert(strings.alerts.missingInformation, 'Add a service name and starting price before saving.');
+			showToast({ type: 'error', title: strings.alerts.missingInformation, message: 'Add a service name and starting price before saving.' });
 			return;
 		}
 
 		if (!profile?.uid) {
-			Alert.alert(strings.alerts.sessionExpired, 'Please sign in again before saving a service.');
+			showToast({ type: 'error', title: strings.alerts.sessionExpired, message: 'Please sign in again before saving a service.' });
 			return;
 		}
 
@@ -107,16 +109,17 @@ export default function AddEditServices({ navigation, route }: AddEditServicesPr
 					updatedAt: Date.now(),
 				});
 			} else {
-				await createService({ 
+				await createService({
 					providerId: profile.uid,
 					providerName: profile.fullName,
-					 title: name.trim(), 
-					 description: description.trim(), 
-					 category, durationMinutes, 
-					 price: Number(price), 
-					 imageUrls, 
-					 isActive 
-					});
+					title: name.trim(),
+					description: description.trim(),
+					category,
+					durationMinutes,
+					price: Number(price),
+					imageUrls,
+					isActive
+				});
 			}
 			navigation.goBack();
 		} catch (error: any) {
@@ -125,10 +128,7 @@ export default function AddEditServices({ navigation, route }: AddEditServicesPr
 			console.log('[SaveService] nativeErrorMessage:', error?.nativeErrorMessage);
 			console.log('[SaveService] full error object:', JSON.stringify(error, Object.getOwnPropertyNames(error)));
 
-			Alert.alert(
-				'Unable to save service',
-				error?.message ? `${strings.alerts.tryAgain}\n\n(${error.code ?? 'error'}: ${error.message})` : strings.alerts.tryAgain
-			);
+			showToast({ type: 'error', title: 'Unable to save service', message: error?.message ? `${strings.alerts.tryAgain} (${error.code ?? 'error'}: ${error.message})` : strings.alerts.tryAgain });
 		} finally {
 			savingRef.current = false;
 			setIsSaving(false);
@@ -140,22 +140,22 @@ export default function AddEditServices({ navigation, route }: AddEditServicesPr
 			{ text: 'Cancel', style: 'cancel' },
 			{
 				text: 'Delete', style: 'destructive', onPress: async () => {
-					if (service?.id) await deleteService({ 
+					if (service?.id) await deleteService({
 						id: service.id,
-						providerId: profile?.uid ?? '', 
-						providerName: profile?.fullName ?? '', 
-						title: name, 
-						description, 
-						category, 
-						durationMinutes: 0, 
-						price: Number(price), 
-						currency: 'USD', 
-						imageUrls: [], 
-						isActive, 
-						ratingAverage: 0, 
-						reviewCount: 0, 
-						createdAt: 0, 
-						updatedAt: 0 
+						providerId: profile?.uid ?? '',
+						providerName: profile?.fullName ?? '',
+						title: name,
+						description,
+						category,
+						durationMinutes: 0,
+						price: Number(price),
+						currency: 'USD',
+						imageUrls: [],
+						isActive,
+						ratingAverage: 0,
+						reviewCount: 0,
+						createdAt: 0,
+						updatedAt: 0
 					});
 					navigation.goBack();
 				}
@@ -168,12 +168,30 @@ export default function AddEditServices({ navigation, route }: AddEditServicesPr
 			<StatusBar barStyle="dark-content" />
 
 			<ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+				<CustomHeader
+					title={service ? strings.servicesForm.editService : strings.servicesForm.newService}
+					showBackButton
+					onLeftPress={() => navigation.goBack()}
+				/>
 				<View style={styles.contextRow}>
 					<Text style={styles.screenTitle}>{service ? strings.servicesForm.editService : strings.servicesForm.newService}</Text>
 					{service ? (
-						<Pressable accessibilityRole="button" onPress={confirmDelete} style={styles.quickDelete}>
-							<IconX name="trash-outline" origin={ICON_TYPE.IONICONS} size={16} color={colors.red[200]} />
-							<Text style={styles.quickDeleteText}>{strings.servicesForm.deleteService}</Text>
+						<Pressable
+							accessibilityRole="button"
+							onPress={confirmDelete}
+							style={styles.quickDelete}
+						>
+							<IconX
+								name="trash-outline"
+								origin={ICON_TYPE.IONICONS}
+								size={16}
+								color={colors.red[200]}
+							/>
+							<Text
+								style={styles.quickDeleteText}
+							>
+								{strings.servicesForm.deleteService}
+							</Text>
 						</Pressable>
 					) : null}
 				</View>
@@ -249,12 +267,19 @@ export default function AddEditServices({ navigation, route }: AddEditServicesPr
 						<IconX name="save-outline" origin={ICON_TYPE.IONICONS} size={20} color={colors.white[100]} />
 						<Text style={styles.saveText}>{service?.id ? strings.commonForms.saveChanges : strings.commonForms.createService}</Text>
 					</Pressable>
-					<Pressable accessibilityRole="button" onPress={() => navigation.goBack()} style={styles.cancelButton}>
+					<Pressable accessibilityRole="button" disabled={isSaving} onPress={() => navigation.goBack()} style={styles.cancelButton}>
 						<Text style={styles.cancelText}>{strings.commonForms.cancel}</Text>
 					</Pressable>
-					{service ? <Pressable accessibilityRole="button" onPress={confirmDelete} style={styles.deleteButton}><IconX name="trash-outline" origin={ICON_TYPE.IONICONS} size={18} color={colors.red[200]} /><Text style={styles.deleteText}>{strings.servicesForm.deleteService}</Text></Pressable> : null}
+					{service ? <Pressable accessibilityRole="button" disabled={isSaving} onPress={confirmDelete} style={styles.deleteButton}><IconX name="trash-outline" origin={ICON_TYPE.IONICONS} size={18} color={colors.red[200]} /><Text style={styles.deleteText}>{strings.servicesForm.deleteService}</Text></Pressable> : null}
 				</View>
 			</ScrollView>
+
+			<Modal visible={isSaving} transparent statusBarTranslucent>
+				<View style={styles.savingOverlay}>
+					<ActivityIndicator size="large" color={colors.white[100]} />
+					<Text style={styles.savingText}>{service?.id ? 'Updating service...' : 'Creating service...'}</Text>
+				</View>
+			</Modal>
 
 			<Modal visible={selector !== null} transparent animationType="fade" onRequestClose={() => setSelector(null)}>
 				<Pressable style={styles.modalBackdrop} onPress={() => setSelector(null)}>

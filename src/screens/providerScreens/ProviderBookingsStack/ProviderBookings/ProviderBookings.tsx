@@ -15,6 +15,7 @@ import { getBookings, updateBookingStatus } from '../../../../services/firebase'
 import { useAppSelector } from '../../../../store';
 import { isBookingExpired, type BookingStatus as FirebaseBookingStatus } from '../../../../types/booking';
 import { styles } from './styles';
+import { showToast } from '../../../../utils';
 
 type BookingStatus = 'Pending' | 'Upcoming' | 'Completed' | 'Cancelled' | 'Expired';
 type FilterTab = 'All' | 'Pending' | 'Upcoming' | 'Completed' | 'Cancelled' | 'Expired';
@@ -80,12 +81,18 @@ export default function ProviderBookings({ navigation }: ProviderBookingsProps) 
     const completed = bookings.filter(b => b.status === 'Completed').length;
     const cancelled = bookings.filter(b => b.status === 'Cancelled').length;
     const expired = bookings.filter(b => b.status === 'Expired').length;
-    return { All: total, Pending: pending, Upcoming: upcoming, Completed: completed, Cancelled: cancelled, Expired: expired };
+    return { 
+      All: total, 
+      Pending: pending,
+       Upcoming: upcoming, 
+       Completed: completed, 
+       Cancelled: cancelled,
+       Expired: expired };
   }, [bookings]);
 
   const filteredBookings = useMemo(() => {
     return bookings.filter(booking => {
-      console.log("Booking to filter:",booking)
+      console.log("Booking to filter:", booking)
       const matchesTab = activeTab === 'All' || booking.status === activeTab;
       const query = searchQuery.trim().toLowerCase();
       const matchesSearch =
@@ -98,9 +105,42 @@ export default function ProviderBookings({ navigation }: ProviderBookingsProps) 
     });
   }, [activeTab, searchQuery, bookings]);
 
-  const changeStatus = async (bookingId: string, status: FirebaseBookingStatus) => {
-    await updateBookingStatus(bookingId, status);
-    setBookings(current => current.map(booking => booking.id === bookingId ? { ...booking, status: status === 'accepted' ? 'Upcoming' : 'Cancelled' } : booking));
+  // const changeStatus = async (bookingId: string, status: FirebaseBookingStatus) => {
+  //   await updateBookingStatus(bookingId, status);
+  //   setBookings(current => current.map(booking => booking.id === bookingId ? { ...booking, status: status === 'accepted' ? 'Upcoming' : 'Cancelled' } : booking));
+  // };
+
+  const changeStatus = async (
+    bookingId: string,
+    status: FirebaseBookingStatus,
+  ) => {
+    try {
+      await updateBookingStatus(bookingId, status);
+
+      setBookings(current =>
+        current.map(booking =>
+          booking.id === bookingId
+            ? {
+              ...booking,
+              status:
+                status === 'accepted'
+                  ? 'Upcoming'
+                  : status === 'declined'
+                    ? 'Cancelled'
+                    : booking.status,
+            }
+            : booking,
+        ),
+      );
+    } catch (error) {
+      console.error('[ProviderBookings] Failed to change booking status:', error);
+
+      showToast({
+        type: "error",
+        title: 'error',
+        message: 'Failed to change booking status. Please try again.'
+      });
+    }
   };
 
   return (
@@ -214,7 +254,11 @@ export default function ProviderBookings({ navigation }: ProviderBookingsProps) 
                     <View style={styles.bookingActions}>
                       {booking.status === 'Pending' && (
                         <>
-                          <TouchableOpacity activeOpacity={0.7} onPress={() => changeStatus(booking.id, 'declined')} style={styles.actionButtonDanger}>
+                          <TouchableOpacity
+                            activeOpacity={0.7}
+                            onPress={() => changeStatus(booking.id, 'declined')}
+                            style={styles.actionButtonDanger}
+                          >
                             <Text style={styles.actionButtonDangerText}>
                               {strings.providerBookings?.decline ?? 'Decline'}
                             </Text>
@@ -234,7 +278,7 @@ export default function ProviderBookings({ navigation }: ProviderBookingsProps) 
                             style={styles.iconActionButton}
 
                             // onPress={() => customerPhone && Linking.openURL(`tel:${customerPhone}`)}
-                            onPress={() =>  Linking.openURL(`tel:${customerPhone}`)}
+                            onPress={() => Linking.openURL(`tel:${customerPhone}`)}
 
                           >
                             <IconX

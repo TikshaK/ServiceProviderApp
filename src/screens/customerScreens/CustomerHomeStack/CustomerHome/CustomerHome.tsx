@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import {
+    FlatList,
     Image,
     ScrollView,
     StatusBar,
@@ -9,12 +10,12 @@ import {
 } from 'react-native';
 import { CustomSearchBar, EmptyState, ICON_TYPE, IconX } from '../../../../components';
 import { useFocusEffect } from '@react-navigation/native';
-import { colors, navigationStrings, strings } from '../../../../constants';
+import { colors, navigationStrings, SERVICE_CATEGORIES, strings } from '../../../../constants';
 import { useAppSelector } from '../../../../store';
 import { getAddresses, getServices } from '../../../../services/firebase';
 import { styles } from './styles';
 
-const CATEGORIES = [
+const CATEGORY_META = [
     { id: '1', name: 'Plumbing', icon: 'plumbing', color: '#2563EB', bgColor: '#EFF6FF', origin: ICON_TYPE.MATERIAL_ICONS },
     { id: '2', name: 'Electrical', icon: 'bolt', color: '#D97706', bgColor: '#FFFBEB', origin: ICON_TYPE.MATERIAL_ICONS },
     { id: '3', name: 'Cleaning', icon: 'cleaning-services', color: '#059669', bgColor: '#ECFDF5', origin: ICON_TYPE.MATERIAL_ICONS },
@@ -22,8 +23,9 @@ const CATEGORIES = [
     { id: '5', name: 'Painting', icon: 'format-paint', color: '#E11D48', bgColor: '#FFF1F2', origin: ICON_TYPE.MATERIAL_ICONS },
     { id: '6', name: 'Carpentry', icon: 'handyman', color: '#EA580C', bgColor: '#FFF7ED', origin: ICON_TYPE.MATERIAL_ICONS },
     { id: '7', name: 'Appliance', icon: 'settings', color: '#4F46E5', bgColor: '#EEF2FF', origin: ICON_TYPE.MATERIAL_ICONS },
-    { id: '8', name: 'More', icon: 'apps', color: '#9333EA', bgColor: '#FAF5FF', origin: ICON_TYPE.MATERIAL_ICONS },
 ];
+
+const CATEGORIES = SERVICE_CATEGORIES.map(name => CATEGORY_META.find(category => category.name === name)!);
 
 type PopularService = {
     id: string;
@@ -57,11 +59,13 @@ export default function CustomerHome({ navigation }: { navigation: any }) {
             }
 
             setLocation([savedAddress.city, savedAddress.state].filter(Boolean).join(', ') || savedAddress.street);
+
         }).catch(() => setLocation(''));
     }, [profile?.uid]));
 
-    useEffect(() => {
+    useFocusEffect(useCallback(() => {
         let active = true;
+        setLoadingServices(true);
         getServices().then(services => {
             if (!active) return;
             setPopularServices(services.slice(0, 10).map(service => ({
@@ -78,7 +82,7 @@ export default function CustomerHome({ navigation }: { navigation: any }) {
             if (active) setLoadingServices(false);
         });
         return () => { active = false; };
-    }, []);
+    }, []));
 
     return (
         <View style={[styles.container, {
@@ -87,9 +91,10 @@ export default function CustomerHome({ navigation }: { navigation: any }) {
             <StatusBar barStyle="dark-content" />
             <ScrollView
                 style={styles.scrollView}
-                contentContainerStyle={[styles.scrollContent, {
+                contentContainerStyle={[
+                    styles.scrollContent, {
 
-                }]}
+                    }]}
                 showsVerticalScrollIndicator={false}
             >
                 {/* Top Section */}
@@ -108,7 +113,6 @@ export default function CustomerHome({ navigation }: { navigation: any }) {
                             {location ? <TouchableOpacity style={styles.locationBtn} activeOpacity={0.7}>
                                 <IconX name="location-on" origin={ICON_TYPE.MATERIAL_ICONS} size={18} color={colors.purple[700]} />
                                 <Text style={styles.locationText} numberOfLines={1}>{location}</Text>
-                                <IconX name="chevron-down" origin={ICON_TYPE.IONICONS} size={16} color={colors.grey[700]} />
                             </TouchableOpacity> : null}
                         </View>
                     </View>
@@ -137,7 +141,7 @@ export default function CustomerHome({ navigation }: { navigation: any }) {
                                 style={styles.categoryItem}
                                 activeOpacity={0.7}
                                 onPress={() => navigation.navigate(navigationStrings.CUSTOMER_SEARCH_FILTER_SERVICES, {
-                                    category: category.name === 'More' ? undefined : category.name,
+                                    category: category.name,
                                 })}
                             >
                                 <View style={[styles.categoryIconContainer, { backgroundColor: category.bgColor }]}>
@@ -163,55 +167,66 @@ export default function CustomerHome({ navigation }: { navigation: any }) {
                     </View>
 
                     <View style={styles.servicesList}>
-                        {loadingServices ? <Text>{strings.services.loading}</Text> : popularServices.length === 0 ? <EmptyState title={strings.services.noServices} message={strings.services.customerEmpty} icon="briefcase-outline" /> : popularServices.map((service) => {
-                            console.log("The service is:", service)
-                            return (
-                                <TouchableOpacity
-                                    key={service.id}
-                                    style={styles.serviceCard}
-                                    activeOpacity={0.8}
-                                    onPress={() =>
-                                        navigation.navigate(navigationStrings.CUSTOMER_SERVICE_DETAILS, { service })
-                                    }>
-                                    <View style={styles.serviceImageContainer}>
-                                        <Image
-                                            source={{ uri: service.imageUrl }}
-                                            style={styles.serviceImage} />
-                                        <View style={styles.ratingBadge}>
-                                            <IconX name="star" origin={ICON_TYPE.IONICONS} size={10} color="#F59E0B" />
-                                            <Text style={styles.ratingText}>{service.rating}</Text>
-                                        </View>
-                                    </View>
-
-                                    <View style={styles.serviceContent}>
-                                        <View style={styles.serviceContentTop}>
-                                            <View style={styles.providerRow}>
-                                                <Text style={styles.providerName}>
-                                                    {service.providerName}
-                                                </Text>
-                                                <View style={styles.durationRow}>
-                                                    <IconX name="time-outline" origin={ICON_TYPE.IONICONS} size={12} color={colors.grey[700]} />
-                                                    <Text style={styles.durationText}>{service.duration}</Text>
+                        {loadingServices ?
+                            <Text>{strings.services.loading}
+                            </Text>
+                            :
+                            popularServices.length === 0 ?
+                                <EmptyState
+                                    title={strings.services.noServices}
+                                    message={strings.services.customerEmpty}
+                                    icon="briefcase-outline"
+                                />
+                                : <FlatList
+                                    data={popularServices}
+                                    keyExtractor={service => service.id}
+                                    scrollEnabled={false}
+                                    contentContainerStyle={styles.servicesList}
+                                    renderItem={({ item: service }) => (
+                                        <TouchableOpacity
+                                            style={styles.serviceCard}
+                                            activeOpacity={0.8}
+                                            onPress={() =>
+                                                navigation.navigate(navigationStrings.CUSTOMER_SERVICE_DETAILS, { service })
+                                            }>
+                                            <View style={styles.serviceImageContainer}>
+                                                <Image
+                                                    source={{ uri: service.imageUrl }}
+                                                    style={styles.serviceImage} />
+                                                <View style={styles.ratingBadge}>
+                                                    <IconX name="star" origin={ICON_TYPE.IONICONS} size={10} color="#F59E0B" />
+                                                    <Text style={styles.ratingText}>{service.rating}</Text>
                                                 </View>
                                             </View>
-                                            <Text style={styles.serviceTitle} numberOfLines={1}>{service.title}</Text>
-                                            <Text style={styles.serviceDesc} numberOfLines={1}>{service.description}</Text>
-                                        </View>
 
-                                        <View style={styles.serviceContentBottom}>
-                                            <View style={styles.priceRow}>
-                                                <Text style={styles.priceLabel}>From</Text>
-                                                <Text style={styles.priceText}>{service.price}</Text>
+                                            <View style={styles.serviceContent}>
+                                                <View style={styles.serviceContentTop}>
+                                                    <View style={styles.providerRow}>
+                                                        <Text style={styles.providerName}>
+                                                            {service.providerName}
+                                                        </Text>
+                                                        <View style={styles.durationRow}>
+                                                            <IconX name="time-outline" origin={ICON_TYPE.IONICONS} size={12} color={colors.grey[700]} />
+                                                            <Text style={styles.durationText}>{service.duration}</Text>
+                                                        </View>
+                                                    </View>
+                                                    <Text style={styles.serviceTitle} numberOfLines={1}>{service.title}</Text>
+                                                    <Text style={styles.serviceDesc} numberOfLines={1}>{service.description}</Text>
+                                                </View>
+
+                                                <View style={styles.serviceContentBottom}>
+                                                    <View style={styles.priceRow}>
+                                                        <Text style={styles.priceLabel}>From</Text>
+                                                        <Text style={styles.priceText}>{service.price}</Text>
+                                                    </View>
+                                                    <TouchableOpacity style={styles.bookBtn} activeOpacity={0.8} onPress={() => navigation.navigate(navigationStrings.CUSTOMER_BOOK_SERVICE, { service })}>
+                                                        <Text style={styles.bookBtnText}>Book Now</Text>
+                                                    </TouchableOpacity>
+                                                </View>
                                             </View>
-                                            <TouchableOpacity style={styles.bookBtn} activeOpacity={0.8} onPress={() => navigation.navigate(navigationStrings.CUSTOMER_BOOK_SERVICE, { service })}>
-                                                <Text style={styles.bookBtnText}>Book Now</Text>
-                                            </TouchableOpacity>
-                                        </View>
-                                    </View>
-                                </TouchableOpacity>
-                            )
-                        }
-                        )}
+                                        </TouchableOpacity>
+                                    )}
+                                />}
                     </View>
                 </View>
             </ScrollView>

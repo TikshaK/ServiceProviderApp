@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Alert, Platform } from 'react-native';
 import { launchCamera, launchImageLibrary, type ImagePickerResponse } from 'react-native-image-picker';
 import { usePermissions } from './usePermissions';
+import { showToast } from '../utils';
 
 export interface ImageAsset {
   id: string;
@@ -25,7 +26,7 @@ export function useImagePicker() {
     try {
       const response = await launchImageLibrary({ mediaType: 'photo', selectionLimit, quality: 0.8 });
       if (!response.didCancel && !response.errorCode) onSelected(normalizeResponse(response));
-      else if (response.errorMessage) Alert.alert('Unable to select image', response.errorMessage);
+      else if (response.errorMessage) showToast({ type: 'error', title: 'Unable to select image', message: response.errorMessage });
     } finally {
       setLoading(false);
     }
@@ -37,7 +38,7 @@ export function useImagePicker() {
     try {
       const response = await launchCamera({ mediaType: 'photo', quality: 0.8, saveToPhotos: false });
       if (!response.didCancel && !response.errorCode) onSelected(normalizeResponse(response));
-      else if (response.errorMessage) Alert.alert('Unable to capture image', response.errorMessage);
+      else if (response.errorMessage) showToast({ type: 'error', title: 'Unable to capture image', message: response.errorMessage });
     } finally {
       setLoading(false);
     }

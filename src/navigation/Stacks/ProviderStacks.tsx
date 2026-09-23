@@ -3,7 +3,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { colors, fonts, navigationStrings } from '../../constants';
 import { fontSize } from '../../constants/metrics';
-import { ProviderHome, ProviderBookings, BookingDetails, ProviderServices, ProviderProfile, AddEditServices, ProviderEditProfile, EarningsAndReviews } from '../../screens/providerScreens';
+import { ProviderHome, ProviderBookings, BookingDetails, ProviderServices, ProviderProfile, AddEditServices, ProviderEditProfile, EarningsAndReviews, ProviderNotifications } from '../../screens/providerScreens';
 
 const Stack = createNativeStackNavigator();
 interface NavigationProps {
@@ -86,6 +86,10 @@ const ProviderProfileStack: React.FC<NavigationProps> = ({ navigation, route }) 
       <Stack.Screen
         name={navigationStrings.PROVIDER_EARNINGS_REVIEWS}
         component={EarningsAndReviews}
+      />
+      <Stack.Screen
+        name={navigationStrings.PROVIDER_NOTIFICATIONS}
+        component={ProviderNotifications}
       />
       {commonDetailScreens()}
     </Stack.Navigator>

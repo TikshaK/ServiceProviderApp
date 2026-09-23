@@ -1,4 +1,6 @@
-import { equalTo, get, getDatabase, onValue, orderByChild, push, query, ref, set, update } from '@react-native-firebase/database';
+import { equalTo, get, getDatabase, onValue, 
+  orderByChild, push, query, ref, set, update
+ } from '@react-native-firebase/database';
 import { getApp } from '@react-native-firebase/app';
 import { SignUpProfilePayload, UserProfile } from '../../types/user';
 import { CreateServicePayload, Service } from '../../types/service';
@@ -27,6 +29,7 @@ export async function saveUserProfile(uid: string, payload: SignUpProfilePayload
     serviceName: payload.serviceName,
     experience: payload.experience,
     category: payload.category,
+    availability: 'available',
     createdAt: Date.now(),
   };
 
@@ -113,7 +116,13 @@ export async function getServices(options: { providerId?: string; category?: str
       ? query(ref(database, 'services'), orderByChild('category'), equalTo(options.category))
       : ref(database, 'services');
   const services = snapshotValues<Service>(await get(serviceQuery));
-  return options.activeOnly === false ? services : services.filter(service => service.isActive !== false);
+  const visibleServices = options.providerId
+    ? services
+    : await Promise.all(services.map(async service => {
+      const provider = await getUserProfile(service.providerId);
+      return provider?.availability === 'offlineToday' ? null : service;
+    })).then(items => items.filter((service): service is Service => service !== null));
+  return options.activeOnly === false ? visibleServices : visibleServices.filter(service => service.isActive !== false);
 }
 
 export async function createBooking(payload: CreateBookingPayload): Promise<Booking> {
@@ -169,12 +178,42 @@ export async function getBookings(field: 'customerId' | 'providerId', value: str
   return status ? bookings.filter(booking => booking.status === status) : bookings;
 }
 
-export async function updateBookingStatus(bookingId: string, status: BookingStatus): Promise<void> {
-  await update(ref(database, `bookings/${bookingId}`), { status, updatedAt: now() });
+export async function updateBookingStatus(
+  bookingId: string,
+  status: BookingStatus,
+): Promise<void> {
+  try {
+    console.log("Chaning status")
+    await update(ref(database, `bookings/${bookingId}`), {
+      status,
+      updatedAt: now(),
+    });
+  } catch (error) {
+    console.error('[DB] updateBookingStatus FAILED', {
+      bookingId,
+      status,
+      error,
+    });
+
+    throw new Error('Unable to update booking status. Please try again.');
+  }
 }
 
 export async function saveAddress(customerId: string, address: CustomerAddress): Promise<void> {
-  await set(ref(database, `addresses/${customerId}/${address.id}`), address);
+  const updates: Record<string, CustomerAddress | boolean> = {
+    [`addresses/${customerId}/${address.id}`]: address,
+  };
+
+  if (address.isDefault) {
+    const existingAddresses = await getAddresses(customerId);
+    existingAddresses.forEach(existingAddress => {
+      if (existingAddress.id !== address.id && existingAddress.isDefault) {
+        updates[`addresses/${customerId}/${existingAddress.id}/isDefault`] = false;
+      }
+    });
+  }
+
+  await update(ref(database), updates);
 }
 
 export async function getAddresses(customerId: string): Promise<CustomerAddress[]> {

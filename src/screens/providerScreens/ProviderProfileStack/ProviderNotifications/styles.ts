@@ -1,0 +1,210 @@
+import { StyleSheet } from 'react-native';
+import { colors, fonts } from '../../../../constants';
+import { fontSize, scale, verticalScale } from '../../../../constants/metrics';
+
+export const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: colors.white[100] ?? '#FAFAFA',
+  },
+  contentContainer: {
+    paddingHorizontal: scale(16),
+    paddingBottom: verticalScale(80),
+  },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingTop: verticalScale(12),
+    paddingBottom: verticalScale(8),
+  },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: scale(8),
+  },
+  headerTitle: {
+    fontSize: fontSize[22],
+    fontFamily: fonts.Bold,
+    color: colors.black[500],
+  },
+  badgePill: {
+    paddingHorizontal: scale(8),
+    paddingVertical: verticalScale(2),
+    borderRadius: scale(12),
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: colors.grey[400],
+    shadowOffset: { width: scale(0), height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: scale(2),
+    elevation: 2,
+  },
+  badgePillUnread: {
+    backgroundColor: colors.purple[700],
+  },
+  badgePillRead: {
+    backgroundColor: colors.grey[100] ?? '#F2F3FF',
+    elevation: 0,
+    shadowOpacity: 0,
+  },
+  badgeText: {
+    fontSize: fontSize[11],
+    fontFamily: fonts.SemiBold,
+  },
+  badgeTextUnread: {
+    color: colors.white[100],
+  },
+  badgeTextRead: {
+    color: colors.grey[700],
+  },
+  markAllBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: scale(4),
+    paddingVertical: verticalScale(6),
+    paddingHorizontal: scale(10),
+    borderRadius: scale(12),
+    backgroundColor: colors.grey[100] ?? '#F2F3FF',
+  },
+  markAllText: {
+    fontSize: fontSize[12],
+    fontFamily: fonts.SemiBold,
+    color: colors.purple[700],
+  },
+  filterScroll: {
+    flexGrow: 0,
+    marginBottom: verticalScale(12),
+    marginTop: verticalScale(8),
+  },
+  filterContent: {
+    gap: scale(8),
+    paddingVertical: verticalScale(4),
+  },
+  filterChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: scale(6),
+    paddingHorizontal: scale(14),
+    paddingVertical: verticalScale(6),
+    borderRadius: scale(16),
+    backgroundColor: colors.grey[100] ?? '#F2F3FF',
+  },
+  filterChipActive: {
+    backgroundColor: colors.purple[700],
+    shadowColor: colors.purple[700],
+    shadowOffset: { width: scale(0), height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: scale(2),
+    elevation: 2,
+  },
+  filterText: {
+    fontSize: fontSize[12],
+    fontFamily: fonts.SemiBold,
+    color: colors.grey[700],
+  },
+  filterTextActive: {
+    color: colors.white[100],
+  },
+  filterDot: {
+    width: scale(6),
+    height: verticalScale(6),
+    borderRadius: scale(3),
+    backgroundColor: colors.white[100],
+  },
+  notificationsList: {
+    gap: scale(12),
+  },
+  notificationCard: {
+    backgroundColor: colors.white[100],
+    borderRadius: scale(16),
+    padding: scale(16),
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: scale(16),
+    shadowColor: colors.grey[400],
+    shadowOffset: { width: scale(0), height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: scale(3),
+    elevation: 2,
+  },
+  iconContainer: {
+    width: scale(44),
+    height: verticalScale(44),
+    borderRadius: scale(22),
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cardContent: {
+    flex: 1,
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: verticalScale(4),
+    gap: scale(8),
+  },
+  cardTitle: {
+    flex: 1,
+    fontSize: fontSize[14],
+    fontFamily: fonts.SemiBold,
+    color: colors.black[500],
+  },
+  timeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: scale(6),
+  },
+  unreadDot: {
+    width: scale(8),
+    height: verticalScale(8),
+    borderRadius: scale(4),
+    backgroundColor: colors.purple[700],
+  },
+  timeText: {
+    fontSize: fontSize[12],
+    fontFamily: fonts.Regular,
+    color: colors.grey[700],
+  },
+  cardMessage: {
+    fontSize: fontSize[14],
+    fontFamily: fonts.Regular,
+    color: colors.grey[700],
+    lineHeight: verticalScale(20),
+  },
+  emptyState: {
+    marginTop: verticalScale(24),
+    padding: scale(24),
+    borderRadius: scale(16),
+    backgroundColor: colors.grey[100] ?? '#F2F3FF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyIcon: {
+    width: scale(48),
+    height: verticalScale(48),
+    borderRadius: scale(24),
+    backgroundColor: colors.white[100],
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: verticalScale(12),
+    shadowColor: colors.grey[400],
+    shadowOffset: { width: scale(0), height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: scale(2),
+    elevation: 2,
+  },
+  emptyTitle: {
+    fontSize: fontSize[14],
+    fontFamily: fonts.SemiBold,
+    color: colors.black[500],
+    marginBottom: verticalScale(4),
+  },
+  emptyDesc: {
+    fontSize: fontSize[12],
+    fontFamily: fonts.Regular,
+    color: colors.grey[700],
+    textAlign: 'center',
+  }
+});

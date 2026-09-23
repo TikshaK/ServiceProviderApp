@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Image,
   ScrollView,
@@ -8,20 +8,67 @@ import {
   View,
 } from 'react-native';
 import { ConfirmModal, ICON_TYPE, IconX } from '../../../../components';
-import { colors, navigationStrings, strings } from '../../../../constants';
+import { colors, images, navigationStrings, strings } from '../../../../constants';
 import { useAuth } from '../../../../hooks/useAuth';
-import { useAppSelector } from '../../../../store';
+import { setUserProfile, useAppDispatch, useAppSelector } from '../../../../store';
+import { getReviews, updateUserProfile } from '../../../../services/firebase';
+import { showToast } from '../../../../utils';
 import { styles } from './styles';
 
 export default function ProviderProfile({ navigation }: { navigation: any }) {
   const { signOut } = useAuth();
+  const dispatch = useAppDispatch();
   const profile = useAppSelector(state => state.user.profile);
-  const [isOnline, setIsOnline] = useState(true);
+  const [isOnline, setIsOnline] = useState(profile?.availability !== 'offlineToday');
+  const [availabilitySaving, setAvailabilitySaving] = useState(false);
   const [modal, setModal] = useState<'logout' | 'delete' | null>(null);
+  const [averageRating, setAverageRating] = useState(0);
+  const [reviewCount, setReviewCount] = useState(0);
   const authEmail = useAppSelector(state => state.auth.email);
 
-  const toggleAvailability = () => {
-    setIsOnline(!isOnline);
+  useEffect(() => {
+    setIsOnline(profile?.availability !== 'offlineToday');
+  }, [profile?.availability]);
+
+  useEffect(() => {
+    let active = true;
+    if (!profile?.uid) {
+      setAverageRating(0);
+      setReviewCount(0);
+      return () => { active = false; };
+    }
+
+    getReviews(profile.uid).then(reviews => {
+      if (!active) return;
+      setReviewCount(reviews.length);
+      setAverageRating(reviews.length ? reviews.reduce((total, review) => total + review.rating, 0) / reviews.length : 0);
+    }).catch(() => {
+      if (!active) return;
+      setAverageRating(0);
+      setReviewCount(0);
+    });
+
+    return () => { active = false; };
+  }, [profile?.uid]);
+
+  const toggleAvailability = async () => {
+    if (!profile || availabilitySaving) return;
+
+    const nextIsOnline = !isOnline;
+    setIsOnline(nextIsOnline);
+    setAvailabilitySaving(true);
+    try {
+      const updatedProfile = await updateUserProfile({
+        ...profile,
+        availability: nextIsOnline ? 'available' : 'offlineToday',
+      });
+      dispatch(setUserProfile(updatedProfile));
+    } catch {
+      setIsOnline(!nextIsOnline);
+      showToast({ type: 'error', title: 'Unable to update availability', message: 'Please try again.' });
+    } finally {
+      setAvailabilitySaving(false);
+    }
   };
 
   return (
@@ -40,7 +87,13 @@ export default function ProviderProfile({ navigation }: { navigation: any }) {
             <View style={styles.avatarContainer}>
               <View style={styles.avatarGradient}>
                 <Image
-                  source={{ uri: profile?.avatarUrl ?? 'https://lh3.googleusercontent.com/aida-public/AB6AXuADWqpyYu1OBHC99eyXyCJJr0AYCCth0kBsFfT3K5xChwf8lWHn_fqD4cdJwE9DcB67E56Y1HGEHWJdqE2IYyBvLiYqBSlgaBQ7VklZNyrJlIwp5zgjNlJ4BE8w6P7M4iUJxaeF3Rgmm_hIJoLsmzWaw7dzS3OQVyyad1bsonA4j90RLzFBUj6LKm1pcnZmgL8H6j_tjFo4wSKnvqgznsw8fVH_QiNkafF4nXZPw3TvWOE_htv-4kKgPg' }}
+                  source={
+                    profile?.avatarUrl ?
+                      {
+                        uri: profile?.avatarUrl
+                      } :
+                      images.profilePlaceHolder
+                  }
                   style={styles.avatarImage}
                 />
               </View>
@@ -50,16 +103,14 @@ export default function ProviderProfile({ navigation }: { navigation: any }) {
               </TouchableOpacity>
             </View>
             <View style={styles.heroTextContainer}>
-              <View style={styles.verifiedBadge}>
-                <IconX name="checkmark-circle" origin={ICON_TYPE.IONICONS} size={12} color={colors.purple[700]} />
-                <Text style={styles.verifiedText}>{strings.providerProfile.verifiedProvider}</Text>
-              </View>
+
               <Text style={styles.providerName}>{profile?.fullName ?? strings.providerProfile.providerFallbackName}</Text>
               <Text style={styles.businessName}>{profile?.serviceName ?? strings.providerProfile.businessFallbackName}</Text>
 
               <View style={styles.statusBadge}>
                 {isOnline && <View style={styles.statusDot} />}
-                <Text style={[styles.statusText, !isOnline && { color: colors.grey[700] }]}>
+                <Text
+                  style={[styles.statusText, !isOnline && { color: colors.grey[700] }]}>
                   {isOnline ? strings.providerProfile.onlineActive : strings.providerProfile.offline}
                 </Text>
               </View>
@@ -97,6 +148,7 @@ export default function ProviderProfile({ navigation }: { navigation: any }) {
           <TouchableOpacity
             style={styles.offlineBtn}
             activeOpacity={0.8}
+            disabled={availabilitySaving}
             onPress={toggleAvailability}
           >
             <IconX
@@ -106,7 +158,7 @@ export default function ProviderProfile({ navigation }: { navigation: any }) {
               color={isOnline ? colors.grey[700] : colors.green[700]}
             />
             <Text style={styles.offlineBtnText}>
-                {isOnline ? strings.providerProfile.goOfflineToday : strings.providerProfile.resumeAvailability}
+              {isOnline ? strings.providerProfile.goOfflineToday : strings.providerProfile.resumeAvailability}
             </Text>
           </TouchableOpacity>
         </View>
@@ -124,7 +176,9 @@ export default function ProviderProfile({ navigation }: { navigation: any }) {
             <View style={styles.insightBox}>
               <View style={styles.insightBoxHeader}>
                 <IconX name="cash-outline" origin={ICON_TYPE.IONICONS} size={14} color={colors.purple[700]} />
-                <Text style={styles.insightBoxTitle}>{strings.providerProfile.earnings}</Text>
+                <Text style={styles.insightBoxTitle}>
+                  {strings.providerProfile.earnings}
+                </Text>
               </View>
               <Text style={styles.insightValue}>${0}</Text>
 
@@ -134,9 +188,9 @@ export default function ProviderProfile({ navigation }: { navigation: any }) {
                 <IconX name="star" origin={ICON_TYPE.IONICONS} size={14} color="#3130c0" />
                 <Text style={styles.insightBoxTitle}>{strings.providerProfile.rating}</Text>
               </View>
-              <Text style={styles.insightValue}>4.9 ★</Text>
+              <Text style={styles.insightValue}>{averageRating.toFixed(1)} ★</Text>
               <View style={styles.insightSub}>
-                <Text style={styles.insightSubTextGrey}>{strings.providerProfile.reviewsCount}</Text>
+                <Text style={styles.insightSubTextGrey}>({reviewCount} reviews)</Text>
               </View>
             </View>
           </View>
@@ -189,11 +243,36 @@ export default function ProviderProfile({ navigation }: { navigation: any }) {
                 </View>
                 <Text style={styles.actionText}>{strings.providerProfile.earningsReviews}</Text>
               </View>
-              <IconX 
-              name="chevron-forward" 
-              origin={ICON_TYPE.IONICONS} 
-              size={20} 
-              color={colors.grey[700]} 
+              <IconX
+                name="chevron-forward"
+                origin={ICON_TYPE.IONICONS}
+                size={20}
+                color={colors.grey[700]}
+              />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.actionRow}
+              activeOpacity={0.7}
+              onPress={() => navigation.navigate(navigationStrings.PROVIDER_NOTIFICATIONS)}>
+              <View style={styles.actionRowContent}>
+                <View style={styles.actionIconBg}>
+                  <IconX
+                    name="notifications"
+                    origin={ICON_TYPE.IONICONS}
+                    size={18}
+                    color={colors.purple[700]}
+                  />
+                </View>
+                <Text
+                  style={styles.actionText}
+                >{strings.notifications.title}
+                </Text>
+              </View>
+              <IconX
+                name="chevron-forward"
+                origin={ICON_TYPE.IONICONS}
+                size={20}
+                color={colors.grey[700]}
               />
             </TouchableOpacity>
           </View>

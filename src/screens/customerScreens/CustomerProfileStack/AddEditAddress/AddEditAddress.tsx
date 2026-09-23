@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { Alert, Pressable, ScrollView, StatusBar, Switch, Text, TextInput, View } from 'react-native';
-import { ICON_TYPE, IconX } from '../../../../components';
+import { Pressable, ScrollView, StatusBar, Switch, Text, TextInput, View } from 'react-native';
+import { CustomHeader, ICON_TYPE, IconX } from '../../../../components';
 import { colors } from '../../../../constants';
 import { saveAddress } from '../../../../services/firebase';
 import { useAppSelector } from '../../../../store';
 import type { CustomerAddress } from '../../../../types/address';
 import { styles } from './styles';
+import { showToast } from '../../../../utils';
 
 type Props = { navigation: any; route?: { params?: { address?: CustomerAddress } } };
 
@@ -20,11 +21,11 @@ export default function AddEditAddress({ navigation, route }: Props) {
 	const handleSaveAddress = async () => {
 		const normalizedZip = zip.replace(/\D/g, '');
 		if (!street.trim() || normalizedZip.length !== 5) {
-			Alert.alert('Incomplete address', 'Enter a complete street address and a valid 5-digit ZIP code.');
+			showToast({ type: 'error', title: 'Incomplete address', message: 'Enter a complete street address and a valid 5-digit ZIP code.' });
 			return;
 		}
 		if (!profile?.uid) {
-			Alert.alert('Session expired', 'Please sign in again before saving an address.');
+			showToast({ type: 'error', title: 'Session expired', message: 'Please sign in again before saving an address.' });
 			return;
 		}
 		setSaving(true);
@@ -45,7 +46,7 @@ export default function AddEditAddress({ navigation, route }: Props) {
 			navigation.goBack();
 		} catch {
 			setSaving(false);
-			Alert.alert('Unable to save address', 'Please try again.');
+			showToast({ type: 'error', title: 'Unable to save address', message: 'Please try again.' });
 		}
 	};
 
@@ -56,26 +57,11 @@ export default function AddEditAddress({ navigation, route }: Props) {
 			<StatusBar
 				barStyle="dark-content"
 			/>
-			<View
-				style={styles.header}
-			>
-				<Pressable
-					accessibilityLabel="Go back"
-					accessibilityRole="button"
-					onPress={() => navigation.goBack()}
-					style={styles.headerButton}
-				>
-					<IconX
-						name="arrow-back-outline"
-						origin={ICON_TYPE.IONICONS}
-						size={24}
-						color={colors.black[250]}
-					/>
-				</Pressable>
-				<Text
-					style={styles.headerTitle}
-				>
-					{address ? 'Edit Address' : 'Add Address'}</Text><View style={styles.profileIcon}><IconX name="person" origin={ICON_TYPE.IONICONS} size={17} color={colors.white[100]} /></View></View>
+			<CustomHeader
+				title={address ? 'Edit Address' : 'Add Address'}
+				showBackButton
+				onLeftPress={() => navigation.goBack()}
+			/>
 			<ScrollView
 				contentContainerStyle={styles.content}
 				showsVerticalScrollIndicator={false}

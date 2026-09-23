@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { ConfirmModal, ICON_TYPE, IconX } from '../../../../components';
 import { useFocusEffect } from '@react-navigation/native';
-import { colors, navigationStrings, strings } from '../../../../constants';
+import { colors, images, navigationStrings, strings } from '../../../../constants';
 import { useAuth } from '../../../../hooks/useAuth';
 import { getAddresses } from '../../../../services/firebase';
 import { useAppSelector } from '../../../../store';
@@ -53,7 +53,14 @@ export default function CustomerProfile({ navigation }: { navigation: any }) {
           <View style={styles.heroContent}>
             <View style={styles.avatarContainer}>
               <Image
-                source={{ uri: profile?.avatarUrl ?? 'https://lh3.googleusercontent.com/aida-public/AB6AXuAPxOFhigRErRamtbdfFbKQTGx9wQALX0OzM8pXkbZhjTzkPINvYTo1wunxNWYlNb8gbafF3PIGrmBsCP8kmB4D5zP4AQH62t41q6I2l6wa3cG-xZCyrswu9GQe0JqihlQRn1_M-zNZFKs48IzTzTtzc-TBs9YVd34EIv46OSAR0Ilp9orSohFSR7NMWpfahOFa8scXKHjHpin42_pJQJXU4iODU5dexp2Rr94WgWkek7jdsmM5KeWcmg' }}
+                source={
+                  profile?.avatarUrl ?
+                    {
+                      uri: profile?.avatarUrl
+
+                    } :
+                    images.profilePlaceHolder
+                }
                 style={styles.avatar}
               />
               <View style={styles.verifiedBadge}>
@@ -86,16 +93,16 @@ export default function CustomerProfile({ navigation }: { navigation: any }) {
         <View style={styles.sectionContainer}>
           <Text style={styles.sectionTitle}>{strings.customerProfile.preferencesSettings}</Text>
           <View style={styles.cardBlock}>
-         
+
             {/* Saved Addresses */}
-            <TouchableOpacity style={styles.menuItem} 
-            activeOpacity={0.7}
-            onPress={() => navigation.navigate(navigationStrings.CUSTOMER_SAVED_ADDRESSES)}
+            <TouchableOpacity style={styles.menuItem}
+              activeOpacity={0.7}
+              onPress={() => navigation.navigate(navigationStrings.CUSTOMER_SAVED_ADDRESSES)}
             >
               <View style={styles.menuItemLeft}>
                 <View style={styles.menuIconContainer}>
-                  <IconX 
-                  name="location" origin={ICON_TYPE.ENTYPO} size={22} color={colors.purple[700]} />
+                  <IconX
+                    name="location" origin={ICON_TYPE.ENTYPO} size={22} color={colors.purple[700]} />
                 </View>
                 <View style={styles.menuItemTexts}>
                   <Text style={styles.menuTitle}>{strings.customerProfile.savedAddresses}</Text>

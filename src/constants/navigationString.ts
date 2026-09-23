@@ -36,6 +36,7 @@ const navigationStrings = {
   //Profile
   PROVIDER_EDIT_PROFILE: "ProviderEditProfile",
   PROVIDER_EARNINGS_REVIEWS: "ProviderEarningsReviews",
+  PROVIDER_NOTIFICATIONS: "ProviderNotifications",
 
   //Notifications
   NOTIFICATIONS: "Notifications",

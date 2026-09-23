@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
+  FlatList,
   Image,
   Pressable,
   ScrollView,
@@ -8,8 +9,14 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { CustomButton, CustomHeader, ICON_TYPE, IconX } from '../../../../components';
-import { colors, images, navigationStrings, strings } from '../../../../constants';
+import {
+  EmptyState, ICON_TYPE, IconX
+} from '../../../../components';
+import { useFocusEffect } from '@react-navigation/native';
+import {
+  colors,
+  navigationStrings, strings
+} from '../../../../constants';
 import { getBookings } from '../../../../services/firebase';
 import { useAppSelector } from '../../../../store';
 import { isBookingExpired } from '../../../../types/booking';
@@ -136,8 +143,12 @@ export default function ProviderHome({ navigation }: any) {
   const [recentBookings, setRecentBookings] = useState<any[]>([...RECENT_BOOKINGS]);
   const [overviewCounts, setOverviewCounts] = useState({ pending: 0, upcoming: 0, completed: 0 });
 
-  useEffect(() => {
-    if (!profile?.uid) return;
+  useFocusEffect(useCallback(() => {
+    if (!profile?.uid) {
+      setRecentBookings([]);
+      setOverviewCounts({ pending: 0, upcoming: 0, completed: 0 });
+      return;
+    }
 
     let active = true;
     getBookings('providerId', profile.uid).then(bookings => {
@@ -184,18 +195,30 @@ export default function ProviderHome({ navigation }: any) {
     }).catch(() => undefined);
 
     return () => { active = false; };
-  }, [profile?.uid]);
+  }, [profile?.uid]));
 
   return (
-    <View style={styles.container}>
+    <View
+      style={styles.container}
+    >
       <StatusBar
         barStyle="dark-content"
       />
-      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        <View style={styles.greetingSection}>
-          <View style={styles.greetingTextWrap}>
-            <View style={styles.greetingRow}>
-              <Text style={styles.greetingTitle}>Hello, {displayName}</Text>
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.greetingSection}
+        >
+          <View style={styles.greetingTextWrap}
+          >
+            <View style={styles.greetingRow}
+            >
+              <Text style={styles.greetingTitle}
+              >
+                Hello, {displayName}
+              </Text>
               <IconX
                 name="hand-wave"
                 origin={ICON_TYPE.MATERIAL_COMMUNITY}
@@ -203,30 +226,77 @@ export default function ProviderHome({ navigation }: any) {
                 color={colors.yellow[400]}
               />
             </View>
-            <Text style={styles.greetingSubtext}>{strings.home.greetingSub}</Text>
+            <Text style={styles.greetingSubtext}
+            >
+              {strings.home.greetingSub}
+            </Text>
           </View>
-          <View style={styles.availabilityBadge}>
-            <View style={styles.availabilityDot} />
-            <Text style={styles.availabilityText}>{strings.home.availableNow}</Text>
-          </View>
+          <Pressable
+            style={styles.availabilityBadge}
+            onPress={() => {
+              navigation.navigate(navigationStrings.PROVIDER_PROFILE_STACK,
+                {
+                  screen: navigationStrings.PROVIDER_PROFILE,
+                });
+            }}
+          >
+            <View style={styles.availabilityDot}
+            />
+            <Text style={styles.availabilityText}
+            >
+              {strings.home.availableNow}
+            </Text>
+          </Pressable>
         </View>
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>{strings.home.todaysOverview}</Text>
-          <View style={styles.overviewGrid}>
+        <View style={styles.section}
+        >
+          <Text style={styles.sectionTitle}
+          >
+            {strings.home.todaysOverview}
+
+          </Text>
+          <View style={styles.overviewGrid}
+          >
             {OVERVIEW_STATS.map(stat => (
-              <Pressable key={stat.id} style={styles.overviewCard}>
-                <View style={styles.overviewCardTop}>
-                  <View style={[styles.overviewIconWrap, { backgroundColor: stat.iconBgColor }]}>
-                    <IconX name={stat.iconName} origin={ICON_TYPE.IONICONS} size={18} color={stat.iconColor} />
+              <Pressable
+                key={stat.id}
+                style={styles.overviewCard}
+              >
+                <View
+                  style={styles.overviewCardTop}
+                >
+                  <View
+                    style={[styles.overviewIconWrap, { backgroundColor: stat.iconBgColor }]}
+                  >
+                    <IconX
+                      name={stat.iconName}
+                      origin={ICON_TYPE.IONICONS}
+                      size={18} color={stat.iconColor}
+                    />
                   </View>
-                  <View style={[styles.overviewBadge, { backgroundColor: stat.badgeBgColor }]}>
-                    <Text style={[styles.overviewBadgeText, { color: stat.badgeTextColor }]}>{stat.badgeText}</Text>
+                  <View
+                    style={[styles.overviewBadge, { backgroundColor: stat.badgeBgColor }]}
+                  >
+                    <Text
+                      style={[styles.overviewBadgeText, { color: stat.badgeTextColor }]}
+                    >
+                      {stat.badgeText}
+                    </Text>
                   </View>
                 </View>
-                <View style={styles.overviewCardBottom}>
-                  <Text style={[styles.overviewCount, { color: stat.countColor }]}>{overviewCounts[stat.id as keyof typeof overviewCounts]}</Text>
-                  <Text style={styles.overviewTitle} numberOfLines={1}>
+                <View
+                  style={styles.overviewCardBottom}
+                >
+                  <Text
+                    style={[styles.overviewCount, { color: stat.countColor }]}
+                  >
+                    {overviewCounts[stat.id as keyof typeof overviewCounts]}
+                  </Text>
+                  <Text
+                    style={styles.overviewTitle}
+                    numberOfLines={1}
+                  >
                     {stat.title}
                   </Text>
                 </View>
@@ -235,15 +305,54 @@ export default function ProviderHome({ navigation }: any) {
           </View>
         </View>
 
-        <View style={styles.sectionLg}>
-          <Text style={styles.sectionTitle}>{strings.home.quickActions}</Text>
-          <View style={styles.quickActionsGrid}>
+        <View
+          style={styles.sectionLg}
+        >
+          <Text
+            style={styles.sectionTitle}
+          >
+            {strings.home.quickActions}
+          </Text>
+          <View
+            style={styles.quickActionsGrid}
+          >
             {QUICK_ACTIONS.map(action => (
-              <Pressable key={action.id} style={styles.quickActionCard}>
-                <View style={[styles.quickActionIconWrap, { backgroundColor: action.iconBgColor }]}>
-                  <IconX name={action.iconName} origin={ICON_TYPE.IONICONS} size={22} color={action.iconColor} />
+              <Pressable
+                key={action.id}
+                style={styles.quickActionCard}
+
+                onPress={() => {
+                  if (action.id === 'add_service') {
+                    navigation.navigate(navigationStrings.PROVIDER_SERVICES_STACK, {
+                      screen: navigationStrings.ADD_EDIT_SERVICES,
+                    });
+                  } else if (action.id === 'view_bookings') {
+                    navigation.navigate(navigationStrings.PROVIDER_BOOKINGS_STACK, {
+                      screen: navigationStrings.PROVIDER_BOOKINGS,
+                    })
+
+                  } else {
+                    navigation.navigate(navigationStrings.PROVIDER_PROFILE_STACK, {
+                      screen: navigationStrings.PROVIDER_PROFILE,
+                    })
+                  }
+                }}
+
+              >
+                <View
+                  style={[styles.quickActionIconWrap, { backgroundColor: action.iconBgColor }]}
+                >
+                  <IconX
+                    name={action.iconName}
+                    origin={ICON_TYPE.IONICONS}
+                    size={22}
+                    color={action.iconColor}
+                  />
                 </View>
-                <Text style={styles.quickActionLabel} numberOfLines={2}>
+                <Text
+                  style={styles.quickActionLabel}
+                  numberOfLines={2}
+                >
                   {action.title}
                 </Text>
               </Pressable>
@@ -265,141 +374,161 @@ export default function ProviderHome({ navigation }: any) {
               >
                 {strings.home.recentBookings}
               </Text>
-              <View
-                style={styles.countBadge}
-              >
-                <Text
-                  style={styles.countBadgeText}
-                >
-                  {strings.home.latest}
-                </Text>
-              </View>
+
             </View>
           </View>
 
           <View
             style={styles.bookingList}
           >
-            {recentBookings.map(booking => {
-              const isCompleted = booking.status === 'Completed';
-              const timeIconColor =
-                booking.status === 'Completed'
-                  ? colors.green[350]
-                  : booking.status === 'Pending'
-                    ? '#D97706'
-                    : colors.purple[700];
+            <FlatList
+              data={recentBookings}
+              keyExtractor={booking => booking.id}
+              scrollEnabled={false}
+              contentContainerStyle={styles.bookingList}
+              ListEmptyComponent={() => (
+                <EmptyState
+                  title={strings.providerBookings.noBookingsTitle}
+                  message={strings.home.noBookingsSub}
+                  icon="briefcase-outline"
+                />
+              )}
+              renderItem={({ item: booking }) => {
+                const isCompleted = booking.status === 'Completed';
+                const timeIconColor =
+                  booking.status === 'Completed'
+                    ? colors.green[350]
+                    : booking.status === 'Pending'
+                      ? '#D97706'
+                      : colors.purple[700];
 
-              return (
-                <View
-                  key={booking.id}
-                  style={[styles.bookingCard, isCompleted && styles.bookingCardCompleted]}
-                >
+                return (
                   <View
-                    style={styles.bookingCardHeader}
+                    key={booking.id}
+                    style={[styles.bookingCard, isCompleted && styles.bookingCardCompleted]}
                   >
                     <View
-                      style={styles.bookingClient}
+                      style={styles.bookingCardHeader}
                     >
-                      <Image
-                        source={{ uri: booking.avatarUrl }}
-                        style={styles.bookingAvatar}
-                      />
                       <View
-                        style={styles.bookingClientInfo}
+                        style={styles.bookingClient}
                       >
-                        <Text
-                          style={styles.bookingClientName}
-                          numberOfLines={1}
-                        >
-                          {booking.clientName}
-                        </Text>
-                        <Text
-                          style={styles.bookingServiceTitle}
-                          numberOfLines={1}
-                        >
-                          {booking.serviceTitle}
-                        </Text>
-                      </View>
-                    </View>
-                    <View
-                      style={[styles.statusBadge, { backgroundColor: booking.statusBgColor }]}
-                    >
-                      {isCompleted ? (
-                        <IconX
-                          name="checkmark"
-                          origin={ICON_TYPE.IONICONS}
-                          size={12}
-                          color={booking.statusTextColor}
+                        <Image
+                          source={{ uri: booking.avatarUrl }}
+                          style={styles.bookingAvatar}
                         />
-                      ) : (
-                        'dotColor' in booking && booking.dotColor ? (
-                          <View
-                            style={[styles.statusDot, { backgroundColor: booking.dotColor }]} />
-                        ) : null
-                      )}
-                      <Text
-                        style={[styles.statusBadgeText, { color: booking.statusTextColor }]}>{booking.status}</Text>
-                    </View>
-                  </View>
-
-                  <View
-                    style={styles.bookingCardFooter}
-                  >
-                    <View
-                      style={styles.bookingTimeRow}
-                    >
-                      <IconX
-                        name="time-outline"
-                        origin={ICON_TYPE.IONICONS}
-                        size={16}
-                        color={timeIconColor}
-                      />
-                      <Text
-                        style={[styles.bookingTimeText, isCompleted && styles.bookingTimeTextMuted]}>
-                        {booking.timeText}
-                      </Text>
-                    </View>
-
-                    {'priceTag' in booking && booking.priceTag ? (
-                      <View
-                        style={styles.priceTag}
-                      >
-                        <Text
-                          style={styles.priceTagText}
+                        <View
+                          style={styles.bookingClientInfo}
                         >
-                          {booking.priceTag}
+                          <Text
+                            style={styles.bookingClientName}
+                            numberOfLines={1}
+                          >
+                            {booking.clientName}
+                          </Text>
+                          <Text
+                            style={styles.bookingServiceTitle}
+                            numberOfLines={1}
+                          >
+                            {booking.serviceTitle}
+                          </Text>
+                        </View>
+                      </View>
+                      <View
+                        style={[styles.statusBadge, { backgroundColor: booking.statusBgColor }]}
+                      >
+                        {isCompleted ? (
+                          <IconX
+                            name="checkmark"
+                            origin={ICON_TYPE.IONICONS}
+                            size={12}
+                            color={booking.statusTextColor}
+                          />
+                        ) : (
+                          'dotColor' in booking && booking.dotColor ? (
+                            <View
+                              style={[styles.statusDot, { backgroundColor: booking.dotColor }]}
+                            />
+                          ) : null
+                        )}
+                        <Text
+                          style={[styles.statusBadgeText, { color: booking.statusTextColor }]}
+                        >
+                          {booking.status}
                         </Text>
                       </View>
-                    ) : (
+                    </View>
+
+                    <View
+                      style={styles.bookingCardFooter}
+                    >
                       <View
-                        style={styles.bookingActions}
+                        style={styles.bookingTimeRow}
                       >
-                        {'showCallAction' in booking && booking.showCallAction && (
-                          <TouchableOpacity
-                            accessibilityLabel={`Call ${booking.clientName}`} activeOpacity={0.7} style={styles.bookingActionButton}>
-                            <IconX
-                              name="call-outline"
-                              origin={ICON_TYPE.IONICONS}
-                              size={18}
-                              color={colors.black[250]}
-                            />
-                          </TouchableOpacity>
-                        )}
-                        {'showDetailAction' in booking && booking.showDetailAction && (
-                          <TouchableOpacity accessibilityLabel="Booking Details" activeOpacity={0.7} style={styles.bookingActionButtonPrimary}>
-                            <IconX name="arrow-forward" origin={ICON_TYPE.IONICONS} size={18} color={colors.purple[700]} />
-                          </TouchableOpacity>
-                        )}
-                        
+                        <IconX
+                          name="time-outline"
+                          origin={ICON_TYPE.IONICONS}
+                          size={16}
+                          color={timeIconColor}
+                        />
+                        <Text
+                          style={[styles.bookingTimeText, isCompleted && styles.bookingTimeTextMuted]}
+                        >
+                          {booking.timeText}
+                        </Text>
                       </View>
-                    )}
+
+                      {'priceTag' in booking && booking.priceTag ? (
+                        <View
+                          style={styles.priceTag}
+                        >
+                          <Text
+                            style={styles.priceTagText}
+                          >
+                            {booking.priceTag}
+                          </Text>
+                        </View>
+                      ) : (
+                        <View
+                          style={styles.bookingActions}
+                        >
+                          {'showCallAction' in booking && booking.showCallAction && (
+                            <TouchableOpacity
+                              accessibilityLabel={`Call ${booking.clientName}`}
+                              activeOpacity={0.7}
+                              style={styles.bookingActionButton}>
+                              <IconX
+                                name="call-outline"
+                                origin={ICON_TYPE.IONICONS}
+                                size={18}
+                                color={colors.black[250]}
+                              />
+                            </TouchableOpacity>
+                          )}
+                          {'showDetailAction' in booking && booking.showDetailAction && (
+                            <TouchableOpacity
+                              accessibilityLabel="Booking Details"
+                              activeOpacity={0.7}
+                              style={styles.bookingActionButtonPrimary}
+                            >
+                              <IconX name="arrow-forward"
+                                origin={ICON_TYPE.IONICONS}
+                                size={18}
+                                color={colors.purple[700]}
+                              />
+                            </TouchableOpacity>
+                          )}
+
+                        </View>
+                      )}
+                    </View>
                   </View>
-                </View>
-              );
-            })}
+                );
+              }}
+            />
           </View>
         </View>
-      </ScrollView>
-    </View>
+      </ScrollView >
+    </View >
   );
 }

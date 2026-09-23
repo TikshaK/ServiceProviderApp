@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Alert, AppState, Text, View } from 'react-native';
+import { AppState, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { CustomHeader, ICON_TYPE, IconX } from '../../../components';
@@ -9,6 +9,7 @@ import { firebaseAuth } from '../../../services/firebase';
 import { useAuth } from '../../../hooks/useAuth';
 import { useAppSelector } from '../../../store';
 import { styles } from './styles';
+import { showToast } from '../../../utils';
 
 type VerificationRouteParams = {
   role?: string;
@@ -79,10 +80,7 @@ export default function Verification({
       await user.reload();
 
       if (!firebaseAuth.currentUser?.emailVerified) {
-        Alert.alert(
-          'Email not verified',
-          'Please open the verification link in your email and verify your email before continuing.',
-        );
+        showToast({ type: 'error', title: 'Email not verified', message: 'Please open the verification link in your email and verify your email before continuing.' });
         return;
       }
 

@@ -1,4 +1,5 @@
 export type UserRole = 'customer' | 'provider';
+export type ProviderAvailability = 'available' | 'offlineToday';
 
 export interface UserProfile {
   uid: string;
@@ -10,6 +11,7 @@ export interface UserProfile {
   serviceName?: string;
   experience?: string;
   category?: string;
+  availability?: ProviderAvailability;
   createdAt?: number;
 }
 
@@ -22,4 +24,5 @@ export interface SignUpProfilePayload {
   serviceName?: string;
   experience?: string;
   category?: string;
+  availability?: ProviderAvailability;
 }

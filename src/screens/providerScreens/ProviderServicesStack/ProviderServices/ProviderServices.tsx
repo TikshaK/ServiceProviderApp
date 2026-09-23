@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
   Image,
   ScrollView,
@@ -9,6 +9,7 @@ import {
   Switch
 } from 'react-native';
 import { EmptyState, ICON_TYPE, IconX } from '../../../../components';
+import { useFocusEffect } from '@react-navigation/native';
 import { colors, images, navigationStrings, strings } from '../../../../constants';
 import { getServices, updateService } from '../../../../services/firebase';
 import { useAppSelector } from '../../../../store';
@@ -36,20 +37,27 @@ export default function ProviderServices({ navigation }: ProviderServicesProps) 
   const [services, setServices] = useState<Service[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
+  useFocusEffect(useCallback(() => {
     let active = true;
     const loadServices = async () => {
-      if (!profile?.uid) return;
+      if (!profile?.uid) {
+        setServices([]);
+        setLoading(false);
+        return;
+      }
+      setLoading(true);
       try {
         const savedServices = await getServices({ providerId: profile.uid, activeOnly: false });
         if (active) setServices(savedServices);
+      } catch {
+        if (active) setServices([]);
       } finally {
         if (active) setLoading(false);
       }
     };
     loadServices();
     return () => { active = false; };
-  }, [profile?.uid]);
+  }, [profile?.uid]));
 
   const toggleService = async (service: Service) => {
     const updated = { ...service, isActive: !service.isActive, updatedAt: Date.now() };

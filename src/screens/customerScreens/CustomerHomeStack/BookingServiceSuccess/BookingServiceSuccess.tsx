@@ -14,7 +14,7 @@ export default function BookingServiceSuccess({ navigation, route }: Props) {
 	const date = route?.params?.date ?? 'Friday, October 25, 2026';
 	const time = route?.params?.time ?? '11:30 AM';
 	const address = route?.params?.address ?? '128 Pinecrest Blvd, Apt 4B';
-	const price = route?.params?.price ?? `${service.price}.00`;	
+	const price = route?.params?.price ?? `${service.price}.00`;
 
 
 	useEffect(() => {
@@ -26,7 +26,7 @@ export default function BookingServiceSuccess({ navigation, route }: Props) {
 	return (
 		<View style={styles.container}>
 			<StatusBar barStyle="dark-content" />
-	
+
 			<ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
 				<View style={styles.celebration}><View style={styles.halo}><View style={styles.checkCircle}><IconX name="checkmark" origin={ICON_TYPE.IONICONS} size={42} color={colors.white[100]} /></View></View><Text style={styles.heading}>You're All Set!</Text><Text style={styles.subtitle}>Your request has been dispatched to your specialist.</Text></View>
 
@@ -38,7 +38,34 @@ export default function BookingServiceSuccess({ navigation, route }: Props) {
 					<View style={styles.paymentRow}><Text style={styles.paymentLabel}>Total payment</Text><Text style={styles.payment}>{price}</Text></View>
 				</View>
 
-				<View style={styles.actions}><Pressable style={styles.primaryButton} onPress={() => navigation.navigate(navigationStrings.CUSTOMER_BOOKINGS_STACK)}><Text style={styles.primaryText}>View Booking Details</Text><IconX name="arrow-forward" origin={ICON_TYPE.IONICONS} size={18} color={colors.white[100]} /></Pressable><Pressable style={styles.secondaryButton} onPress={() => navigation.navigate(navigationStrings.CUSTOMER_HOME)}><Text style={styles.secondaryText}>Return to Home</Text></Pressable></View>
+				<View
+					style={styles.actions}>
+					<Pressable
+						style={styles.primaryButton}
+						onPress={() => navigation.navigate(navigationStrings.CUSTOMER_BOOKINGS_STACK)}
+					>
+						<Text
+							style={styles.primaryText}
+						>
+							View Booking Details
+						</Text>
+						<IconX name="arrow-forward"
+							origin={ICON_TYPE.IONICONS}
+							size={18}
+							color={colors.white[100]}
+						/>
+					</Pressable>
+					<Pressable
+						style={styles.secondaryButton}
+						onPress={() => navigation.navigate(navigationStrings.CUSTOMER_HOME)}
+					>
+						<Text
+							style={styles.secondaryText}
+						>
+							Return to Home
+						</Text>
+					</Pressable>
+				</View>
 			</ScrollView>
 		</View>
 	);

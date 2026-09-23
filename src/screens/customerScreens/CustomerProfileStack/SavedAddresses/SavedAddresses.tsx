@@ -1,7 +1,7 @@
 import React, { useCallback, useState } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import { Pressable, ScrollView, StatusBar, Text, View } from 'react-native';
-import { ICON_TYPE, IconX } from '../../../../components';
+import { CustomHeader, ICON_TYPE, IconX } from '../../../../components';
 import { colors, navigationStrings } from '../../../../constants';
 import { getAddresses } from '../../../../services/firebase';
 import { useAppSelector } from '../../../../store';
@@ -22,14 +22,127 @@ export default function SavedAddresses({ navigation }: { navigation: any }) {
 	}, [loadAddresses]));
 
 	return (
-		<View style={styles.container}>
-			<StatusBar barStyle="dark-content" />
-			<View style={styles.header}><Pressable accessibilityLabel="Go back" accessibilityRole="button" onPress={() => navigation.goBack()} style={styles.headerButton}><IconX name="arrow-back-outline" origin={ICON_TYPE.IONICONS} size={24} color={colors.black[250]} /></Pressable><Text style={styles.headerTitle}>Add Edit Address</Text><View style={styles.profileIcon}><IconX name="person" origin={ICON_TYPE.IONICONS} size={17} color={colors.white[100]} /></View></View>
-			<ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-				<View style={styles.contextRow}><Text style={styles.heading}>Saved Addresses</Text><Pressable accessibilityRole="button" onPress={() => navigation.navigate(navigationStrings.CUSTOMER_ADD_EDIT_ADDRESS)} style={styles.addButton}><IconX name="add" origin={ICON_TYPE.IONICONS} size={18} color={colors.white[100]} /><Text style={styles.addText}>Add</Text></Pressable></View>
-				<View style={styles.list}>{addresses.length === 0 ? <Text style={styles.addressText}>No addresses saved. Add one to use it for bookings.</Text> : addresses.map(address => <View key={address.id} style={styles.addressCard}><View style={styles.addressMain}><View style={styles.addressIcon}><IconX name="home" origin={ICON_TYPE.MATERIAL_ICONS} size={20} color={colors.purple[700]} /></View><View style={styles.addressCopy}><View style={styles.addressTitleRow}><Text style={styles.addressLabel}>{address.label}</Text>{address.isDefault ? <Text style={styles.defaultBadge}>Default</Text> : null}</View><Text style={styles.addressText}>{address.street}</Text><Text style={styles.zipText}>ZIP {address.postalCode}</Text></View></View><Pressable accessibilityLabel={`Edit ${address.label} address`} onPress={() => navigation.navigate(navigationStrings.CUSTOMER_ADD_EDIT_ADDRESS, { address })} style={styles.editButton}>
- <IconX name="edit" origin={ICON_TYPE.MATERIAL_ICONS} size={15} color={colors.purple[700]} />
-					</Pressable></View>)}</View>
+		<View
+			style={styles.container}
+		>
+			<StatusBar
+				barStyle="dark-content"
+			/>
+			<CustomHeader
+				title="Add Edit Address"
+				showBackButton
+				onLeftPress={() => navigation.goBack()}
+			/>
+			<ScrollView
+				contentContainerStyle={styles.content}
+				showsVerticalScrollIndicator={false}
+			>
+
+				<View
+					style={styles.contextRow}
+				>
+					<Text
+						style={styles.heading}
+					>
+						Saved Addresses
+					</Text>
+					<Pressable
+						accessibilityRole="button"
+						onPress={() => navigation.navigate(navigationStrings.CUSTOMER_ADD_EDIT_ADDRESS)}
+						style={styles.addButton}
+					>
+						<IconX
+							name="add"
+							origin={ICON_TYPE.IONICONS}
+							size={18}
+							color={colors.white[100]}
+						/>
+						<Text
+							style={styles.addText}
+						>
+							Add
+						</Text>
+					</Pressable>
+				</View>
+				<View
+					style={styles.list}
+				>
+					{addresses.length === 0 ?
+						<Text
+							style={styles.addressText}
+						>
+							No addresses saved. Add one to use it for bookings.
+						</Text>
+						:
+						addresses.map(address =>
+							<View
+								key={address.id}
+								style={styles.addressCard}
+							>
+								<View
+									style={styles.addressMain}
+								>
+									<View
+										style={styles.addressIcon}
+									>
+										<IconX
+											name="home"
+											origin={ICON_TYPE.MATERIAL_ICONS}
+											size={20}
+											color={colors.purple[700]}
+										/>
+									</View>
+									<View
+										style={styles.addressCopy}
+									>
+										<View
+											style={styles.addressTitleRow}
+										>
+											<Text
+												style={styles.addressLabel}
+											>
+												{address.label}
+											</Text>
+											{
+											address.isDefault
+												?
+												<Text
+													style={styles.defaultBadge}
+												>
+													Default
+												</Text>
+												:
+												null
+											}
+										</View>
+										<Text
+											style={styles.addressText}
+										>
+											{address.street}
+										</Text>
+										<Text
+											style={styles.zipText}
+										>
+											ZIP
+											{address.postalCode}
+										</Text>
+									</View>
+								</View>
+								<Pressable
+									accessibilityLabel={`Edit ${address.label} address`}
+									onPress={() => navigation.navigate(navigationStrings.CUSTOMER_ADD_EDIT_ADDRESS, { address })}
+									style={styles.editButton}
+								>
+									<IconX
+										name="edit"
+										origin={ICON_TYPE.MATERIAL_ICONS}
+										size={15}
+										color={colors.purple[700]}
+									/>
+								</Pressable>
+							</View>
+						)}
+				</View>
 			</ScrollView>
 		</View>
 	);

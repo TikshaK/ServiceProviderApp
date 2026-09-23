@@ -121,6 +121,7 @@ const strings = {
 		latest: '3 latest',
 		viewAll: 'View All',
 		review: 'Review',
+		noBookingsSub:"You have no bookings yet"
 	},
 	updatePassword: {
 		title: 'Create New Password',

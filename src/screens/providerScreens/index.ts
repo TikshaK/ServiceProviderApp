@@ -6,6 +6,8 @@ import AddEditServices from "./ProviderServicesStack/AddEditServices/AddEditServ
 import ProviderEditProfile from "./ProviderProfileStack/ProviderEditProfile/ProviderEditProfile";
 import EarningsAndReviews from "./ProviderProfileStack/EarningsAndReviews/EarningsAndReviews";
 import BookingDetails from "./ProviderBookingsStack/BookingDetails/BookingDetails";
+import ProviderNotifications from "./ProviderProfileStack/ProviderNotifications/ProviderNotifications";
+
 export {
     ProviderHome,
     ProviderBookings,
@@ -15,4 +17,5 @@ export {
     ProviderEditProfile,
     EarningsAndReviews,
     BookingDetails,
+    ProviderNotifications,
 };

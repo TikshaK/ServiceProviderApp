@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Image, Pressable, ScrollView, StatusBar, Text, View } from 'react-native';
 import { CustomHeader, CustomSearchBar, CustomTab, ICON_TYPE, IconX } from '../../../../components';
-import { colors, navigationStrings } from '../../../../constants';
+import { colors, navigationStrings, SERVICE_CATEGORIES } from '../../../../constants';
 import { getBookings, getServices } from '../../../../services/firebase';
 import { useAppSelector } from '../../../../store';
 import type { Booking } from '../../../../types/booking';
@@ -12,7 +12,7 @@ type Props = { navigation: any; route?: { params?: { category?: string; query?: 
 type DisplayService = { id: string; providerName: string; title: string; duration: string; rating: string; price: string; description: string; imageUrl: string; category: string };
 type DisplayBooking = { id: string; title: string; provider: string; date: string; status: string; price: string; image: string };
 
-const CATEGORIES = ['All', 'Cleaning', 'Plumbing', 'AC Repair', 'Electrical', 'Handyman', 'Painting', 'Carpentry'];
+const CATEGORIES = ['All', ...SERVICE_CATEGORIES];
 
 const toDisplayService = (service: Service): DisplayService => ({
 	id: service.id,
@@ -94,8 +94,9 @@ export default function CustomerSearchFilterServices({ navigation, route }: Prop
 			<CustomHeader
 				title={isBookingSearch ? 'My Bookings' : 'Services & Providers'}
 				showBackButton
+				onLeftPress={() => navigation.goBack()}
 			/>
-			
+
 
 			{loading ? <ActivityIndicator color={colors.purple[600]} style={styles.loading} /> : isBookingSearch ? filteredBookings.length === 0 ? (
 				<View style={styles.emptyState}><View style={styles.emptyIcon}><IconX name="search-outline" origin={ICON_TYPE.IONICONS} size={28} color={colors.purple[700]} /></View><Text style={styles.emptyTitle}>No bookings found</Text><Text style={styles.emptyText}>Try another search term.</Text><Pressable onPress={clearFilters} style={styles.resetButton}><Text style={styles.resetText}>Clear Search</Text></Pressable></View>
