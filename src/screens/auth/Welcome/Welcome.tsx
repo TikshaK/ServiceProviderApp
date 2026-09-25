@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import {
   Image,
+  Platform,
   Pressable,
   StatusBar,
   Text,
@@ -84,9 +85,12 @@ export default function Welcome({ navigation }: any) {
       <KeyboardAwareScrollView
         style={{ flex: 1 }}
         contentContainerStyle={styles.content}
-        enableOnAndroid={false}
-        enableAutomaticScroll={false}
+        enableOnAndroid={true}
+        bounces={false}
+        enableAutomaticScroll
+        extraScrollHeight={Platform.OS === 'android' ? 180 : 120}
         keyboardOpeningTime={0}
+        keyboardShouldPersistTaps="handled"
         enableResetScrollToCoords={false}
         showsVerticalScrollIndicator={false}>
         <View style={styles.intro}>
@@ -130,7 +134,7 @@ export default function Welcome({ navigation }: any) {
             onPress={() => navigation.navigate('SignUp', { role: selectedRole })}
             style={({ pressed }) => [styles.continueButton, pressed && styles.pressedButton]}>
             <Text style={styles.continueText}>{strings.common.continue}</Text>
-            <Text style={styles.arrow}>→</Text>
+      
           </Pressable>
           <View style={styles.signInRow}>
             <Text style={styles.signInPrompt}>{strings.common.alreadyHaveAccount}</Text>

@@ -64,8 +64,8 @@ export default function Login({ navigation }: LoginProps) {
 
         console.log('[Login] fetching profile from DB for uid:', currentUser.uid);
         const profile = await getUserProfile(currentUser.uid);
-        console.log('[Login] getUserProfile result:', profile ? `role=${profile.role} | fullName=${profile.fullName} | serviceName=${profile.serviceName ?? '-'}` : 'NO PROFILE FOUND');
-        console.log('[Login] profile role resolved by database:', profile?.role ?? 'unknown');
+        // console.log('[Login] getUserProfile result:', profile ? `role=${profile.role} | fullName=${profile.fullName} | serviceName=${profile.serviceName ?? '-'}` : 'NO PROFILE FOUND');
+        // console.log('[Login] profile role resolved by database:', profile?.role ?? 'unknown');
         await syncAuthenticatedUser(dispatch, currentUser);
       } else {
         console.warn('[Login] signIn succeeded but currentUser is null!');
@@ -98,10 +98,10 @@ export default function Login({ navigation }: LoginProps) {
   return (
     <View style={[styles.container, { paddingBottom: insets.bottom }]}>
       <StatusBar barStyle="dark-content" />
-      <CustomHeader 
-      title="Sign In" 
-      showBackButton 
-      onLeftPress={() => navigation.goBack()} 
+      <CustomHeader
+        title="Sign In"
+        showBackButton
+        onLeftPress={() => navigation.goBack()}
       />
 
       <KeyboardAwareScrollView
@@ -158,15 +158,22 @@ export default function Login({ navigation }: LoginProps) {
           {authError ? <Text style={styles.validationError}>{authError}</Text> : null}
 
           <View style={styles.optionsRow}>
-            <Pressable accessibilityRole="button" onPress={() => navigation.navigate(navigationStrings.RESETPASSWORD)}>
-              <Text style={styles.forgotText}>{strings.login.forgotPassword}</Text>
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => navigation.navigate(navigationStrings.RESETPASSWORD)}
+            >
+              <Text
+                style={styles.forgotText}
+              >
+                {strings.login.forgotPassword}
+              </Text>
             </Pressable>
           </View>
 
           <CustomButton
             title={strings.login.submit}
             onPress={handleLogin}
-            rightIcon={<Text style={styles.buttonArrow}>→</Text>}
+      
             variant="primary"
             fullWidth
             rounded

@@ -12,7 +12,7 @@ import { ConfirmModal, ICON_TYPE, IconX } from '../../../../components';
 import { colors, images, navigationStrings, strings } from '../../../../constants';
 import { useAuth } from '../../../../hooks/useAuth';
 import { setUserProfile, useAppDispatch, useAppSelector } from '../../../../store';
-import { getReviews, updateUserProfile, getBookings } from '../../../../services/firebase';
+import { getReviews, updateUserProfile, getBookings, deleteAccount } from '../../../../services/firebase';
 import { showToast } from '../../../../utils';
 import { styles } from './styles';
 
@@ -33,24 +33,24 @@ export default function ProviderProfile({ navigation }: { navigation: any }) {
   }, [profile?.availability]);
 
   useFocusEffect(
-	useCallback(() => {
-		if (!profile?.uid) {
-			setAverageRating(0);
-			setReviewCount(0);
-			setTotalEarnings(0);
-			return;
-		}
+    useCallback(() => {
+      if (!profile?.uid) {
+        setAverageRating(0);
+        setReviewCount(0);
+        setTotalEarnings(0);
+        return;
+      }
 
-		Promise.all([getReviews(profile.uid), getBookings('providerId', profile.uid, 'completed')]).then(([reviews, completedBookings]) => {
-			setReviewCount(reviews.length);
-			setAverageRating(reviews.length ? reviews.reduce((total, review) => total + review.rating, 0) / reviews.length : 0);
-			setTotalEarnings(completedBookings.reduce((total, booking) => total + booking.totalAmount, 0));
-		}).catch(() => {
-			setAverageRating(0);
-			setReviewCount(0);
-			setTotalEarnings(0);
-		});
-	}, [profile?.uid])
+      Promise.all([getReviews(profile.uid), getBookings('providerId', profile.uid, 'completed')]).then(([reviews, completedBookings]) => {
+        setReviewCount(reviews.length);
+        setAverageRating(reviews.length ? reviews.reduce((total, review) => total + review.rating, 0) / reviews.length : 0);
+        setTotalEarnings(completedBookings.reduce((total, booking) => total + booking.totalAmount, 0));
+      }).catch(() => {
+        setAverageRating(0);
+        setReviewCount(0);
+        setTotalEarnings(0);
+      });
+    }, [profile?.uid])
   );
 
   const toggleAvailability = async () => {
@@ -100,9 +100,12 @@ export default function ProviderProfile({ navigation }: { navigation: any }) {
                 />
               </View>
               {isOnline && <View style={styles.onlineDot} />}
-              <TouchableOpacity style={styles.cameraButton} activeOpacity={0.8}>
+              {/* <TouchableOpacity style={styles.cameraButton} activeOpacity={0.8}>
                 <IconX name="camera" origin={ICON_TYPE.IONICONS} size={14} color={colors.white[100]} />
-              </TouchableOpacity>
+              </TouchableOpacity> */}
+              <View style={styles.cameraButton}>
+                <IconX name="verified" origin={ICON_TYPE.MATERIAL_ICONS} size={13} color={colors.white[100]} />
+              </View>
             </View>
             <View style={styles.heroTextContainer}>
 
@@ -169,20 +172,24 @@ export default function ProviderProfile({ navigation }: { navigation: any }) {
         <TouchableOpacity
           style={styles.insightsCard}
           activeOpacity={0.8}
-          onPress={() => navigation.navigate(navigationStrings.PROVIDER_EARNINGS_REVIEWS)}>
+          onPress={() => navigation.navigate(navigationStrings.PROVIDER_EARNINGS_REVIEWS)}
+        >
           <View style={styles.insightsHeader}>
-            <Text style={styles.insightsTitle}>{strings.providerProfile.performanceInsights}</Text>
-            <Text style={styles.insightsLink}>{strings.providerProfile.viewEarningsReviews}</Text>
+            <Text style={styles.insightsTitle}>
+              {strings.providerProfile.performanceInsights}</Text>
+            <Text style={styles.insightsLink}>
+              {strings.providerProfile.viewEarningsReviews}</Text>
           </View>
           <View style={styles.insightsGrid}>
             <View style={styles.insightBox}>
               <View style={styles.insightBoxHeader}>
-                <IconX name="cash-outline" origin={ICON_TYPE.IONICONS} size={14} color={colors.purple[700]} />
+                <IconX name="cash-outline"
+                  origin={ICON_TYPE.IONICONS} size={14} color={colors.purple[700]} />
                 <Text style={styles.insightBoxTitle}>
                   {strings.providerProfile.earnings}
                 </Text>
               </View>
-              <Text style={styles.insightValue}>${totalEarnings.toFixed(0)}</Text>
+              <Text style={styles.insightValue}>${totalEarnings}</Text>
 
             </View>
             <View style={styles.insightBox}>
@@ -190,7 +197,8 @@ export default function ProviderProfile({ navigation }: { navigation: any }) {
                 <IconX name="star" origin={ICON_TYPE.IONICONS} size={14} color="#3130c0" />
                 <Text style={styles.insightBoxTitle}>{strings.providerProfile.rating}</Text>
               </View>
-              <Text style={styles.insightValue}>{averageRating.toFixed(1)} ★</Text>
+              <Text style={styles.insightValue}>{averageRating} ★</Text>
+              {/* <Text style={styles.insightValue}>{averageRating.toFixed(1)} ★</Text> */}
               <View style={styles.insightSub}>
                 <Text style={styles.insightSubTextGrey}>({reviewCount} reviews)</Text>
               </View>
@@ -330,7 +338,11 @@ export default function ProviderProfile({ navigation }: { navigation: any }) {
         cancelText={strings.common.keepAccount}
         destructive
         onCancel={() => setModal(null)}
-        onConfirm={() => { setModal(null); if (modal === 'logout') signOut(); }}
+        onConfirm={async () => {
+          setModal(null);
+          if (modal === 'logout') await signOut();
+          else if (modal === 'delete') { try { await deleteAccount(profile?.uid ?? ''); await signOut(); } catch {} }
+        }}
       />
     </View>
   );

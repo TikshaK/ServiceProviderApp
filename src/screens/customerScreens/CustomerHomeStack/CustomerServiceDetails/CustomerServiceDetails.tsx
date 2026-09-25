@@ -1,5 +1,5 @@
-import React from 'react';
-import { Alert, Image, Pressable, ScrollView, Share, StatusBar, Text, View } from 'react-native';
+import React, { useState } from 'react';
+import { Alert, Image, Modal, Pressable, ScrollView, Share, StatusBar, Text, TouchableOpacity, View } from 'react-native';
 import { CustomHeader, ICON_TYPE, IconX } from '../../../../components';
 import { colors, navigationStrings } from '../../../../constants';
 import { styles } from './styles';
@@ -13,6 +13,7 @@ type Service = {
 	price: string;
 	description: string;
 	imageUrl: string;
+	imageUrls?: string[];
 };
 
 type CustomerServiceDetailsProps = {
@@ -29,14 +30,23 @@ const FALLBACK_SERVICE: Service = {
 	price: '$120',
 	description: 'Comprehensive room-by-room sanitation, allergen reduction, and detail cleaning.',
 	imageUrl: '',
+	imageUrls: [],
 };
 
 export default function CustomerServiceDetails({ navigation, route }: CustomerServiceDetailsProps) {
 	const service = route?.params?.service ?? FALLBACK_SERVICE;
+	const images = service.imageUrls && service.imageUrls.length > 0 ? service.imageUrls : [service.imageUrl || ''];
+
+	const [activeIndex, setActiveIndex] = useState(0);
+	const [previewVisible, setPreviewVisible] = useState(false);
 
 	const shareService = async () => {
 		await Share.share({ message: `${service.title} by ${service.providerName} - ${service.price}` });
 	};
+
+
+	console.log("Images array:", images)
+
 
 	return (
 		<View style={styles.container}>
@@ -53,11 +63,73 @@ export default function CustomerServiceDetails({ navigation, route }: CustomerSe
 				showsVerticalScrollIndicator={false}
 			>
 
-
 				<View style={styles.card}>
-					<View style={styles.heroImageWrap}>
-						{service.imageUrl ? <Image source={{ uri: service.imageUrl }} style={styles.heroImage} /> : <IconX name="image-outline" origin={ICON_TYPE.IONICONS} size={48} color={colors.grey[400]} />}
-						<View style={styles.durationBadge}><IconX name="time-outline" origin={ICON_TYPE.IONICONS} size={14} color={colors.purple[700]} /><Text style={styles.badgeText}>Approx. {service.duration}</Text></View>
+					<View style={styles.carouselWrap}>
+						<ScrollView
+							horizontal
+							pagingEnabled
+							showsHorizontalScrollIndicator={false}
+							onMomentumScrollEnd={(event) => {
+								const offsetX = event.nativeEvent.contentOffset.x;
+								const index = Math.round(offsetX / event.nativeEvent.layoutMeasurement.width);
+								setActiveIndex(index);
+							}}
+							scrollEventThrottle={16}>
+							{images.map((img, index) => {
+								console.log("Image item:", img)
+								return (
+									<View
+										key={index}
+										style={styles.carouselImageContainer}
+									>
+										{img
+											?
+											<Image
+												source={{ uri: img }}
+												style={styles.carouselImage}
+												resizeMode="cover"
+											/>
+											:
+											<IconX
+												name="image-outline"
+												origin={ICON_TYPE.IONICONS}
+												size={48}
+												color={colors.grey[400]}
+											/>}
+									</View>
+								)
+							})}
+						</ScrollView>
+
+						{images.length > 1 && (
+							<View style={styles.carouselDots}>
+								{images.map((_, index) => (
+									<View
+										key={index}
+
+										style={[
+											styles.dot,
+											index === activeIndex ?
+												styles.dotActive :
+												styles.dotInactive
+										]}
+									/>
+								))}
+							</View>
+						)}
+						<Pressable onPress={() => setPreviewVisible(true)}>
+							<View style={styles.durationBadge}>
+								<IconX
+									name="time-outline"
+									origin={ICON_TYPE.IONICONS}
+									size={14}
+									color={colors.purple[700]}
+								/>
+								<Text style={styles.badgeText}>
+									Approx. {service.duration}
+								</Text>
+							</View>
+						</Pressable>
 					</View>
 					<Text
 						style={styles.serviceTitle}
@@ -86,11 +158,7 @@ export default function CustomerServiceDetails({ navigation, route }: CustomerSe
 								>
 									{service.price}.00
 								</Text>
-								<Text
-									style={styles.mutedText}
-								>
-									/ flat fee
-								</Text>
+							
 							</View>
 						</View>
 						<View
@@ -154,10 +222,8 @@ export default function CustomerServiceDetails({ navigation, route }: CustomerSe
 								>
 									{service.rating}
 								</Text>
-						
 							</View>
 						</View>
-				
 					</View>
 				</View>
 
@@ -194,80 +260,85 @@ export default function CustomerServiceDetails({ navigation, route }: CustomerSe
 					<View
 						style={styles.reviewHeading}
 					>
-						<View>
-							<Text
-								style={styles.reviewTitle}
-							>
-								Customer Reviews
-							</Text>
-							<Text
-								style={styles.mutedText}
-							>
-								Verified service bookings
-							</Text>
-						</View>
-						<View
-							style={styles.reviewScore}
+						<Text
+							style={styles.reviewTitle}
 						>
-							<Text
-								style={styles.score}
-							>
-								4.9
-							</Text>
-							<Text
-								style={styles.mutedText}
-							>
-								/ 5
-							</Text>
-						</View>
+							Customer Reviews
+						</Text>
 					</View>
 					<View
 						style={styles.reviewCard}
 					>
-						<View
-							style={styles.reviewTop}
-						>
-							<View
-								style={styles.reviewer}
-							>
-								<Text
-									style={styles.reviewerInitials}
-								>
-									SM
-								</Text>
-							</View>
-							<Text
-								style={styles.reviewerName}
-							>
-								Sarah M.
-							</Text>
-							<View
-								style={styles.stars}
-							>
-								{[1, 2, 3, 4, 5].map(star =>
-									<IconX
-										key={star}
-										name="star"
-										origin={ICON_TYPE.IONICONS}
-										size={14}
-										color={colors.purple[700]}
-									/>
-								)}
-							</View>
-						</View>
-						<Text
-							style={styles.reviewText}
-						>
-							“John was punctual, meticulous, and made our kitchen sparkle like new. The smoothest booking experience.”
-						</Text>
-						<Text
-							style={styles.caption}
-						>
-							2 days ago • Verified Homeowner
-						</Text>
+						<Text style={styles.mutedText}>No reviews yet</Text>
 					</View>
 				</View>
 			</ScrollView>
+
+			<Modal
+				visible={previewVisible}
+				transparent={false}
+				animationType="fade"
+				statusBarTranslucent
+				onRequestClose={() => setPreviewVisible(false)}
+			>
+				<View style={{ flex: 1, backgroundColor: colors.black[500] }}>
+					<StatusBar barStyle="light-content" backgroundColor={colors.black[500]} />
+					<ScrollView
+						horizontal
+						pagingEnabled
+						showsHorizontalScrollIndicator={false}
+						style={{ flex: 1 }}
+						onMomentumScrollEnd={(event) => {
+							const offsetX = event.nativeEvent.contentOffset.x;
+							const index = Math.round(offsetX / event.nativeEvent.layoutMeasurement.width);
+							setActiveIndex(index);
+						}}
+						scrollEventThrottle={16}>
+						{images.map((img, index) => (
+							<View
+								key={index}
+								style={{
+									flex: 1,
+									justifyContent: 'center',
+									alignItems: 'center',
+									backgroundColor: colors.black[500]
+								}}>
+								{img
+									?
+									<Image
+										source={{ uri: img }}
+										style={{
+											flex: 1,
+											width: undefined,
+											height: undefined,
+											resizeMode: 'contain'
+										}}
+									/>
+									:
+									<IconX
+										name="image-outline"
+										origin={ICON_TYPE.IONICONS}
+										size={48}
+										color={colors.grey[400]}
+									/>
+								}
+							</View>
+						))}
+					</ScrollView>
+					<TouchableOpacity
+						style={{ position: 'absolute', right: 16, top: 40, width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(0,0,0,0.45)', alignItems: 'center', justifyContent: 'center', zIndex: 10 }}
+						onPress={() => setPreviewVisible(false)}
+						activeOpacity={0.8}
+					>
+						<IconX name="close" size={26} color={colors.white[100]} origin={ICON_TYPE.IONICONS} />
+					</TouchableOpacity>
+					{images.length > 1 && (
+						<View style={{ position: 'absolute', alignSelf: 'center', bottom: 30, paddingHorizontal: 14, paddingVertical: 6, borderRadius: 16, backgroundColor: 'rgba(0,0,0,0.55)' }}>
+							<Text style={{ color: colors.white[100], fontSize: 14 }}>{activeIndex + 1} / {images.length}</Text>
+						</View>
+					)}
+				</View>
+			</Modal>
 
 			<View
 				style={styles.bottomBar}

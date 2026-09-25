@@ -1,10 +1,10 @@
 import { NavigationContainer } from '@react-navigation/native';
-import { 
-  StatusBar, useColorScheme, View 
+import {
+  StatusBar, useColorScheme, View
 } from 'react-native';
 import { Provider } from 'react-redux';
-import { 
-  SafeAreaProvider, useSafeAreaInsets 
+import {
+  SafeAreaProvider, useSafeAreaInsets
 } from 'react-native-safe-area-context';
 import { RootNavigator } from './src/navigation';
 import { store, useAuthListener } from './src/store';
@@ -16,9 +16,13 @@ function App() {
   return (
     <SafeAreaProvider
     >
-      <StatusBar
-        barStyle={isDarkMode ? 'light-content' : 'dark-content'}
-      />
+      {/* <StatusBar
+        barStyle={isDarkMode
+          ?
+          'light-content'
+          :
+          'dark-content'}
+      /> */}
       <Provider
         store={store}
       >

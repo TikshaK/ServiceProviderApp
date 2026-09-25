@@ -4,6 +4,7 @@ export {
 	createNotification,
 	createReview,
 	createService,
+	deleteAccount,
 	deleteAddress,
 	deleteService,
 	getAddresses,

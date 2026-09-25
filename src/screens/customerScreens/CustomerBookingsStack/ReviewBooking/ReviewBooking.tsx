@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { ActivityIndicator, Image, Modal, Pressable, ScrollView, StatusBar, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Image, Modal, Platform, Pressable, StatusBar, Text, TextInput, View } from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { CustomHeader, ICON_TYPE, IconX } from '../../../../components';
 import { colors } from '../../../../constants';
 import { createReview } from '../../../../services/firebase';
@@ -49,7 +50,18 @@ export default function ReviewBooking({ navigation, route }: Props) {
 				showBackButton
 				onLeftPress={() => navigation.goBack()}
 			/>
-			<ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+			<KeyboardAwareScrollView
+				style={{ flex: 1 }}
+				contentContainerStyle={styles.content}
+				enableOnAndroid
+				bounces={false}
+				enableAutomaticScroll
+				extraScrollHeight={Platform.OS === 'android' ? 180 : 120}
+				keyboardOpeningTime={0}
+				keyboardShouldPersistTaps="handled"
+				enableResetScrollToCoords={false}
+				showsVerticalScrollIndicator={false}
+			>
 				<View style={styles.summaryCard}>
 					<View style={styles.metadata}>
 						<View style={styles.metadataLeft}>
@@ -109,7 +121,7 @@ export default function ReviewBooking({ navigation, route }: Props) {
 				<View style={styles.card}><View style={styles.reviewHeading}><Text style={styles.reviewLabel}>Write a detailed review</Text><Text style={styles.counter}>{review.length} / 500</Text></View><TextInput value={review} onChangeText={setReview} maxLength={500} multiline numberOfLines={5} placeholder={`Tell the community how ${booking.specialist} did...`} placeholderTextColor={colors.grey[700]} style={styles.reviewInput} textAlignVertical="top" /></View>
 
 				<View style={styles.actions}><Pressable disabled={submitting} style={styles.submitButton} onPress={submitReview}><Text style={styles.submitText}>Submit Review</Text><IconX name="send" origin={ICON_TYPE.IONICONS} size={19} color={colors.white[100]} /></Pressable><Pressable disabled={submitting} style={styles.skipButton} onPress={() => navigation.goBack()}><Text style={styles.skipText}>Skip for now</Text></Pressable></View>
-			</ScrollView>
+			</KeyboardAwareScrollView>
 		</View>
 	);
 }

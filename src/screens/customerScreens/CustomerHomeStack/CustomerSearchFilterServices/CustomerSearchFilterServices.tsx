@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Image, Pressable, ScrollView, StatusBar, Text, View } from 'react-native';
+import { ActivityIndicator, Image, Platform, Pressable, ScrollView, StatusBar, Text, View } from 'react-native';
 import { CustomHeader, CustomSearchBar, CustomTab, ICON_TYPE, IconX } from '../../../../components';
 import { colors, navigationStrings, SERVICE_CATEGORIES } from '../../../../constants';
 import { getBookings, getServices } from '../../../../services/firebase';
@@ -9,7 +9,7 @@ import { Service } from '../../../../types/service';
 import { styles } from './styles';
 
 type Props = { navigation: any; route?: { params?: { category?: string; query?: string; fromBookings?: boolean } } };
-type DisplayService = { id: string; providerName: string; title: string; duration: string; rating: string; price: string; description: string; imageUrl: string; category: string };
+type DisplayService = { id: string; providerName: string; title: string; duration: string; rating: string; price: string; description: string; imageUrl: string; imageUrls?: string[]; category: string };
 type DisplayBooking = { id: string; title: string; provider: string; date: string; status: string; price: string; image: string };
 
 const CATEGORIES = ['All', ...SERVICE_CATEGORIES];
@@ -23,6 +23,7 @@ const toDisplayService = (service: Service): DisplayService => ({
 	price: `$${service.price}`,
 	description: service.description ?? '',
 	imageUrl: service.imageUrls?.[0] ?? '',
+	imageUrls: service.imageUrls,
 	category: service.category,
 });
 
@@ -32,7 +33,8 @@ const toDisplayBooking = (booking: Booking): DisplayBooking => ({
 	provider: booking.providerSnapshot.serviceName ?? booking.providerSnapshot.fullName,
 	date: `${booking.scheduledDate} • ${booking.scheduledTime}`,
 	status: booking.status,
-	price: `$${booking.totalAmount.toFixed(2)}`,
+	price: `$${booking.totalAmount}`,
+	// price: `$${booking.totalAmount.toFixed(2)}`,
 	image: booking.serviceSnapshot.imageUrls?.[0] ?? '',
 });
 
@@ -97,6 +99,14 @@ export default function CustomerSearchFilterServices({ navigation, route }: Prop
 				onLeftPress={() => navigation.goBack()}
 			/>
 
+			<View style={styles.searchSection}>
+				<CustomSearchBar
+					searchText={query}
+					setSearchText={setQuery}
+					placeholder={isBookingSearch ? 'Search your bookings...' : 'Search for a service...'}
+					containerStyles={styles.searchInputContainer}
+				/>
+			</View>
 
 			{loading ? <ActivityIndicator color={colors.purple[600]} style={styles.loading} /> : isBookingSearch ? filteredBookings.length === 0 ? (
 				<View style={styles.emptyState}><View style={styles.emptyIcon}><IconX name="search-outline" origin={ICON_TYPE.IONICONS} size={28} color={colors.purple[700]} /></View><Text style={styles.emptyTitle}>No bookings found</Text><Text style={styles.emptyText}>Try another search term.</Text><Pressable onPress={clearFilters} style={styles.resetButton}><Text style={styles.resetText}>Clear Search</Text></Pressable></View>

@@ -1,11 +1,13 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Image, Pressable, ScrollView, StatusBar, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Image, Platform, Pressable, StatusBar, Text, TextInput, View } from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { CalendarInput, CustomHeader, ICON_TYPE, IconX } from '../../../../components';
 import { colors, navigationStrings, strings } from '../../../../constants';
 import { createBooking, getAddresses, getService, getUserProfile } from '../../../../services/firebase';
 import { useAppSelector } from '../../../../store';
 import { styles } from './styles';
 import { showToast } from '../../../../utils';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type Service = { id: string; providerName: string; title: string; duration: string; rating: string; price: string; description: string; imageUrl: string };
 type Props = { navigation: any; route?: { params?: { service?: Service } } };
@@ -34,6 +36,7 @@ const getMinimumTime = (date: Date | null) => {
 };
 
 export default function CustomerBookService({ navigation, route }: Props) {
+	const insets = useSafeAreaInsets()
 	const service = route?.params?.service ?? FALLBACK_SERVICE;
 	const customer = useAppSelector(state => state.user.profile);
 	const [selectedDate, setSelectedDate] = useState<Date | null>(null);
@@ -111,6 +114,7 @@ export default function CustomerBookService({ navigation, route }: Props) {
 				provider,
 				scheduledDate: formatDate(selectedDate),
 				scheduledTime: formatTime(selectedTime),
+				scheduledDateTime: selectedDate.toISOString(),
 				address,
 				specialInstructions: instructions.trim() || undefined,
 			});
@@ -121,7 +125,7 @@ export default function CustomerBookService({ navigation, route }: Props) {
 				address: address.street,
 				price,
 			});
-		} catch(error:any) {
+		} catch (error: any) {
 			console.error('Booking Error:', error);
 
 			// Extract custom error message from backend response if available, or fall back to default
@@ -134,12 +138,30 @@ export default function CustomerBookService({ navigation, route }: Props) {
 	};
 
 	return (
-		<View style={styles.container}>
-			<StatusBar barStyle="dark-content" />
-			<CustomHeader title={strings.booking.bookService} showBackButton onLeftPress={() => navigation.goBack()} />
+		<View style={[styles.container, {
+		}]}>
+			<StatusBar
+				barStyle="dark-content"
+			/>
+			<CustomHeader
+				title={strings.booking.bookService}
+				showBackButton
+				onLeftPress={() => navigation.goBack()}
+			/>
 
 
-			<ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+			<KeyboardAwareScrollView
+				style={{ flex: 1 }}
+				contentContainerStyle={styles.content}
+				enableOnAndroid
+				bounces={false}
+				enableAutomaticScroll
+				extraScrollHeight={Platform.OS === 'android' ? 180 : 120}
+				keyboardOpeningTime={0}
+				keyboardShouldPersistTaps="handled"
+				enableResetScrollToCoords={false}
+				showsVerticalScrollIndicator={false}
+			>
 				<View style={styles.stepRow}><View><Text style={styles.step}>Step 1 of 3</Text><Text style={styles.heading}>{strings.booking.pickDateTime}</Text></View></View>
 
 				<View style={styles.serviceSummary}>
@@ -158,10 +180,82 @@ export default function CustomerBookService({ navigation, route }: Props) {
 				<View style={styles.section}><View style={styles.sectionTitleRow}><IconX name="chatbubble-ellipses-outline" origin={ICON_TYPE.IONICONS} size={20} color={colors.purple[700]} /><Text style={styles.sectionTitle}>Special Instructions</Text></View><Text style={styles.helper}>Any delicate surfaces, focus areas, or pet instructions?</Text><TextInput value={instructions} onChangeText={setInstructions} multiline numberOfLines={3} placeholder="Add notes for your service provider..." placeholderTextColor={colors.grey[700]} style={styles.instructionsInput} textAlignVertical="top" /></View>
 
 				<View style={styles.section}><View style={styles.sectionTitleRow}><IconX name="location-outline" origin={ICON_TYPE.IONICONS} size={20} color={colors.purple[700]} /><Text style={styles.sectionTitle}>Service Address</Text><Pressable style={styles.changeButton} onPress={() => showToast({ type: 'info', title: 'Address', message: 'Address management will be available soon.' })}><Text style={styles.changeText}>Change</Text></Pressable></View><View style={styles.addressCard}><View style={styles.addressTop}><Text style={styles.homeBadge}>{address ? 'Saved address' : 'Address required'}</Text>{address ? <IconX name="checkmark-circle" origin={ICON_TYPE.IONICONS} size={18} color={colors.purple[700]} /> : null}</View><Text style={styles.addressValue}>{address?.street ?? 'No saved address found'}</Text><Text style={styles.helper}>{address ? `${address.city}${address.state ? `, ${address.state}` : ''} ${address.postalCode}` : 'Add an address before booking.'}</Text></View></View>
-			</ScrollView>
+			</KeyboardAwareScrollView>
 
-			<View style={styles.bottomBar}><View style={styles.totalCopy}><View style={styles.slotSummary}><IconX name="event-available" origin={ICON_TYPE.MATERIAL_ICONS} size={16} color={colors.purple[700]} /><Text style={styles.slotText}>{selectedDate && selectedTime ? `${formatDate(selectedDate)} • ${formatTime(selectedTime)}` : 'Select a date and time'}</Text></View><Text style={styles.total}>{price}<Text style={styles.totalLabel}> total</Text></Text></View><Pressable style={styles.continueButton} onPress={submitBooking} disabled={isBooking}><Text style={styles.continueText}>Book the service</Text><IconX name="arrow-forward" origin={ICON_TYPE.IONICONS} size={18} color={colors.white[100]} /></Pressable></View>
-			{isBooking ? <View style={styles.bookingOverlay} accessibilityRole="progressbar" accessibilityLabel="Booking service"><ActivityIndicator size="large" color={colors.white[100]} /><Text style={styles.bookingOverlayText}>Booking your service...</Text></View> : null}
+			<View
+				style={[styles.bottomBar, {
+					paddingBottom: insets.bottom
+				}]}
+			>
+				<View
+					style={styles.totalCopy}
+				>
+					<View
+						style={styles.slotSummary}
+					>
+						<IconX
+							name="event-available"
+							origin={ICON_TYPE.MATERIAL_ICONS}
+							size={16}
+							color={colors.purple[700]}
+						/>
+						<Text
+							style={styles.slotText}>
+							{selectedDate && selectedTime
+								?
+								`${formatDate(selectedDate)} • ${formatTime(selectedTime)}`
+								:
+								'Select a date and time'}
+						</Text>
+					</View>
+					<Text
+						style={styles.total}
+					>
+						{price}
+						<Text
+							style={styles.totalLabel}
+						>
+							total
+						</Text>
+					</Text>
+				</View>
+				<Pressable
+					style={styles.continueButton}
+					onPress={submitBooking}
+					disabled={isBooking}
+				>
+					<Text
+						style={styles.continueText}>
+						Book the service
+					</Text>
+					<IconX
+						name="arrow-forward"
+						origin={ICON_TYPE.IONICONS}
+						size={18}
+						color={colors.white[100]}
+					/>
+				</Pressable>
+			</View>
+			{isBooking
+				?
+				<View
+					style={styles.bookingOverlay}
+					accessibilityRole="progressbar"
+					accessibilityLabel="Booking service"
+				>
+					<ActivityIndicator
+						size="large"
+						color={colors.white[100]}
+					/>
+					<Text
+						style={styles.bookingOverlayText}
+					>
+						Booking your service...
+					</Text>
+				</View>
+				:
+				null
+			}
 		</View>
 	);
 }

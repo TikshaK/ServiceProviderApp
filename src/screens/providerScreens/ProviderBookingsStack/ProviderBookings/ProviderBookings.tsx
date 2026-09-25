@@ -10,11 +10,23 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { CustomHeader, CustomSearchBar, CustomTab, ICON_TYPE, IconX } from '../../../../components';
-import { colors, navigationStrings, strings } from '../../../../constants';
-import { getBookings, updateBookingStatus } from '../../../../services/firebase';
+import {
+  CustomHeader, CustomSearchBar,
+  CustomTab, ICON_TYPE, IconX
+} from '../../../../components';
+import {
+  colors, navigationStrings,
+  strings
+} from '../../../../constants';
+import {
+  getBookings,
+  updateBookingStatus
+} from '../../../../services/firebase';
 import { useAppSelector } from '../../../../store';
-import { isBookingExpired, type BookingStatus as FirebaseBookingStatus } from '../../../../types/booking';
+import {
+  isBookingExpired,
+  type BookingStatus as FirebaseBookingStatus
+} from '../../../../types/booking';
 import { styles } from './styles';
 import { showToast } from '../../../../utils';
 
@@ -38,7 +50,9 @@ export interface BookingItem {
   notes?: string;
 }
 
-const TABS: FilterTab[] = ['All', 'Pending', 'Upcoming', 'Completed', 'Cancelled', 'Expired'];
+const TABS: FilterTab[] = ['All',
+  'Pending', 'Upcoming', 'Completed',
+  'Cancelled', 'Expired'];
 
 interface ProviderBookingsProps {
   navigation?: any;
@@ -65,7 +79,7 @@ export default function ProviderBookings({ navigation }: ProviderBookingsProps) 
           status: isBookingExpired(item) ? 'Expired' : item.status === 'accepted' || item.status === 'inProgress' ? 'Upcoming' : item.status === 'completed' ? 'Completed' : item.status === 'cancelled' || item.status === 'declined' ? 'Cancelled' : 'Pending',
           dateText: `${item.scheduledDate} • ${item.scheduledTime}`,
           address: item.addressSnapshot?.street ?? '',
-          amount: `$${item.totalAmount.toFixed(2)}`,
+          amount: `$${item.totalAmount}`,
           statusBgColor: isBookingExpired(item) ? '#FEF2F2' : item.status === 'pending' ? '#FFFBEB' : item.status === 'completed' ? '#ECFDF5' : item.status === 'cancelled' || item.status === 'declined' ? '#FEF2F2' : '#EFF6FF',
           statusTextColor: isBookingExpired(item) ? '#DC2626' : item.status === 'pending' ? '#B45309' : item.status === 'completed' ? '#047857' : item.status === 'cancelled' || item.status === 'declined' ? '#DC2626' : '#1D4ED8',
           dotColor: isBookingExpired(item) ? '#DC2626' : item.status === 'pending' ? '#D97706' : item.status === 'cancelled' || item.status === 'declined' ? '#DC2626' : '#2563EB',
@@ -84,19 +98,22 @@ export default function ProviderBookings({ navigation }: ProviderBookingsProps) 
     const completed = bookings.filter(b => b.status === 'Completed').length;
     const cancelled = bookings.filter(b => b.status === 'Cancelled').length;
     const expired = bookings.filter(b => b.status === 'Expired').length;
-    return { 
-      All: total, 
+    return {
+      All: total,
       Pending: pending,
-       Upcoming: upcoming, 
-       Completed: completed, 
-       Cancelled: cancelled,
-       Expired: expired };
+      Upcoming: upcoming,
+      Completed: completed,
+      Cancelled: cancelled,
+      Expired: expired
+    };
   }, [bookings]);
 
   const filteredBookings = useMemo(() => {
     return bookings.filter(booking => {
       console.log("Booking to filter:", booking)
-      const matchesTab = activeTab === 'All' || booking.status === activeTab;
+      const matchesTab = activeTab === 'All'
+        ||
+        booking.status === activeTab;
       const query = searchQuery.trim().toLowerCase();
       const matchesSearch =
         !query ||
@@ -135,7 +152,8 @@ export default function ProviderBookings({ navigation }: ProviderBookingsProps) 
         ),
       );
     } catch (error) {
-      console.error('[ProviderBookings] Failed to change booking status:', error);
+      console.error('[ProviderBookings] Failed to change booking status:',
+        error);
 
       showToast({
         type: "error",
@@ -151,7 +169,9 @@ export default function ProviderBookings({ navigation }: ProviderBookingsProps) 
 
       <View style={styles.searchSection}>
         <CustomSearchBar
-          placeholder={strings.providerBookings?.searchPlaceholder ?? 'Search client name or service...'}
+          placeholder={strings.providerBookings?.searchPlaceholder
+            ?? 'Search customer name or service...'
+          }
           searchText={searchQuery}
           setSearchText={setSearchQuery}
           containerStyles={styles.searchInputContainer}
@@ -161,7 +181,8 @@ export default function ProviderBookings({ navigation }: ProviderBookingsProps) 
       <CustomTab
         tabs={TABS.map(tab => ({
           key: tab,
-          label: strings.providerBookings[`tab${tab}` as keyof typeof strings.providerBookings] ?? tab,
+          label: strings.providerBookings[`tab${tab}` as keyof typeof strings.providerBookings]
+            ?? tab,
           count: counts[tab],
         }))}
         activeKey={activeTab}
@@ -175,18 +196,32 @@ export default function ProviderBookings({ navigation }: ProviderBookingsProps) 
         showsVerticalScrollIndicator={false}>
         <View style={styles.summaryBar}>
           <Text style={styles.summaryText}>
-            Showing <Text style={styles.summaryHighlight}>{filteredBookings.length}</Text> bookings
+            Showing <Text style={styles.summaryHighlight}>
+              {filteredBookings.length}
+            </Text> bookings
           </Text>
         </View>
 
         {filteredBookings.length === 0 ? (
           <View style={styles.emptyContainer}>
             <View style={styles.emptyIconBg}>
-              <IconX name="calendar-outline" origin={ICON_TYPE.IONICONS} size={32} color={colors.purple[600]} />
+              <IconX
+                name="calendar-outline"
+                origin={ICON_TYPE.IONICONS}
+                size={32}
+                color={colors.purple[600]}
+              />
             </View>
-            <Text style={styles.emptyTitle}>{strings.providerBookings?.noBookingsTitle ?? 'No Bookings Found'}</Text>
+            <Text
+              style={styles.emptyTitle}
+            >
+              {strings.providerBookings?.noBookingsTitle
+                ?? 'No Bookings Found'}
+            </Text>
             <Text style={styles.emptySubtitle}>
-              {strings.providerBookings?.noBookingsSub ?? 'You have no bookings under this category right now.'}
+              {strings.providerBookings?.noBookingsSub
+                ?? 'You have no bookings under this category right now.'
+              }
             </Text>
           </View>
         ) : (
@@ -203,44 +238,114 @@ export default function ProviderBookings({ navigation }: ProviderBookingsProps) 
                   style={styles.bookingCard}>
                   <View style={styles.bookingCardHeader}>
                     <View style={styles.bookingClient}>
-                      <Image source={{ uri: booking.serviceImageUrl }} style={styles.bookingAvatar} />
+                      <Image
+                        source={{ uri: booking.serviceImageUrl }}
+                        style={styles.bookingAvatar}
+                      />
                       <View style={styles.bookingClientInfo}>
-                        <Text style={styles.bookingClientName} numberOfLines={1}>
+                        <Text style={styles.bookingClientName}
+                          numberOfLines={1}>
                           {booking.clientName}
                         </Text>
-                        <Text style={styles.bookingServiceTitle} numberOfLines={1}>
+                        <Text style={styles.bookingServiceTitle}
+                          numberOfLines={1}>
                           {booking.serviceTitle}
                         </Text>
                       </View>
                     </View>
 
-                    <View style={[styles.statusBadge, { backgroundColor: booking.statusBgColor }]}>
-                      {isCompleted ? (
-                        <IconX name="checkmark" origin={ICON_TYPE.IONICONS} size={12} color={booking.statusTextColor} />
-                      ) : booking.dotColor ? (
-                        <View style={[styles.statusDot, { backgroundColor: booking.dotColor }]} />
-                      ) : null}
-                      <Text style={[styles.statusBadgeText, { color: booking.statusTextColor }]}>
+                    <View
+                      style={[styles.statusBadge, { backgroundColor: booking.statusBgColor }]}
+                    >
+                      {
+                        isCompleted ? (
+                          <IconX
+                            name="checkmark"
+                            origin={ICON_TYPE.IONICONS}
+                            size={12}
+                            color={booking.statusTextColor}
+                          />
+                        )
+                          :
+                          booking.dotColor
+                            ?
+                            (
+                              <View
+                                style={[
+                                  styles.statusDot,
+                                  { backgroundColor: booking.dotColor }
+                                ]}
+                              />
+                            )
+                            :
+                            null
+                      }
+                      <Text
+                        style={[styles.statusBadgeText, { color: booking.statusTextColor }]}
+                      >
                         {booking.status}
                       </Text>
                     </View>
                   </View>
 
-                  <View style={styles.detailsDivider} />
+                  <View
+                    style={styles.detailsDivider}
+                  />
 
-                  <View style={styles.detailsRow}>
-                    <View style={styles.infoItem}>
-                      <IconX name="time-outline" origin={ICON_TYPE.IONICONS} size={16} color={colors.purple[600]} />
-                      <Text style={styles.infoText}>{booking.dateText}</Text>
+                  <View
+                    style={styles.detailsRow}
+                  >
+                    <View
+                      style={styles.infoItem}
+                    >
+                      <IconX
+                        name="time-outline"
+                        origin={ICON_TYPE.IONICONS}
+                        size={16}
+                        color={colors.purple[600]}
+                      />
+                      <Text
+                        style={styles.infoText}
+                      >
+                        {booking.dateText}
+                      </Text>
                     </View>
-                    {booking.address ? <View style={styles.infoItem}>
-                      <IconX name="location-outline" origin={ICON_TYPE.IONICONS} size={16} color={colors.purple[600]} />
-                      <Text style={styles.infoText} numberOfLines={1}>{booking.address}</Text>
-                    </View> : null}
+                    {booking.address
+                      ?
+                      <View
+                        style={styles.infoItem}
+                      >
+                        <IconX
+                          name="location-outline"
+                          origin={ICON_TYPE.IONICONS}
+                          size={16}
+                          color={colors.purple[600]}
+                        />
+                        <Text
+                          style={styles.infoText}
+                          numberOfLines={1}
+                        >
+                          {booking.address}
+                        </Text>
+                      </View>
+                      :
+                      null
+                    }
                     {booking.notes ? (
-                      <View style={styles.infoItem}>
-                        <IconX name="information-circle-outline" origin={ICON_TYPE.IONICONS} size={16} color={colors.grey[700]} />
-                        <Text style={styles.infoText} numberOfLines={1}>{booking.notes}</Text>
+                      <View
+                        style={styles.infoItem}
+                      >
+                        <IconX
+                          name="information-circle-outline"
+                          origin={ICON_TYPE.IONICONS} size={16}
+                          color={colors.grey[700]}
+                        />
+                        <Text
+                          style={styles.infoText}
+                          numberOfLines={1}
+                        >
+                          {booking.notes}
+                        </Text>
                       </View>
                     ) : null}
                   </View>
@@ -265,8 +370,13 @@ export default function ProviderBookings({ navigation }: ProviderBookingsProps) 
                               {strings.providerBookings?.decline ?? 'Decline'}
                             </Text>
                           </TouchableOpacity>
-                          <TouchableOpacity activeOpacity={0.7} onPress={() => changeStatus(booking.id, 'accepted')} style={styles.actionButtonPrimary}>
-                            <Text style={styles.actionButtonPrimaryText}>
+                          <TouchableOpacity
+                            activeOpacity={0.7}
+                            onPress={() => changeStatus(booking.id, 'accepted')}
+                            style={styles.actionButtonPrimary}
+                          >
+                            <Text style={styles.actionButtonPrimaryText}
+                            >
                               {strings.providerBookings?.accept ?? 'Accept'}
                             </Text>
                           </TouchableOpacity>
@@ -278,8 +388,6 @@ export default function ProviderBookings({ navigation }: ProviderBookingsProps) 
                           <TouchableOpacity
                             activeOpacity={0.7}
                             style={styles.iconActionButton}
-
-                            // onPress={() => customerPhone && Linking.openURL(`tel:${customerPhone}`)}
                             onPress={() => Linking.openURL(`tel:${customerPhone}`)}
 
                           >
@@ -291,8 +399,12 @@ export default function ProviderBookings({ navigation }: ProviderBookingsProps) 
                             />
                           </TouchableOpacity>
 
-                          <TouchableOpacity activeOpacity={0.7} style={styles.actionButtonPrimary} onPress={() => changeStatus(booking.id, 'completed')}>
-                            <Text style={styles.actionButtonPrimaryText}>
+                          <TouchableOpacity activeOpacity={0.7}
+                            style={styles.actionButtonPrimary}
+                            onPress={() => changeStatus(booking.id, 'completed')}
+                          >
+                            <Text style={styles.actionButtonPrimaryText}
+                            >
                               {strings.providerBookings?.complete ?? 'Complete Job'}
                             </Text>
                           </TouchableOpacity>
@@ -300,13 +412,13 @@ export default function ProviderBookings({ navigation }: ProviderBookingsProps) 
                       )}
 
                       {booking.status === 'Completed' && (
-                        <TouchableOpacity 
-                        activeOpacity={0.7} 
-                        style={styles.actionButtonOutline}
-                        onPress={() => navigation?.navigate(navigationStrings.PROVIDER_BOOKING_DETAILS, { booking })}
+                        <TouchableOpacity
+                          activeOpacity={0.7}
+                          style={styles.actionButtonOutline}
+                          onPress={() => navigation?.navigate(navigationStrings.PROVIDER_BOOKING_DETAILS, { booking })}
                         >
-                          <Text 
-                          style={styles.actionButtonOutlineText}
+                          <Text
+                            style={styles.actionButtonOutlineText}
                           >
                             {strings.providerBookings?.viewReceipt ?? 'View Receipt'}
                           </Text>
@@ -314,7 +426,8 @@ export default function ProviderBookings({ navigation }: ProviderBookingsProps) 
                       )}
 
                       {booking.status === 'Cancelled' && (
-                        <TouchableOpacity activeOpacity={0.7} style={styles.actionButtonOutline}>
+                        <TouchableOpacity activeOpacity={0.7}
+                          style={styles.actionButtonOutline}>
                           <Text style={styles.actionButtonOutlineText}>
                             {strings.providerBookings?.details ?? 'Details'}
                           </Text>

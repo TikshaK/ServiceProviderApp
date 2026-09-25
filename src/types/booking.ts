@@ -3,10 +3,18 @@ import { UserProfile } from './user';
 
 export type BookingStatus = 'pending' | 'accepted' | 'inProgress' | 'completed' | 'cancelled' | 'declined';
 
-export const isBookingExpired = (booking: Pick<Booking, 'status' | 'scheduledDate' | 'scheduledTime'>): boolean => {
+export const isBookingExpired = (
+  booking: Pick<
+    Booking, 'status'
+    | 'scheduledDateTime' | 'scheduledDate' | 'scheduledTime'
+  >)
+  : boolean => {
   if (booking.status !== 'pending') return false;
 
-  const scheduledAt = new Date(`${booking.scheduledDate} ${booking.scheduledTime}`).getTime();
+  const scheduledAt = booking.scheduledDateTime
+    ? new Date(booking.scheduledDateTime).getTime()
+    : new Date(`${booking.scheduledDate} ${booking.scheduledTime}`).getTime();
+
   return Number.isFinite(scheduledAt) && scheduledAt < Date.now();
 };
 
@@ -25,6 +33,7 @@ export interface Booking {
   status: BookingStatus;
   scheduledDate: string;
   scheduledTime: string;
+  scheduledDateTime: string;
   addressSnapshot: BookingAddress;
   serviceSnapshot: Pick<Service, 'title' | 'durationMinutes' | 'price' | 'currency' | 'imageUrls'>;
   customerSnapshot: Pick<UserProfile, 'uid' | 'fullName' | 'email' | 'phone'>;
@@ -45,6 +54,7 @@ export interface CreateBookingPayload {
   provider: UserProfile;
   scheduledDate: string;
   scheduledTime: string;
+  scheduledDateTime: string;
   address: BookingAddress;
   specialInstructions?: string;
   platformFee?: number;

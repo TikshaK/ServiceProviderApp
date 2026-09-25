@@ -115,7 +115,7 @@ export default function ResetPassword({ navigation, route }: ResetPasswordProps)
             title={strings.resetPassword.submitEmail}
             onPress={handleSubmit}
             loading={loading}
-            rightIcon={<Text style={styles.buttonArrow}>→</Text>}
+      
             variant="primary"
             fullWidth
             rounded

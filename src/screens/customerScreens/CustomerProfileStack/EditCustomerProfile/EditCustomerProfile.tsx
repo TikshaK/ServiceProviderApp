@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { Image, Pressable, ScrollView, StatusBar, Text, TextInput, View } from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
+import { Image, Platform, Pressable, StatusBar, Text, TextInput, View } from 'react-native';
 import { CustomHeader, ICON_TYPE, IconX } from '../../../../components';
 import { colors, images, strings } from '../../../../constants';
-import { useImagePicker, type ImageAsset } from '../../../../hooks/useImagePicker';
+import useImagePicker, { type ImageAsset } from '../../../../hooks/useImagePicker';
 import { firebaseAuth, updateUserProfile } from '../../../../services/firebase';
 import { uploadImageToCloudinary } from '../../../../services/cloudinary';
 import { storage } from '../../../../services/storage';
@@ -24,7 +25,7 @@ export default function EditCustomerProfile({ navigation }: Props) {
 	const [avatarUri, setAvatarUri] = useState(profile?.avatarUrl );
 	const [newAvatarUri, setNewAvatarUri] = useState<string | null>(null);
 	const [loading, setLoading] = useState(false);
-	const { chooseSource, loading: pickerLoading } = useImagePicker();
+	const { pickSingleImage, loading: pickerLoading } = useImagePicker();
 
 	const saveChanges = async () => {
 		if (!fullName.trim() || !phone.trim()) {
@@ -71,18 +72,25 @@ export default function EditCustomerProfile({ navigation }: Props) {
 	};
 
 	return (
-		<View style={styles.container}>
+		<KeyboardAwareScrollView
+			style={styles.container}
+			contentContainerStyle={styles.content}
+			showsVerticalScrollIndicator={false}
+			keyboardShouldPersistTaps="handled"
+			enableOnAndroid
+			bounces={false}
+			enableAutomaticScroll
+			extraScrollHeight={Platform.OS === 'android' ? 180 : 120}
+			keyboardOpeningTime={0}
+			enableResetScrollToCoords={false}
+		>
 			<StatusBar barStyle="dark-content" />
 			<CustomHeader
 				title="Edit Profile"
 				showBackButton
 				onLeftPress={() => navigation.goBack()}
+				disabled={loading}
 			/>
-			<ScrollView
-				contentContainerStyle={styles.content}
-				showsVerticalScrollIndicator={false}
-				keyboardShouldPersistTaps="handled"
-			>
 				<View
 					style={styles.avatarSection}
 				>
@@ -99,8 +107,8 @@ export default function EditCustomerProfile({ navigation }: Props) {
 						<Pressable
 							accessibilityLabel="Change profile photo"
 							accessibilityRole="button"
-							disabled={pickerLoading}
-							onPress={() => chooseSource(handleAvatarSelected, 1)}
+							disabled={pickerLoading || loading}
+							onPress={() => pickSingleImage(handleAvatarSelected, { quality: 0.8 })}
 							style={styles.cameraButton}>
 							<IconX
 								name="camera"
@@ -120,6 +128,7 @@ export default function EditCustomerProfile({ navigation }: Props) {
 						value={fullName}
 						onChangeText={setFullName}
 						icon="badge"
+						editable={!loading}
 					/>
 					<Field
 						label="Phone Number"
@@ -127,6 +136,7 @@ export default function EditCustomerProfile({ navigation }: Props) {
 						onChangeText={setPhone}
 						keyboardType="phone-pad"
 						icon="phone-iphone"
+						editable={!loading}
 					/>
 					<Field
 						label="Email Address"
@@ -170,8 +180,7 @@ export default function EditCustomerProfile({ navigation }: Props) {
 						</Text>
 					</Pressable>
 				</View>
-			</ScrollView>
-		</View>
+			</KeyboardAwareScrollView>
 	);
 }
 

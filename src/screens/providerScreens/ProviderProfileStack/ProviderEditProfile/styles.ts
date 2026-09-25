@@ -12,35 +12,47 @@ export const styles = StyleSheet.create({
 		paddingBottom: verticalScale(48),
 		gap: 16
 	},
-	avatarSection: { alignItems: 'center', gap: scale(8), paddingVertical: 4 },
-	avatarWrap: { width: scale(92), height: verticalScale(92), position: 'relative' },
-	avatar: { width: '100%', height: '100%', borderRadius: scale(46), backgroundColor: colors.purple[200] },
-	avatarPlaceholder: { width: '100%', height: '100%', borderRadius: scale(46), alignItems: 'center', justifyContent: 'center', backgroundColor: colors.purple[200] },
-	cameraButton: { position: 'absolute', right: scale(0), bottom: verticalScale(0), width: scale(30), height: verticalScale(30), borderRadius: scale(15), alignItems: 'center', justifyContent: 'center', backgroundColor: colors.purple[700], borderWidth: scale(2), borderColor: colors.purple[50] },
-	changePhotoText: { color: colors.purple[700], fontFamily: fonts.SemiBold, fontSize: fontSize[12] },
-	contextRow: {
-		flexDirection: 'row',
+	avatarSection: {
 		alignItems: 'center',
-		justifyContent: 'space-between'
+		gap: scale(8),
+		paddingVertical: 4,
 	},
-	screenTitle: {
-		color: colors.black[250],
-		fontFamily: fonts.SemiBold,
-		fontSize: fontSize[18]
+	avatarWrap: {
+		width: scale(92),
+		height: verticalScale(92),
+		position: 'relative',
 	},
-	accountBadge: {
-		flexDirection: 'row',
+	avatar: {
+		width: '100%',
+		height: '100%',
+		borderRadius: scale(46),
+		backgroundColor: colors.purple[200],
+	},
+	avatarPlaceholder: {
+		width: '100%',
+		height: '100%',
+		borderRadius: scale(46),
 		alignItems: 'center',
-		gap: scale(5),
-		backgroundColor: colors.purple[100],
-		borderRadius: scale(8),
-		paddingHorizontal: scale(10),
-		paddingVertical: 7
+		justifyContent: 'center',
+		backgroundColor: colors.purple[200],
 	},
-	accountBadgeText: {
+	cameraButton: {
+		position: 'absolute',
+		right: scale(0),
+		bottom: verticalScale(0),
+		width: scale(30),
+		height: verticalScale(30),
+		borderRadius: scale(15),
+		alignItems: 'center',
+		justifyContent: 'center',
+		backgroundColor: colors.purple[700],
+		borderWidth: scale(2),
+		borderColor: colors.purple[50],
+	},
+	changePhotoText: {
 		color: colors.purple[700],
 		fontFamily: fonts.SemiBold,
-		fontSize: fontSize[11]
+		fontSize: fontSize[12],
 	},
 	section: {
 		backgroundColor: colors.white[100],

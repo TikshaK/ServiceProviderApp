@@ -30,6 +30,7 @@ export interface CustomHeaderProps {
   backgroundColor?: string;
   statusBarStyle?: 'light-content' | 'dark-content';
   customLayout?: boolean;
+  disabled?: boolean;
 }
 
 const CustomHeader = ({
@@ -49,16 +50,18 @@ const CustomHeader = ({
   backgroundColor = colors.purple[50],
   statusBarStyle = 'dark-content',
   customLayout = false,
+  disabled = false,
 }: CustomHeaderProps) => {
   const insets = useSafeAreaInsets();
   const iconColor = colors.black[250];
 
-  const renderIconButton = (name: string, origin: ICON_TYPE, onPress?: () => void) => (
+  const renderIconButton = (name: string, origin: ICON_TYPE, onPress?: () => void, disabled?: boolean) => (
     <TouchableOpacity
       accessibilityRole="button"
-      onPress={onPress}
-      style={styles.iconButton}
-      activeOpacity={0.7}>
+      onPress={disabled ? undefined : onPress}
+      disabled={disabled}
+      style={[styles.iconButton, disabled && { opacity: 0.5 }]}
+      activeOpacity={disabled ? 1 : 0.7}>
       <IconX name={name} origin={origin} size={fontSize[24]} color={iconColor} />
     </TouchableOpacity>
   );
@@ -79,7 +82,7 @@ const CustomHeader = ({
           <>
             <View style={styles.sideSection}>
               {leftComponent || (showBackButton
-                ? renderIconButton('arrow-back-outline', ICON_TYPE.IONICONS, onLeftPress)
+                ? renderIconButton('arrow-back-outline', ICON_TYPE.IONICONS, onLeftPress, disabled)
                 : leftIcon
                   ? renderIconButton(leftIcon, leftIconType, onLeftPress)
                   : <View style={styles.placeholder} />)}

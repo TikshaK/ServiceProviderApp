@@ -77,6 +77,7 @@ export default function CustomerHome({ navigation }: { navigation: any }) {
                 price: `$${service.price}`,
                 description: service.description ?? '',
                 imageUrl: service.imageUrls?.[0] ?? '',
+                imageUrls: service.imageUrls,
             })));
         }).catch(() => setPopularServices([])).finally(() => {
             if (active) setLoadingServices(false);
@@ -132,7 +133,7 @@ export default function CustomerHome({ navigation }: { navigation: any }) {
                 <View style={styles.sectionContainer}>
                     <View style={styles.sectionHeader}>
                         <Text style={styles.sectionTitle}>Categories</Text>
-                        <Text style={styles.sectionSubtitle}>8 Services Near You</Text>
+                        <Text style={styles.sectionSubtitle}>Services Near You</Text>
                     </View>
                     <View style={styles.categoriesGrid}>
                         {CATEGORIES.map((category) => (

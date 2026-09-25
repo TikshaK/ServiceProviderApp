@@ -2,7 +2,7 @@ import React, { useCallback, useState } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import { Pressable, ScrollView, StatusBar, Text, View } from 'react-native';
 import { CustomHeader, EmptyState, ICON_TYPE, IconX } from '../../../../components';
-import { colors } from '../../../../constants';
+import { colors, strings } from '../../../../constants';
 import { getBookings, getReviews } from '../../../../services/firebase';
 import { useAppSelector } from '../../../../store';
 import type { Review } from '../../../../types/review';
@@ -49,32 +49,38 @@ export default function EarningsAndReviews({ navigation }: EarningsAndReviewsPro
 	const [providerReviews, setProviderReviews] = useState<DisplayReview[]>([]);
 
 	useFocusEffect(
-	useCallback(() => {
-		if (!profile?.uid) return;
-		Promise.all([getBookings('providerId', profile.uid, 'completed'), getReviews(profile.uid)]).then(([fetchedBookings, fetchedReviews]) => {
-			const sortedBookings = fetchedBookings.sort((a, b) => b.createdAt - a.createdAt);
-			setBookings(sortedBookings);
-			setTotalEarnings(sortedBookings.reduce((total, booking) => total + booking.totalAmount, 0));
-			setCompletedJobs(sortedBookings.length);
-			setReviewCount(fetchedReviews.length);
-			setAverageRating(fetchedReviews.length ? fetchedReviews.reduce((total, review) => total + review.rating, 0) / fetchedReviews.length : 0);
-			setProviderReviews(fetchedReviews.map(review => {
-				const booking = sortedBookings.find(item => item.id === review.bookingId);
-				return {
-					...review,
-					name: booking?.customerSnapshot.fullName ?? review.reviewerId,
-					service: booking?.serviceSnapshot.title ?? 'Completed booking',
-					date: new Date(review.createdAt).toLocaleDateString(),
-				};
-			}));
-		}).catch(() => undefined);
-	}, [profile?.uid])
-  );
+		useCallback(() => {
+			if (!profile?.uid) return;
+			Promise.all([getBookings('providerId', profile.uid, 'completed'), getReviews(profile.uid)]).then(([fetchedBookings, fetchedReviews]) => {
+				const sortedBookings = fetchedBookings.sort((a, b) => b.createdAt - a.createdAt);
+				setBookings(sortedBookings);
+				setTotalEarnings(sortedBookings.reduce((total, booking) => total + booking.totalAmount, 0));
+				setCompletedJobs(sortedBookings.length);
+				setReviewCount(fetchedReviews.length);
+				setAverageRating(fetchedReviews.length ? fetchedReviews.reduce((total, review) => total + review.rating, 0) / fetchedReviews.length : 0);
+				setProviderReviews(fetchedReviews.map(review => {
+					const booking = sortedBookings.find(item => item.id === review.bookingId);
+					return {
+						...review,
+						name: booking?.customerSnapshot.fullName ?? review.reviewerId,
+						service: booking?.serviceSnapshot.title ?? 'Completed booking',
+						date: new Date(review.createdAt).toLocaleDateString(),
+					};
+				}));
+			}).catch(() => undefined);
+		}, [profile?.uid])
+	);
 
 	return (
 		<View style={styles.container}>
 			<StatusBar barStyle="dark-content" />
-		
+
+			<CustomHeader
+				title={strings.providerProfile.earningsReviews}
+				showBackButton
+				onLeftPress={() => navigation.goBack()}
+			/>
+
 			<ScrollView
 				contentContainerStyle={styles.content}
 				showsVerticalScrollIndicator={false}>
@@ -100,14 +106,27 @@ export default function EarningsAndReviews({ navigation }: EarningsAndReviewsPro
 				{activeView === 'earnings' ? (
 					<View style={styles.sectionGap}>
 						<View style={styles.summaryGrid}>
-							<SummaryCard icon="wallet-outline" label="Total Earnings" value={`$${totalEarnings.toFixed(2)}`} detail="Completed bookings" />
-							<SummaryCard icon="checkmark-done-outline" label="Completed" value={`${completedJobs} Jobs`} detail={`${reviewCount} reviews`} />
+							<SummaryCard icon="wallet-outline" 
+							label="Total Earnings" 
+							value={`$${totalEarnings}`} 
+							detail="Completed bookings" />
+							{/* value={`$${totalEarnings.toFixed(2)}`} detail="Completed bookings" /> */}
+							<SummaryCard icon="checkmark-done-outline" 
+							label="Completed" value={`${completedJobs} Jobs`} 
+							detail={`${reviewCount} reviews`} 
+							/>
 						</View>
 						<View style={styles.section}>
-							{bookings.length === 0 ? <EmptyState title="No earnings found" message="Completed booking earnings will appear here." icon="wallet-outline" /> : (
+							{bookings.length === 0 ? <EmptyState
+							 title="No earnings found" message="Completed booking earnings will appear here." 
+							 icon="wallet-outline" /> 
+							 :
+							  (
 								<>
 									<View style={styles.sectionHeadingRow}>
-										<Text style={styles.sectionTitle}>Recent Earnings History</Text>
+										<Text style={styles.sectionTitle}>
+											Recent Earnings History											
+										</Text>
 										<Text style={styles.sectionMeta}>
 											{new Date(bookings[0].createdAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
 										</Text>
@@ -163,7 +182,8 @@ export default function EarningsAndReviews({ navigation }: EarningsAndReviewsPro
 													<Text
 														style={styles.amount}
 													>
-														+${booking.totalAmount.toFixed(2)}
+														+${booking.totalAmount}
+														{/* +${booking.totalAmount.toFixed(2)} */}
 													</Text>
 													<Text
 														style={styles.itemMeta}
@@ -201,7 +221,8 @@ export default function EarningsAndReviews({ navigation }: EarningsAndReviewsPro
 								<Text
 									style={styles.ratingValue}
 								>
-									{averageRating.toFixed(1)}
+									{averageRating}
+									{/* {averageRating.toFixed(1)} */}
 								</Text>
 								<Text
 									style={styles.ratingOutOf}
@@ -286,23 +307,6 @@ function SummaryCard({ icon, label, value, detail }: { icon: string; label: stri
 	</View>;
 }
 
-function TrustMetric({ value, label }: { value: string; label: string }) {
-	return <View
-		style={styles.trustMetric}
-	>
-		<Text
-			style={styles.trustValue}
-		>
-			{value}
-
-		</Text>
-		<Text
-			style={styles.summaryDetail}
-		>
-			{label}
-		</Text>
-	</View>;
-}
 
 function ReviewCard({ name, service, date, comment, rating }: DisplayReview) {
 	return <View
@@ -353,24 +357,6 @@ function ReviewCard({ name, service, date, comment, rating }: DisplayReview) {
 		>
 			“{comment}”
 		</Text>
-		<View
-			style={styles.reviewFooter}
-		>
-			<View
-				style={styles.verifiedBooking}
-			>
-				<IconX
-					name="checkmark-circle"
-					origin={ICON_TYPE.IONICONS}
-					size={14}
-					color={colors.purple[700]}
-				/>
-				<Text
-					style={styles.verifiedLabel}
-				>
-					Verified Booking
-				</Text>
-			</View>
-		</View>
+
 	</View>;
 }

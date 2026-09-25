@@ -1,4 +1,6 @@
 import React, { useRef, useState } from 'react';
+import { Platform } from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import {
 	ActivityIndicator,
 	Alert,
@@ -14,7 +16,7 @@ import {
 } from 'react-native';
 import { CustomHeader, ICON_TYPE, IconX } from '../../../../components';
 import { colors, SERVICE_CATEGORIES, strings } from '../../../../constants';
-import { useImagePicker, type ImageAsset } from '../../../../hooks/useImagePicker';
+import useImagePicker, { type ImageAsset } from '../../../../hooks/useImagePicker';
 import { uploadImageToCloudinary } from '../../../../services/cloudinary';
 import { createService, deleteService, updateService } from '../../../../services/firebase';
 import { useAppSelector } from '../../../../store';
@@ -59,7 +61,7 @@ export default function AddEditServices({ navigation, route }: AddEditServicesPr
 	});
 	const [isSaving, setIsSaving] = useState(false);
 	const savingRef = useRef(false);
-	const { chooseSource, loading: imagePickerLoading } = useImagePicker();
+	const { pickMultipleImages, openGallery, openCamera, loading: imagePickerLoading } = useImagePicker();
 
 	const options = selector === 'category' ? CATEGORIES : DURATIONS;
 	const addImages = (selected: ImageAsset[]) => {
@@ -67,6 +69,20 @@ export default function AddEditServices({ navigation, route }: AddEditServicesPr
 			const existingUris = new Set(current.map(image => image.uri));
 			return [...current, ...selected.filter(image => !existingUris.has(image.uri))].slice(0, 8);
 		});
+	};
+
+	const handleAddImages = () => {
+		const remainingSlots = Math.max(1, 8 - images.length);
+		if (remainingSlots <= 0) return;
+		if (Platform.OS === 'android') {
+			Alert.alert('Add service images', `Add images (${remainingSlots} remaining)`, [
+				{ text: 'Cancel', style: 'cancel' },
+				{ text: 'Camera', onPress: () => openCamera(addImages, { quality: 0.8, selectionLimit: 1 }) },
+				{ text: 'Gallery', onPress: () => openGallery(addImages, { quality: 0.8, selectionLimit: remainingSlots }) },
+			]);
+		} else {
+			pickMultipleImages(addImages, remainingSlots, { quality: 0.8, selectionLimit: remainingSlots });
+		}
 	};
 
 	const saveService = async () => {
@@ -169,13 +185,24 @@ export default function AddEditServices({ navigation, route }: AddEditServicesPr
 		<View style={styles.container}>
 			<StatusBar barStyle="dark-content" />
 
-			<ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+			<KeyboardAwareScrollView
+				style={{ flex: 1 }}
+				contentContainerStyle={styles.content}
+				enableOnAndroid
+				bounces={false}
+				enableAutomaticScroll
+				extraScrollHeight={Platform.OS === 'android' ? 200 : 150}
+				keyboardOpeningTime={0}
+				keyboardShouldPersistTaps="handled"
+				enableResetScrollToCoords={false}
+				showsVerticalScrollIndicator={false}
+			>
 				<CustomHeader
 					title={service ? strings.servicesForm.editService : strings.servicesForm.newService}
 					showBackButton
 					onLeftPress={() => navigation.goBack()}
 				/>
-				<View style={styles.contextRow}>
+				{/* <View style={styles.contextRow}>
 					<Text style={styles.screenTitle}>{service ? strings.servicesForm.editService : strings.servicesForm.newService}</Text>
 					{service ? (
 						<Pressable
@@ -196,22 +223,68 @@ export default function AddEditServices({ navigation, route }: AddEditServicesPr
 							</Text>
 						</Pressable>
 					) : null}
-				</View>
+				</View> */}
 
-				<Section title={strings.servicesForm.basicInformation} step="Step 1 of 4">
-					<FieldLabel text={strings.servicesForm.coverPhoto} />
-					<Pressable accessibilityRole="button" disabled={imagePickerLoading} onPress={() => chooseSource(addImages, Math.max(1, 8 - images.length))} style={styles.imagePickerButton}>
-						<IconX name={images.length ? 'images-outline' : 'add'} origin={ICON_TYPE.IONICONS} size={22} color={colors.purple[700]} />
-						<Text style={styles.imagePickerTitle}>{imagePickerLoading ? 'Opening image picker...' : images.length ? 'Edit images' : 'Add images'}</Text>
-						<Text style={styles.imagePickerHelper}>{images.length}/8 images selected</Text>
+				<Section
+					title={strings.servicesForm.basicInformation}
+					step="Step 1 of 4"
+				>
+					<FieldLabel
+						text={strings.servicesForm.coverPhoto}
+					/>
+					<Pressable
+						accessibilityRole="button"
+						disabled={imagePickerLoading}
+						onPress={handleAddImages}
+						style={styles.imagePickerButton}
+					>
+						<IconX
+							name={images.length ? 'images-outline' : 'add'}
+							origin={ICON_TYPE.IONICONS}
+							size={22}
+							color={colors.purple[700]}
+						/>
+						<Text
+							style={styles.imagePickerTitle}
+						>
+							{imagePickerLoading
+								? 'Opening image picker...'
+								: images.length ? 'Edit images' : 'Add images'
+							}
+						</Text>
+						<Text
+							style={styles.imagePickerHelper}
+						>
+							{images.length}/8 images selected
+						</Text>
 					</Pressable>
 					{images.length ? (
-						<ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.imageList}>
+						<ScrollView
+							horizontal
+							showsHorizontalScrollIndicator={false}
+							contentContainerStyle={styles.imageList}
+						>
 							{images.map(image => (
-								<View key={image.id} style={styles.imageTile}>
-									<Image source={{ uri: image.uri }} style={styles.selectedImage} />
-									<Pressable accessibilityLabel="Remove image" accessibilityRole="button" onPress={() => setImages(current => current.filter(item => item.id !== image.id))} style={styles.removeImageButton}>
-										<IconX name="close" origin={ICON_TYPE.IONICONS} size={14} color={colors.white[100]} />
+								<View
+									key={image.id}
+									style={styles.imageTile}
+								>
+									<Image
+										source={{ uri: image.uri }}
+										style={styles.selectedImage}
+									/>
+									<Pressable
+										accessibilityLabel="Remove image"
+										accessibilityRole="button"
+										onPress={() => setImages(current => current.filter(item => item.id !== image.id))}
+										style={styles.removeImageButton}
+									>
+										<IconX
+											name="close"
+											origin={ICON_TYPE.IONICONS}
+											size={14}
+											color={colors.white[100]}
+										/>
 									</Pressable>
 								</View>
 							))}
@@ -219,16 +292,16 @@ export default function AddEditServices({ navigation, route }: AddEditServicesPr
 					) : null}
 
 					<FieldLabel
-					 text={strings.signUp.serviceName} 
-					required 
+						text={strings.signUp.serviceName}
+						required
 					/>
 					<TextInput
-					 value={name} 
-					 onChangeText={setName} 
-					placeholder={strings.services.serviceNamePlaceholder} 
-					placeholderTextColor={colors.grey[400]} 
-					style={styles.input} 
-					maxLength={50}
+						value={name}
+						onChangeText={setName}
+						placeholder={strings.services.serviceNamePlaceholder}
+						placeholderTextColor={colors.grey[400]}
+						style={styles.input}
+						maxLength={50}
 					/>
 
 					<FieldLabel text="Category" required />
@@ -284,7 +357,7 @@ export default function AddEditServices({ navigation, route }: AddEditServicesPr
 					</Pressable>
 					{service ? <Pressable accessibilityRole="button" disabled={isSaving} onPress={confirmDelete} style={styles.deleteButton}><IconX name="trash-outline" origin={ICON_TYPE.IONICONS} size={18} color={colors.red[200]} /><Text style={styles.deleteText}>{strings.servicesForm.deleteService}</Text></Pressable> : null}
 				</View>
-			</ScrollView>
+			</KeyboardAwareScrollView>
 
 			<Modal visible={isSaving} transparent statusBarTranslucent>
 				<View style={styles.savingOverlay}>

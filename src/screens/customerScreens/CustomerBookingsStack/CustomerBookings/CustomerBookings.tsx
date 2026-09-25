@@ -2,6 +2,7 @@ import React, { useCallback, useMemo, useState } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import {
   Image,
+  Linking,
   ScrollView,
   StatusBar,
   Text,
@@ -28,56 +29,6 @@ type DisplayBooking = {
   price: string;
   image: string;
 };
-
-const UPCOMING_BOOKINGS = [
-  {
-    id: 'u1',
-    date: 'Tomorrow, 25 Oct • 10:00 AM',
-    status: 'Accepted',
-    title: 'Deep Home Cleaning (3-Bed)',
-    provider: 'Apex Home & Repair Services',
-    specialist: 'John Reynolds',
-    location: '128 Pinecrest Blvd, Apt 4B, Austin',
-    price: '$120.00',
-    image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBp5DzuyShBQtxs3fEge9YEOtvOu1OJYEzasH0cWC_cgZaA352mF3q6smy42hAwYWyEofn3aDJg1YlOLGGNz5ehhz9XM_apAR0djXNq4Pgs03loJOyxY__TlfNUusCgv2V_gJWvsjtebjrYiVWPanmg9jfXJSyNPR4y32q18hgXVm6jf6hhRwRyqBl_c1Rn_DrMdbGie6wmBjYnhOJYVxNgssYFvlkybhnS1UlykSGnzprv9LbrGhTb2w',
-  },
-  {
-    id: 'u2',
-    date: 'Fri, 28 Oct • 2:30 PM',
-    status: 'Pending',
-    title: 'AC Filter & Maintenance',
-    provider: 'AirFlow Pro Solutions',
-    specialist: 'Seasonal Tune-up & Cleanse',
-    location: '128 Pinecrest Blvd, Apt 4B, Austin',
-    price: '$85.00',
-    image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCPv14Jc-K1Ta0LM4fnT_u4rvJwkg9XJR4S35sIOnCJ0jgh0kveleuu-zKZ2pJI8d2kF0o5SOvzQhpfFT5HXdCVTwVJEovIz2t-l0ZgYsjeO5CVBopP67SCirMLfM-925gL9t7tmwkSD1izsnClxGWm3D_NE9yqrg7GQrsS1i_TAChSgaYhzCt7ijNnd5PpMDuA17m_L7BJCsqtXTObkkH_YyF3w28koB7rIf0mOkKIZpT4dCRRsc8XnQ',
-  },
-  {
-    id: 'u3',
-    date: 'Mon, 31 Oct • 9:00 AM',
-    status: 'Pending',
-    title: 'Emergency Plumbing Leak',
-    provider: 'QuickPipe Emergency Plumbers',
-    specialist: 'Kitchen sink primary line repair',
-    location: '128 Pinecrest Blvd, Apt 4B, Austin',
-    price: '$95.00',
-    image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDYf7RtO1NnZi0cssRWftjgFA1K6xR-ZsjuilDR3Mm3CWf82PTMC6O-R63-UPZxHENFKN1bNMkzlDQkwp3H2OxUdQbRPqC9FSxla0CoPepkWTnMmEwJm7uf1xRA4ICzn7tsSoC233kwwi7T9AfDBovvTiCjgotssG0HWdtQmPs5u23JUtnM45Gp4e8IoaKSo2HfcGpXZ4bGIsVaJvmp0C8Q-JZz0magW5OeWSuX_as5mifqBwXEUwga0g',
-  }
-];
-
-const COMPLETED_BOOKINGS = [
-  {
-    id: 'c1',
-    date: 'Mon, 17 Oct • 11:30 AM',
-    status: 'Completed',
-    title: 'Full House Sanitization & Cleaning',
-    provider: 'CleanWorks Pro • Michael Chen',
-    specialist: 'Completed • High standard rating',
-    location: '128 Pinecrest Blvd, Apt 4B, Austin',
-    price: '$110.00',
-    image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBp5DzuyShBQtxs3fEge9YEOtvOu1OJYEzasH0cWC_cgZaA352mF3q6smy42hAwYWyEofn3aDJg1YlOLGGNz5ehhz9XM_apAR0djXNq4Pgs03loJOyxY__TlfNUusCgv2V_gJWvsjtebjrYiVWPanmg9jfXJSyNPR4y32q18hgXVm6jf6hhRwRyqBl_c1Rn_DrMdbGie6wmBjYnhOJYVxNgssYFvlkybhnS1UlykSGnzprv9LbrGhTb2w',
-  }
-];
 
 export default function CustomerBookings({ navigation }: { navigation: any }) {
   const [activeTab, setActiveTab] = useState<TabKey>('upcoming');
@@ -108,7 +59,8 @@ export default function CustomerBookings({ navigation }: { navigation: any }) {
           provider: booking.providerSnapshot.serviceName ?? booking.providerSnapshot.fullName,
           specialist: booking.providerSnapshot.fullName,
           location: booking.addressSnapshot.street,
-          price: `$${booking.totalAmount.toFixed(2)}`,
+          price: `$${booking.totalAmount}`,
+          // price: `$${booking.totalAmount.toFixed(2)}`,
           image: booking.serviceSnapshot.imageUrls?.[0] ?? '',
         });
         setUpcomingBookings(sortedBookings.filter(booking => booking.status !== 'completed' && booking.status !== 'cancelled' && booking.status !== 'declined' && !isBookingExpired(booking)).map(mapBooking));
@@ -304,6 +256,7 @@ export default function CustomerBookings({ navigation }: { navigation: any }) {
                       <TouchableOpacity
                         style={styles.btnIconOnly}
                         activeOpacity={0.8}
+                        onPress={() => Linking.openURL('tel:5550192834')}
                       >
                         <IconX
                           name="call"

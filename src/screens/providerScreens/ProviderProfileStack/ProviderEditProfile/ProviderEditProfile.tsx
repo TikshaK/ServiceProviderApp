@@ -1,14 +1,11 @@
 import React, { useState } from 'react';
-import {
-    Image, Pressable, ScrollView, StatusBar, Text,
-
-    TextInput, View
-} from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
+import { Image, Platform, Pressable, StatusBar, Text, TextInput, View } from 'react-native';
 import { CustomHeader, ICON_TYPE, IconX } from '../../../../components';
-import { colors, strings } from '../../../../constants';
+import { colors, strings, sWidth } from '../../../../constants';
 import { firebaseAuth, updateUserProfile } from '../../../../services/firebase';
 import { uploadImageToCloudinary } from '../../../../services/cloudinary';
-import { useImagePicker, type ImageAsset } from '../../../../hooks/useImagePicker';
+import useImagePicker, { type ImageAsset } from '../../../../hooks/useImagePicker';
 import { storage } from '../../../../services/storage';
 import storageKeys from '../../../../constants/storageKeys';
 import {
@@ -33,7 +30,7 @@ export default function ProviderEditProfile({ navigation }: ProviderEditProfileP
     const [avatarUri, setAvatarUri] = useState(profile?.avatarUrl ?? '');
     const [newAvatarUri, setNewAvatarUri] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
-    const { chooseSource, loading: pickerLoading } = useImagePicker();
+    const { pickSingleImage, loading: pickerLoading } = useImagePicker();
 
     const saveChanges = async () => {
         if (!fullName.trim() || !serviceName.trim() || !phone.trim()) {
@@ -81,145 +78,127 @@ export default function ProviderEditProfile({ navigation }: ProviderEditProfileP
     };
 
     return (
-        <View
+        <KeyboardAwareScrollView
             style={styles.container}
+            contentContainerStyle={styles.content}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+            enableOnAndroid
+            bounces={false}
+            enableAutomaticScroll
+            extraScrollHeight={Platform.OS === 'android' ? 240 : 120}
+            keyboardOpeningTime={0}
+            enableResetScrollToCoords={false}
         >
-            <StatusBar
-                barStyle="dark-content"
-            />
+            <StatusBar barStyle="dark-content" />
             <CustomHeader
                 title={strings.profile.profileEditor}
-                showBackButton onLeftPress={() => navigation.goBack()}
+                showBackButton
+                onLeftPress={() => navigation.goBack()}
                 backgroundColor={colors.purple[50]}
+                disabled={loading}
             />
-            <ScrollView
-                contentContainerStyle={styles.content}
-                keyboardShouldPersistTaps="handled"
-                showsVerticalScrollIndicator={false}
-            >
-                <View
-                    style={styles.contextRow}
-                >
-                    <Text
-                        style={styles.screenTitle}
-                    >
-                        Edit Profile
-
-                    </Text>
-                    <View
-                        style={styles.accountBadge}
-                    >
-                        <IconX
-                            name="checkmark-circle"
-                            origin={ICON_TYPE.IONICONS}
-                            size={15}
-                            color={colors.purple[700]}
+            <View style={styles.avatarSection}>
+                <View style={styles.avatarWrap}>
+                    {avatarUri ?
+                        <Image
+                            source={{ uri: avatarUri }}
+                            style={styles.avatar}
                         />
-                        <Text
-                            style={styles.accountBadgeText}
-                        >
-                            Provider account
-                        </Text>
-                    </View>
-                </View>
-
-                <View style={styles.avatarSection}>
-                    <View style={styles.avatarWrap}>
-                        {avatarUri ?
-                            <Image
-                                source={{ uri: avatarUri }}
-                                style={styles.avatar}
-                            />
-                            :
-                            <View
-                                style={styles.avatarPlaceholder}
-                            >
-                                <IconX
-                                    name="person"
-                                    origin={ICON_TYPE.IONICONS}
-                                    size={34}
-                                    color={colors.purple[700]}
-                                />
-                            </View>
-                        }
-                        <Pressable
-                            accessibilityLabel="Change profile photo"
-                            disabled={pickerLoading}
-                            onPress={() => chooseSource(handleAvatarSelected, 1)}
-                            style={styles.cameraButton}
+                        :
+                        <View
+                            style={styles.avatarPlaceholder}
                         >
                             <IconX
-                                name="camera"
+                                name="person"
                                 origin={ICON_TYPE.IONICONS}
-                                size={17} color={colors.white[100]}
+                                size={34}
+                                color={colors.purple[700]}
                             />
-                        </Pressable>
-                    </View>
+                        </View>
+                    }
+                    <Pressable
+                        accessibilityLabel="Change profile photo"
+                        disabled={pickerLoading || loading}
+                        onPress={() => pickSingleImage(handleAvatarSelected, { quality: 0.8 })}
+                        style={styles.cameraButton}
+                    >
+                        <IconX
+                            name="camera"
+                            origin={ICON_TYPE.IONICONS}
+                            size={17} color={colors.white[100]}
+                        />
+                    </Pressable>
                 </View>
+            </View>
 
-                <Section
-                    title={strings.profile.personalInformation}
-                    step="Step 1 of 3"
-                >
-                    <Field
-                        label={strings.commonForms.fullName}
-                        value={fullName}
-                        onChangeText={setFullName}
-                        placeholder={strings.commonForms.yourFullName}
-                        icon="person-outline"
-                    />
-                    <Field
-                        label={strings.commonForms.phoneNumber}
-                        value={phone}
-                        onChangeText={setPhone}
-                        placeholder={strings.commonForms.yourPhoneNumber}
-                        keyboardType="phone-pad"
-                        icon="call-outline"
-                    />
-                    <Field
-                        label={strings.commonForms.emailAddress}
-                        value={profile?.email ?? authEmail ?? ''}
-                        onChangeText={() => undefined}
-                        placeholder={strings.commonForms.yourEmailAddress}
-                        icon="mail-outline"
-                        editable={false}
-                        helper={strings.commonForms.emailManaged}
-                    />
-                </Section>
+            <Section
+                title={strings.profile.personalInformation}
+                step="Step 1 of 3"
+            >
+                <Field
+                    label={strings.commonForms.fullName}
+                    value={fullName}
+                    onChangeText={setFullName}
+                    placeholder={strings.commonForms.yourFullName}
+                    icon="person-outline"
+                    editable={!loading}
+                />
+                <Field
+                    label={strings.commonForms.phoneNumber}
+                    value={phone}
+                    onChangeText={setPhone}
+                    placeholder={strings.commonForms.yourPhoneNumber}
+                    keyboardType="phone-pad"
+                    icon="call-outline"
+                    editable={!loading}
+                />
+                <Field
+                    label={strings.commonForms.emailAddress}
+                    value={profile?.email ?? authEmail ?? ''}
+                    onChangeText={() => undefined}
+                    placeholder={strings.commonForms.yourEmailAddress}
+                    icon="mail-outline"
+                    editable={false}
+                    helper={strings.commonForms.emailManaged}
+                />
+            </Section>
 
-                <Section
-                    title={strings.profile.businessInformation}
-                    step="Step 2 of 3"
-                >
-                    <Field
-                        label={strings.profile.businessName}
-                        value={serviceName} onChangeText={setServiceName}
-                        placeholder={strings.profile.providerBusinessPlaceholder}
-                        icon="business-outline"
-                    />
-                    <Field
-                        label={strings.profile.businessCategory}
-                        value={category} onChangeText={setCategory}
-                        placeholder={strings.profile.categoryPlaceholder}
-                        icon="briefcase-outline"
-                    />
-                    <Field
-                        label={strings.profile.yearsExperience}
-                        value={experience} onChangeText={setExperience}
-                        placeholder={strings.profile.experiencePlaceholder}
-                        keyboardType="number-pad"
-                        icon="ribbon-outline"
-                    />
-                </Section>
+            <Section
+                title={strings.profile.businessInformation}
+                step="Step 2 of 3"
+            >
+                <Field
+                    label={strings.profile.businessName}
+                    value={serviceName} onChangeText={setServiceName}
+                    placeholder={strings.profile.providerBusinessPlaceholder}
+                    icon="business-outline"
+                    editable={!loading}
+                />
+                <Field
+                    label={strings.profile.businessCategory}
+                    value={category} onChangeText={setCategory}
+                    placeholder={strings.profile.categoryPlaceholder}
+                    icon="briefcase-outline"
+                    editable={!loading}
+                />
+                <Field
+                    label={strings.profile.yearsExperience}
+                    value={experience} onChangeText={setExperience}
+                    placeholder={strings.profile.experiencePlaceholder}
+                    keyboardType="number-pad"
+                    icon="ribbon-outline"
+                    editable={!loading}
+                />
+            </Section>
 
 
 
-                <View style={styles.actions}>
-                    <Pressable accessibilityRole="button" disabled={loading} onPress={saveChanges} style={[styles.saveButton, loading && styles.disabledButton]}><IconX name="save-outline" origin={ICON_TYPE.IONICONS} size={20} color={colors.white[100]} /><Text style={styles.saveText}>{loading ? 'Saving...' : 'Save Changes'}</Text></Pressable>
-                    <Pressable accessibilityRole="button" onPress={() => navigation.goBack()} style={styles.cancelButton}><Text style={styles.cancelText}>Cancel</Text></Pressable>
-                </View>
-            </ScrollView>
-        </View>
+            <View style={styles.actions}>
+                <Pressable accessibilityRole="button" disabled={loading} onPress={saveChanges} style={[styles.saveButton, loading && styles.disabledButton]}><IconX name="save-outline" origin={ICON_TYPE.IONICONS} size={20} color={colors.white[100]} /><Text style={styles.saveText}>{loading ? 'Saving...' : 'Save Changes'}</Text></Pressable>
+                <Pressable accessibilityRole="button" onPress={() => navigation.goBack()} style={styles.cancelButton}><Text style={styles.cancelText}>Cancel</Text></Pressable>
+            </View>
+        </KeyboardAwareScrollView>
     );
 }
 

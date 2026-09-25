@@ -151,7 +151,7 @@ const strings = {
 	},
 	providerBookings: {
 		headerTitle: 'My Bookings',
-		searchPlaceholder: 'Search client name or service...',
+		searchPlaceholder: 'Search customer name or service...',
 		tabAll: 'All',
 		tabPending: 'Pending',
 		tabUpcoming: 'Upcoming',

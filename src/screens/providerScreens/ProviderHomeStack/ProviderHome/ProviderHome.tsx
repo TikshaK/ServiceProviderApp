@@ -26,7 +26,6 @@ const OVERVIEW_STATS = [
   {
     id: 'pending',
     title: 'Pending',
-    count: 3,
     badgeText: 'New',
     badgeBgColor: '#FEF3C7',
     badgeTextColor: '#92400E',
@@ -38,7 +37,6 @@ const OVERVIEW_STATS = [
   {
     id: 'upcoming',
     title: 'Upcoming',
-    count: 5,
     badgeText: 'Today',
     badgeBgColor: `${colors.purple[300]}80`,
     badgeTextColor: colors.purple[700],
@@ -50,7 +48,6 @@ const OVERVIEW_STATS = [
   {
     id: 'completed',
     title: 'Completed',
-    count: 12,
     badgeText: 'Done',
     badgeBgColor: '#D1FAE5',
     badgeTextColor: '#065F46',
@@ -58,8 +55,7 @@ const OVERVIEW_STATS = [
     iconBgColor: '#ECFDF5',
     iconColor: '#059669',
     countColor: '#059669',
-  },
-
+  }
 ] as const;
 
 const QUICK_ACTIONS = [
@@ -86,48 +82,6 @@ const QUICK_ACTIONS = [
   },
 ] as const;
 
-const RECENT_BOOKINGS = [
-  {
-    id: 'booking_1',
-    clientName: 'Sarah Jenkins',
-    serviceTitle: 'Deep Home Cleaning',
-    status: 'Upcoming' as const,
-    statusBgColor: '#EFF6FF',
-    statusTextColor: '#1D4ED8',
-    dotColor: '#2563EB',
-    timeText: 'Today, 2:00 PM',
-    avatarUrl:
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuCyNPze4K1hjGWidWGltDE3o4Uq_kkqjPbuAPkMM7rwkd060DLId8u1gdqSXBlhk4lHOLBvKYbb4ZyO6kh2apBdnE2Fhh1YjtsejEXEjVsyuJFAEJ_FrV0tz1f8xjVN4cR5SvvDChHDQ3vhCZ8ktliGtucJu1qd7R8AOeebpmmnRdVPPycnO8By1khDef9eWChwIPkRulLg0_dewgg5LDR0K8Sp3_Ow5M30fBBXoJGqFCr4P5JH5YP4_A',
-    showCallAction: true,
-    showDetailAction: true,
-  },
-  {
-    id: 'booking_2',
-    clientName: 'David Miller',
-    serviceTitle: 'AC Repair & Tune-up',
-    status: 'Pending' as const,
-    statusBgColor: '#FFFBEB',
-    statusTextColor: '#B45309',
-    dotColor: '#D97706',
-    timeText: 'Today, 4:30 PM',
-    avatarUrl:
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuDE6Zk-4fmtsUbKRwG1Mx-eUnoU8pd9LOYe-lhcis2D_7DnmK5RuBK8t1Ey8Yz9KFspTOMa5fckJMLIQ_DNcVdeJO6TWuzA0KIJMTkNXefSwZ8q9H0PdoUAyIcijeH5bh9IfaqbkwI4fvS24V4NpL5hiBsC99xLbiD8LlzruMnfeuVCQMVUiZTJZsOK2atoJXZpBx2SJTL7kQl9Ymmoy6JsPA9EG-VOqaL-7bgzQcKvYZG-0ag1Y5bVpA',
-    showReviewAction: false,
-  },
-  {
-    id: 'booking_3',
-    clientName: 'Elena Rostova',
-    serviceTitle: 'Plumbing Pipe Leak Fix',
-    status: 'Completed' as const,
-    statusBgColor: '#ECFDF5',
-    statusTextColor: '#047857',
-    timeText: 'Yesterday, 11:00 AM',
-    avatarUrl:
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuCgZ4u4xaav-B2UYR7olFpiE5drX3lPQd2JA5zhIyjcMUilI2ZwSmucRnPTWPup3JYv-odgdikskyVYi6YHM0fhK6Bq19_HD5ZqTiy7f1TcX-c6aw_JMmbx-Ay5movg5gglo6_jI6eK4kiXU5yP5JhGAKO40FbzILZYBHme5uo2dTVz36mn_m6iKSPTXDG4oh3at_bNuO9GTbkHqpAwAhXJKsCCSUoBWSiubxOxj_IpCnkR34Wp6ULIyw',
-    priceTag: '$140.00 Paid',
-  },
-] as const;
-
 const isScheduledToday = (scheduledDate: string, scheduledTime: string) => {
   const scheduledAt = new Date(`${scheduledDate} ${scheduledTime}`);
   const today = new Date();
@@ -141,13 +95,13 @@ const isScheduledToday = (scheduledDate: string, scheduledTime: string) => {
 export default function ProviderHome({ navigation }: any) {
   const profile = useAppSelector(state => state.user.profile);
   const displayName = profile?.fullName?.trim() || 'Provider';
-  const [recentBookings, setRecentBookings] = useState<any[]>([...RECENT_BOOKINGS]);
-  const [overviewCounts, setOverviewCounts] = useState({ pending: 0, upcoming: 0, completed: 0, cancelled: 0 });
+  const [recentBookings, setRecentBookings] = useState<any[]>([]);
+  const [overviewCounts, setOverviewCounts] = useState({ pending: 0, upcoming: 0, completed: 0, cancelled: 0, expired: 0 });
 
   useFocusEffect(useCallback(() => {
     if (!profile?.uid) {
       setRecentBookings([]);
-      setOverviewCounts({ pending: 0, upcoming: 0, completed: 0, cancelled: 0 });
+      setOverviewCounts({ pending: 0, upcoming: 0, completed: 0, cancelled: 0, expired: 0 });
       return;
     }
 
@@ -160,6 +114,7 @@ export default function ProviderHome({ navigation }: any) {
         upcoming: bookings.filter(booking => (booking.status === 'accepted' || booking.status === 'inProgress') && isScheduledToday(booking.scheduledDate, booking.scheduledTime)).length,
         completed: bookings.filter(booking => booking.status === 'completed').length,
         cancelled: bookings.filter(booking => booking.status === 'cancelled' || booking.status === 'declined').length,
+        expired: bookings.filter(booking => isBookingExpired(booking)).length,
       });
 
       const mappedBookings = bookings
@@ -173,9 +128,9 @@ export default function ProviderHome({ navigation }: any) {
               ? 'Upcoming'
               : booking.status === 'completed'
                 ? 'Completed'
-                : booking.status === 'cancelled' || booking.status === 'declined'
-                  ? 'Cancelled'
-                  : 'Pending';
+              : booking.status === 'cancelled' || booking.status === 'declined'
+                ? 'Cancelled'
+                : 'Pending';
           const isCompleted = status === 'Completed';
           const isCancelled = status === 'Cancelled' || status === 'Expired';
 
@@ -189,7 +144,7 @@ export default function ProviderHome({ navigation }: any) {
             dotColor: isCompleted ? undefined : isCancelled ? '#DC2626' : status === 'Pending' ? '#D97706' : '#2563EB',
             timeText: `${booking.scheduledDate} • ${booking.scheduledTime}`,
             avatarUrl: booking.serviceSnapshot.imageUrls?.[0] ?? '',
-            priceTag: isCompleted ? `$${booking.totalAmount.toFixed(2)} Paid` : undefined,
+            priceTag: isCompleted ? `$${booking.totalAmount} Paid` : undefined,
           };
         });
 

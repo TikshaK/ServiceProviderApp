@@ -2,6 +2,7 @@ import { equalTo, get, getDatabase, onValue,
   orderByChild, push, query, ref, set, update
  } from '@react-native-firebase/database';
 import { getApp } from '@react-native-firebase/app';
+import { getAuth } from '@react-native-firebase/auth';
 import { SignUpProfilePayload, UserProfile } from '../../types/user';
 import { CreateServicePayload, Service } from '../../types/service';
 import { Booking, BookingStatus, CreateBookingPayload } from '../../types/booking';
@@ -45,9 +46,9 @@ export async function updateUserProfile(profile: UserProfile): Promise<UserProfi
 }
 
 export async function getUserProfile(uid: string): Promise<UserProfile | null> {
-  console.log('[DB] getUserProfile <- path: users/', uid);
+  // console.log('[DB] getUserProfile <- path: users/', uid);
   const snapshot = await get(ref(database, `users/${uid}`));
-  console.log('[DB] getUserProfile snapshot.exists:', snapshot.exists(), snapshot.exists() ? snapshot.val() : '');
+  // console.log('[DB] getUserProfile snapshot.exists:', snapshot.exists(), snapshot.exists() ? snapshot.val() : '');
 
   if (!snapshot.exists()) {
     return null;
@@ -129,7 +130,8 @@ export async function getServices(options: { providerId?: string; category?: str
 export async function createBooking(payload: CreateBookingPayload): Promise<Booking> {
   const bookingRef = push(ref(database, 'bookings'));
   const timestamp = now();
-  const platformFee = payload.platformFee ?? Number((payload.service.price * 0.05).toFixed(2));
+  const platformFee = payload.platformFee ?? Number((payload.service.price * 0.05));
+  // const platformFee = payload.platformFee ?? Number((payload.service.price * 0.05).toFixed(2));
   const booking: Booking = {
     id: bookingRef.key as string,
     customerId: payload.customerId,
@@ -138,6 +140,7 @@ export async function createBooking(payload: CreateBookingPayload): Promise<Book
     status: 'pending',
     scheduledDate: payload.scheduledDate,
     scheduledTime: payload.scheduledTime,
+    scheduledDateTime: payload.scheduledDateTime,
     addressSnapshot: payload.address,
     serviceSnapshot: {
       title: payload.service.title,
@@ -220,7 +223,6 @@ export async function updateBookingStatus(
       notificationType = 'bookingCancelled';
       title = 'Booking Cancelled';
       body = `This booking has been cancelled.`;
-      // Notify both parties
       await createNotification(booking.customerId, 'bookingCancelled', 'Booking Cancelled', `This booking has been cancelled.`, bookingId, booking.providerId);
       await createNotification(booking.providerId, 'bookingCancelled', 'Booking Cancelled', `This booking has been cancelled.`, bookingId, booking.customerId);
       return;
@@ -286,6 +288,40 @@ export async function getReviews(revieweeId: string): Promise<Review[]> {
 export async function getReviewsByReviewerId(reviewerId: string): Promise<Review[]> {
   const reviewQuery = query(ref(database, 'reviews'), orderByChild('reviewerId'), equalTo(reviewerId));
   return snapshotValues<Review>(await get(reviewQuery));
+}
+
+export async function deleteAccount(uid: string): Promise<void> {
+  try {
+    // 1. Delete the Firebase Auth user
+    const auth = getAuth();
+    const currentUser = auth.currentUser;
+    if (currentUser && currentUser.uid === uid) {
+      await currentUser.delete();
+    }
+
+    // 2. Cancel all active bookings for this provider
+    const activeBookings = await getBookings('providerId', uid);
+    const cancellableBookings = activeBookings.filter(b => b.status !== 'completed' && b.status !== 'cancelled');
+    await Promise.allSettled(cancellableBookings.map(booking => updateBookingStatus(booking.id, 'cancelled')));
+
+    // 3. Delete all services for this provider (including inactive ones)
+    const services = await getServices({ providerId: uid, activeOnly: false });
+    await Promise.allSettled(services.map(service => deleteService(service)));
+
+    // 4. Clean up provider booking index, user profile, and notifications
+    const bookingIds = cancellableBookings.map(b => b.id);
+    const updates: Record<string, null> = {
+      [`users/${uid}`]: null,
+      [`notifications/${uid}`]: null,
+    };
+    bookingIds.forEach(id => {
+      updates[`providerBookingIndex/${uid}/${id}`] = null;
+    });
+    await update(ref(database), updates);
+  } catch (error) {
+    console.error('[DB] deleteAccount FAILED', { uid, error });
+    throw new Error('Unable to delete account. Please try again.');
+  }
 }
 
 export async function createNotification(to: string, type: NotificationType, title: string, body: string, bookingId?: string, senderId?: string): Promise<void> {

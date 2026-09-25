@@ -58,6 +58,7 @@ export const CustomerTabNavigator = () => {
     const bottomInset = Math.max(insets.bottom, 12);
     const dynamicTabBar = {
         ...styles.tabBar,
+        height: 60 + bottomInset,
         paddingBottom: bottomInset,
     };
 
@@ -173,6 +174,11 @@ const styles = StyleSheet.create({
         borderTopWidth: 1,
         borderTopColor: colors.grey?.[100] ?? '#EEEEEE',
         display: 'flex', // ✅ Ensure it's visible by default
+        elevation: 20,
+        shadowColor: colors.grey?.[300] ?? '#CCCCCC',
+        shadowOffset: { width: 0, height: -2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
     },
     tabLabel: {
         fontSize: fontSize[11],

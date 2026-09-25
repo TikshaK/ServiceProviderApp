@@ -18,68 +18,22 @@ type FilterType = 'All' | 'Bookings' | 'Promos' | 'System';
 
 const FILTERS: FilterType[] = ['All', 'Bookings', 'Promos', 'System'];
 
-const NOTIFICATIONS_DATA = [
-  {
-    id: '1',
-    type: 'Bookings',
-    title: 'Booking Confirmed by Provider',
-    message: 'John Reynolds accepted your Deep Home Cleaning booking for Friday, Oct 25 at 10:00 AM.',
-    time: '15m ago',
-    unread: true,
-    icon: 'event-available',
-    iconColor: colors.purple[700],
-    bgColor: colors.grey[100],
-  },
-  {
-    id: '2',
-    type: 'Bookings',
-    title: 'Appointment Reminder',
-    message: 'Reminder: AC Filter & Diagnostic service is scheduled for tomorrow at 2:30 PM.',
-    time: '2h ago',
-    unread: true,
-    icon: 'schedule',
-    iconColor: '#D97706',
-    bgColor: '#FFFBEB',
-  },
-  {
-    id: '3',
-    type: 'System',
-    title: 'Service Completed – Rate Your Experience',
-    message: 'Electrical Socket Repair by Marcus Vance is complete. Please leave a quick review.',
-    time: '1d ago',
-    unread: false,
-    icon: 'star-half',
-    iconColor: '#EA580C',
-    bgColor: '#FFF7ED',
-  },
-  {
-    id: '4',
-    type: 'Bookings',
-    title: 'Booking Request Sent',
-    message: 'Your request for Plumbing Leak Repair has been delivered to QuickPipe Plumbers.',
-    time: '2d ago',
-    unread: false,
-    icon: 'send',
-    iconColor: colors.purple[700],
-    bgColor: colors.grey[100],
-  },
-  {
-    id: '5',
-    type: 'Promos',
-    title: 'Weekend Special: 20% Off Deep Cleans',
-    message: 'Use promo code during checkout this weekend.',
-    time: '4d ago',
-    unread: false,
-    icon: 'percent',
-    iconColor: '#059669',
-    bgColor: '#ECFDF5',
-  }
-];
+type NotificationItem = {
+  id: string;
+  type: FilterType;
+  title: string;
+  message: string;
+  time: string;
+  unread: boolean;
+  icon: string;
+  iconColor: string;
+  bgColor: string;
+};
 
 export default function CustomerNotifications({navigation}) {
   const insets = useSafeAreaInsets();
   const [activeFilter, setActiveFilter] = useState<FilterType>('All');
-  const [notifications, setNotifications] = useState<typeof NOTIFICATIONS_DATA>([]);
+  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const profile = useAppSelector(state => state.user.profile);
 
   useEffect(() => {

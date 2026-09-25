@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { AppState, Text, View } from 'react-native';
+import { AppState, Platform, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { CustomHeader, ICON_TYPE, IconX } from '../../../components';
@@ -80,7 +80,11 @@ export default function Verification({
       await user.reload();
 
       if (!firebaseAuth.currentUser?.emailVerified) {
-        showToast({ type: 'error', title: 'Email not verified', message: 'Please open the verification link in your email and verify your email before continuing.' });
+        showToast({
+          type: 'error',
+          title: 'Email not verified',
+          message: 'Please open the verification link in your email and verify your email before continuing.'
+        });
         return;
       }
 
@@ -106,42 +110,98 @@ export default function Verification({
       <KeyboardAwareScrollView
         style={{ flex: 1 }}
         contentContainerStyle={styles.content}
-        enableOnAndroid={false}
-        enableAutomaticScroll={false}
+        enableOnAndroid={true}
+        bounces={false}
+        enableAutomaticScroll
+        extraScrollHeight={Platform.OS === 'android' ? 180 : 120}
         keyboardOpeningTime={0}
+        keyboardShouldPersistTaps="handled"
         enableResetScrollToCoords={false}
         showsVerticalScrollIndicator={false}>
-        <View style={styles.intro}>
-          <View style={styles.shield}>
+        <View
+          style={styles.intro}
+        >
+          <View
+            style={styles.shield}
+          >
             <IconX
               name="shield-check"
               origin={ICON_TYPE.MATERIAL_COMMUNITY}
               color={styles.shieldIcon.color}
               size={styles.shieldIcon.fontSize}
             />
-            <View style={styles.lockBadge}>
-              <IconX name="lock-outline" origin={ICON_TYPE.MATERIAL_COMMUNITY} color={colors.white[100]} size={12} />
+            <View
+              style={styles.lockBadge}
+            >
+              <IconX
+                name="lock-outline"
+                origin={ICON_TYPE.MATERIAL_COMMUNITY}
+                color={colors.white[100]}
+                size={12}
+              />
             </View>
           </View>
-          <View accessibilityLabel="Step 2 of 4" style={styles.progress}>
-            <View style={styles.progressActive} />
-            <View style={styles.progressActive} />
-            <View style={styles.progressInactive} />
-            <View style={styles.progressInactive} />
+          <View
+            accessibilityLabel="Step 2 of 4"
+            style={styles.progress}
+          >
+            <View
+              style={styles.progressActive}
+            />
+            <View
+              style={styles.progressActive}
+            />
+            <View
+              style={styles.progressInactive}
+            />
+            <View
+              style={styles.progressInactive}
+            />
           </View>
-          <Text style={styles.heading}>{strings.verification.heading}</Text>
-          <Text style={styles.instructions}>{strings.verification.instructions}</Text>
-          <View style={styles.emailTag}>
-            <IconX name="mail" origin={ICON_TYPE.MATERIAL_ICONS} color={styles.emailIcon.color} size={styles.emailIcon.fontSize} />
-            <Text style={styles.emailAddress}>{displayEmail}</Text>
+          <Text
+            style={styles.heading}
+          >
+            {strings.verification.heading}
+          </Text>
+          <Text
+            style={styles.instructions}
+          >
+            {strings.verification.instructions}
+          </Text>
+          <View
+            style={styles.emailTag}
+          >
+            <IconX
+              name="mail"
+              origin={ICON_TYPE.MATERIAL_ICONS}
+              color={styles.emailIcon.color}
+              size={styles.emailIcon.fontSize}
+            />
+            <Text style={styles.emailAddress}
+            >
+              {displayEmail}
+            </Text>
           </View>
         </View>
 
         <View style={styles.otpSection}>
           {/* <OtpInput value={pin} onChangeText={value => { setPin(value); setTouched(false); setError(''); }} /> */}
-          {error ? <Text style={styles.errorText}>{error}</Text> : null}
-          <Text style={styles.openMailHint}>{strings.verification.openMailHint}</Text>
-          {/* <View style={styles.resendRow}>
+          {error ?
+            <Text
+              style={styles.errorText}
+            >
+              {error}
+            </Text>
+            :
+            null
+          }
+          <Text
+            style={styles.openMailHint}
+          >
+            {strings.verification.openMailHint}
+          </Text>
+          {/* 
+          <View style={styles.resendRow}>
             <Text style={styles.resendPrompt}>{strings.verification.resendPrompt}</Text>
             {seconds > 0 ? (
               <Text style={styles.countdown}>◷ 0:{String(seconds).padStart(2, '0')}</Text>
@@ -150,14 +210,20 @@ export default function Verification({
                 <Text style={styles.resendText}>{strings.verification.resend}</Text>
               </Pressable>
             )}
-          </View> */}
+          </View> 
+          */}
           <CustomButton
             disabled={verified}
             fullWidth
             loading={loading}
-            rightIcon={<Text style={styles.buttonIcon}>→</Text>}
             size="medium"
-            title={verified ? strings.verification.verified : strings.verification.verify}
+            title={
+              verified
+                ?
+                strings.verification.verified
+                :
+                strings.verification.verify
+            }
             onPress={handleVerify}
             style={styles.verifyButton}
             textStyle={styles.verifyButtonText}
