@@ -1,0 +1,82 @@
+{
+  "rules": {
+    ".read": "auth != null",
+    ".write": false,
+    "users": {
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        ".write": "auth != null && auth.uid === $uid"
+      }
+    },
+    "services": {
+      "$serviceId": {
+        ".read": "auth != null",
+        ".write": "auth != null && (!data.exists() ? newData.child('providerId').val() === auth.uid : data.child('providerId').val() === auth.uid)"
+      }
+    },
+    "providerServiceIndex": {
+      "$providerId": {
+        ".read": "auth != null && auth.uid === $providerId",
+        "$serviceId": {
+          ".write": "auth != null && auth.uid === $providerId"
+        }
+      }
+    },
+    "bookings": {
+      "$bookingId": {
+        ".read": "auth != null && (data.child('customerId').val() === auth.uid || data.child('providerId').val() === auth.uid)",
+        ".write": "auth != null && ((!data.exists() && newData.child('customerId').val() === auth.uid) || data.child('customerId').val() === auth.uid || data.child('providerId').val() === auth.uid)"
+      }
+    },
+    "customerBookingIndex": {
+      "$customerId": {
+        ".read": "auth != null && auth.uid === $customerId",
+        "$bookingId": {
+          ".write": "auth != null && auth.uid === $customerId"
+        }
+      }
+    },
+    "providerBookingIndex": {
+      "$providerId": {
+        ".read": "auth != null && auth.uid === $providerId",
+        "$bookingId": {
+          ".write": "auth != null && (auth.uid === $providerId || newData.val() === true || newData.child('customerId').val() === auth.uid)"
+        }
+      }
+    },
+    "addresses": {
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        ".write": "auth != null && auth.uid === $uid"
+      }
+    },
+    "reviews": {
+      "$reviewId": {
+        ".read": "auth != null",
+        ".write": "auth != null && (!data.exists() ? newData.child('reviewerId').val() === auth.uid : data.child('reviewerId').val() === auth.uid)"
+      }
+    },
+    "providerReviewIndex": {
+      "$revieweeId": {
+        ".read": "auth != null",
+        "$reviewId": {
+          ".write": "auth != null"
+        }
+      }
+    },
+    "notifications": {
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        "$notificationId": {
+          ".write": "auth != null && (auth.uid === $uid || newData.child('senderId').val() === auth.uid)"
+        }
+      }
+    },
+    "fcmTokens": {
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        ".write": "auth != null && auth.uid === $uid"
+      }
+    }
+  }
+}

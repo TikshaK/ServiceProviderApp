@@ -9,6 +9,7 @@ export {
 	deleteService,
 	getAddresses,
 	getBookings,
+	getBooking,
 	getReviews,
 	getReviewsByReviewerId,
 	getService,

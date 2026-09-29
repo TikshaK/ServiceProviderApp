@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
-import { Image, Platform, Pressable, StatusBar, Text, TextInput, View } from 'react-native';
-import { CustomHeader, ICON_TYPE, IconX } from '../../../../components';
+import { Image, Platform, Pressable, StatusBar, Text, View } from 'react-native';
+import { CustomHeader, CustomInput, ICON_TYPE, IconX } from '../../../../components';
 import { colors, images, strings } from '../../../../constants';
 import useImagePicker, { type ImageAsset } from '../../../../hooks/useImagePicker';
 import { firebaseAuth, updateUserProfile } from '../../../../services/firebase';
@@ -22,7 +22,7 @@ export default function EditCustomerProfile({ navigation }: Props) {
 	const [fullName, setFullName] = useState(profile?.fullName ?? '');
 	const [phone, setPhone] = useState(profile?.phone ?? '');
 	const [email] = useState(profile?.email ?? authEmail ?? '');
-	const [avatarUri, setAvatarUri] = useState(profile?.avatarUrl );
+	const [avatarUri, setAvatarUri] = useState(profile?.avatarUrl);
 	const [newAvatarUri, setNewAvatarUri] = useState<string | null>(null);
 	const [loading, setLoading] = useState(false);
 	const { pickSingleImage, loading: pickerLoading } = useImagePicker();
@@ -91,99 +91,139 @@ export default function EditCustomerProfile({ navigation }: Props) {
 				onLeftPress={() => navigation.goBack()}
 				disabled={loading}
 			/>
+			<View
+				style={styles.avatarSection}
+			>
 				<View
-					style={styles.avatarSection}
+					style={styles.avatarWrap}
 				>
-					<View
-						style={styles.avatarWrap}
-					>
-						<Image
-							source={avatarUri ?
-								{ uri: avatarUri } :
-								images.profilePlaceHolder
-							}
-							style={styles.avatar}
-						/>
-						<Pressable
-							accessibilityLabel="Change profile photo"
-							accessibilityRole="button"
-							disabled={pickerLoading || loading}
-							onPress={() => pickSingleImage(handleAvatarSelected, { quality: 0.8 })}
-							style={styles.cameraButton}>
-							<IconX
-								name="camera"
-								origin={ICON_TYPE.IONICONS}
-								size={18}
-								color={colors.white[100]}
-							/>
-						</Pressable>
-					</View>
-				
-				</View>
-				<View
-					style={styles.form}
-				>
-					<Field
-						label="Full Name"
-						value={fullName}
-						onChangeText={setFullName}
-						icon="badge"
-						editable={!loading}
+					<Image
+						source={avatarUri ?
+							{ uri: avatarUri } :
+							images.profilePlaceHolder
+						}
+						style={styles.avatar}
 					/>
-					<Field
-						label="Phone Number"
-						value={phone}
-						onChangeText={setPhone}
-						keyboardType="phone-pad"
-						icon="phone-iphone"
-						editable={!loading}
-					/>
-					<Field
-						label="Email Address"
-						value={email}
-						onChangeText={() => undefined}
-						icon="alternate-email"
-						editable={false}
-						helper="Email is managed through your account."
-					/>
-				</View>
-				<View
-					style={styles.actions}
-				>
 					<Pressable
-						disabled={loading}
-						onPress={saveChanges}
-						style={[styles.saveButton, loading && styles.disabledButton]}
-					>
+						accessibilityLabel="Change profile photo"
+						accessibilityRole="button"
+						disabled={pickerLoading || loading}
+						onPress={() => pickSingleImage(handleAvatarSelected, { quality: 0.8 })}
+						style={styles.cameraButton}>
 						<IconX
-							name="save-outline"
+							name="camera"
 							origin={ICON_TYPE.IONICONS}
-
-							size={19}
+							size={18}
 							color={colors.white[100]}
 						/>
-						<Text
-							style={styles.saveText}
-						>
-							{loading ? 'Saving...' : 'Save Changes'}
-						</Text>
-					</Pressable>
-					<Pressable
-						disabled={loading}
-						onPress={() => navigation.goBack()}
-						style={styles.cancelButton}
-					>
-						<Text style={styles.cancelText}
-						>
-							Cancel
-
-						</Text>
 					</Pressable>
 				</View>
-			</KeyboardAwareScrollView>
+
+			</View>
+			<View
+				style={styles.form}
+			>
+				<Field
+					label="Full Name"
+					value={fullName}
+					onChangeText={setFullName}
+					icon="badge"
+					maxLength={35}
+					editable={!loading}
+				/>
+				<Field
+					label="Phone Number"
+					value={phone}
+					onChangeText={setPhone}
+					keyboardType="phone-pad"
+					icon="phone-iphone"
+					maxLength={10}
+					editable={!loading}
+				/>
+				<Field
+					label="Email Address"
+					value={email}
+					onChangeText={() => undefined}
+					icon="alternate-email"
+					editable={false}
+					helper="Email is managed through your account."
+				/>
+			</View>
+			<View
+				style={styles.actions}
+			>
+				<Pressable
+					disabled={loading}
+					onPress={saveChanges}
+					style={[styles.saveButton, loading && styles.disabledButton]}
+				>
+					<IconX
+						name="save-outline"
+						origin={ICON_TYPE.IONICONS}
+
+						size={19}
+						color={colors.white[100]}
+					/>
+					<Text
+						style={styles.saveText}
+					>
+						{loading ? 'Saving...' : 'Save Changes'}
+					</Text>
+				</Pressable>
+				<Pressable
+					disabled={loading}
+					onPress={() => navigation.goBack()}
+					style={styles.cancelButton}
+				>
+					<Text style={styles.cancelText}
+					>
+						Cancel
+
+					</Text>
+				</Pressable>
+			</View>
+		</KeyboardAwareScrollView>
 	);
 }
 
-function Field({ label, value, onChangeText, icon, keyboardType = 'default', editable = true, helper }: { label: string; value: string; onChangeText: (value: string) => void; icon: string; keyboardType?: 'default' | 'phone-pad'; editable?: boolean; helper?: string }) {
-	return <View style={styles.field}><Text style={styles.label}>{label}</Text><View style={[styles.inputWrap, !editable && styles.inputDisabled]}><TextInput value={value} onChangeText={onChangeText} editable={editable} keyboardType={keyboardType} placeholder={label} placeholderTextColor={colors.grey[700]} style={styles.input} /><IconX name={icon} origin={ICON_TYPE.MATERIAL_ICONS} size={18} color={editable ? colors.purple[700] : colors.grey[700]} /></View>{helper ? <Text style={styles.helper}>{helper}</Text> : null}</View>;
+function Field({ label, value, onChangeText, icon, keyboardType = 'default', editable = true, helper, maxLength }: { label: string; value: string; onChangeText: (value: string) => void; icon: string; keyboardType?: 'default' | 'phone-pad'; editable?: boolean; helper?: string; maxLength?: number }) {
+	// Shared CustomInput component — labelStyle/dropStyle/inputStyle keep this
+	// screen's original borderless-card design and spacing exactly as before.
+	return <View
+		style={styles.field}
+	>
+		<CustomInput
+			fullWidth
+			label={label}
+			labelPosition="above"
+			placeholder={label}
+			placeholderTextColor={colors.grey[700]}
+			value={value}
+			onChangeText={onChangeText}
+			keyboardType={keyboardType}
+			maxLength={maxLength}
+			disabled={!editable}
+			containerStyle={styles.inputContainer}
+			labelStyle={styles.label}
+			dropStyle={styles.inputWrap}
+			inputStyle={styles.input}
+			rightIcon={
+				<IconX
+					name={icon}
+					origin={ICON_TYPE.MATERIAL_ICONS}
+					size={18}
+					color={editable ? colors.purple[700] : colors.grey[700]}
+				/>
+			}
+		/>
+		{helper ?
+			<Text
+				style={styles.helper}
+			>
+				{helper}
+			</Text>
+			:
+			null
+		}
+	</View>;
 }

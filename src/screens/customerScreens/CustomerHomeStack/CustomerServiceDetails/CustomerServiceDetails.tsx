@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Alert, Image, Modal, Pressable, ScrollView, Share, StatusBar, Text, TouchableOpacity, View } from 'react-native';
+import { Image, Modal, Pressable, ScrollView, Share, StatusBar, Text, TouchableOpacity, View } from 'react-native';
 import { CustomHeader, ICON_TYPE, IconX } from '../../../../components';
 import { colors, navigationStrings } from '../../../../constants';
 import { styles } from './styles';
@@ -35,7 +35,11 @@ const FALLBACK_SERVICE: Service = {
 
 export default function CustomerServiceDetails({ navigation, route }: CustomerServiceDetailsProps) {
 	const service = route?.params?.service ?? FALLBACK_SERVICE;
-	const images = service.imageUrls && service.imageUrls.length > 0 ? service.imageUrls : [service.imageUrl || ''];
+	const images = service.imageUrls && service.imageUrls.length > 0
+		?
+		service.imageUrls
+		:
+		[service.imageUrl || ''];
 
 	const [activeIndex, setActiveIndex] = useState(0);
 	const [previewVisible, setPreviewVisible] = useState(false);
@@ -102,7 +106,9 @@ export default function CustomerServiceDetails({ navigation, route }: CustomerSe
 						</ScrollView>
 
 						{images.length > 1 && (
-							<View style={styles.carouselDots}>
+							<View
+								style={styles.carouselDots}
+							>
 								{images.map((_, index) => (
 									<View
 										key={index}
@@ -117,7 +123,9 @@ export default function CustomerServiceDetails({ navigation, route }: CustomerSe
 								))}
 							</View>
 						)}
-						<Pressable onPress={() => setPreviewVisible(true)}>
+						<Pressable
+							onPress={() => setPreviewVisible(true)}
+						>
 							<View style={styles.durationBadge}>
 								<IconX
 									name="time-outline"
@@ -158,7 +166,7 @@ export default function CustomerServiceDetails({ navigation, route }: CustomerSe
 								>
 									{service.price}.00
 								</Text>
-							
+
 							</View>
 						</View>
 						<View
@@ -281,8 +289,16 @@ export default function CustomerServiceDetails({ navigation, route }: CustomerSe
 				statusBarTranslucent
 				onRequestClose={() => setPreviewVisible(false)}
 			>
-				<View style={{ flex: 1, backgroundColor: colors.black[500] }}>
-					<StatusBar barStyle="light-content" backgroundColor={colors.black[500]} />
+				<View
+					style={{
+						flex: 1,
+						backgroundColor: colors.black[500]
+					}}
+				>
+					<StatusBar
+						barStyle="light-content"
+						backgroundColor={colors.black[500]}
+					/>
 					<ScrollView
 						horizontal
 						pagingEnabled
@@ -326,15 +342,48 @@ export default function CustomerServiceDetails({ navigation, route }: CustomerSe
 						))}
 					</ScrollView>
 					<TouchableOpacity
-						style={{ position: 'absolute', right: 16, top: 40, width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(0,0,0,0.45)', alignItems: 'center', justifyContent: 'center', zIndex: 10 }}
+						style={{
+							position: 'absolute',
+							right: 16,
+							top: 40,
+							width: 40,
+							height: 40,
+							borderRadius: 20,
+							backgroundColor: 'rgba(0,0,0,0.45)',
+							alignItems: 'center',
+							justifyContent: 'center',
+							zIndex: 10
+						}}
 						onPress={() => setPreviewVisible(false)}
 						activeOpacity={0.8}
 					>
-						<IconX name="close" size={26} color={colors.white[100]} origin={ICON_TYPE.IONICONS} />
+						<IconX
+							name="close"
+							size={26}
+							color={colors.white[100]}
+							origin={ICON_TYPE.IONICONS}
+						/>
 					</TouchableOpacity>
 					{images.length > 1 && (
-						<View style={{ position: 'absolute', alignSelf: 'center', bottom: 30, paddingHorizontal: 14, paddingVertical: 6, borderRadius: 16, backgroundColor: 'rgba(0,0,0,0.55)' }}>
-							<Text style={{ color: colors.white[100], fontSize: 14 }}>{activeIndex + 1} / {images.length}</Text>
+						<View
+							style={{
+								position: 'absolute',
+								alignSelf: 'center',
+								bottom: 30,
+								paddingHorizontal: 14,
+								paddingVertical: 6,
+								borderRadius: 16,
+								backgroundColor: 'rgba(0,0,0,0.55)'
+							}}
+						>
+							<Text
+								style={{
+									color: colors.white[100],
+									fontSize: 14
+								}}
+							>
+								{activeIndex + 1} / {images.length}
+							</Text>
 						</View>
 					)}
 				</View>

@@ -76,6 +76,7 @@ export const styles = StyleSheet.create({
   contentContainer: {
     paddingHorizontal: scale(16),
     paddingBottom: verticalScale(80),
+    paddingTop: verticalScale(10),
   },
   tabsScrollView: {
     maxHeight: verticalScale(50),

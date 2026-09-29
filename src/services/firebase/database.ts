@@ -183,6 +183,14 @@ export async function getBookings(field: 'customerId' | 'providerId', value: str
   return result.sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0));
 }
 
+export async function getBooking(bookingId: string): Promise<Booking | null> {
+  const snapshot = await get(ref(database, `bookings/${bookingId}`));
+  if (!snapshot.exists()) {
+    return null;
+  }
+  return { ...(snapshot.val() as object), id: bookingId } as Booking;
+}
+
 export async function updateBookingStatus(
   bookingId: string,
   status: BookingStatus,
@@ -292,32 +300,34 @@ export async function getReviewsByReviewerId(reviewerId: string): Promise<Review
 
 export async function deleteAccount(uid: string): Promise<void> {
   try {
-    // 1. Delete the Firebase Auth user
-    const auth = getAuth();
-    const currentUser = auth.currentUser;
-    if (currentUser && currentUser.uid === uid) {
-      await currentUser.delete();
-    }
-
-    // 2. Cancel all active bookings for this provider
+    // 1. Cancel all active bookings for this provider FIRST (while user is still authenticated)
     const activeBookings = await getBookings('providerId', uid);
     const cancellableBookings = activeBookings.filter(b => b.status !== 'completed' && b.status !== 'cancelled');
     await Promise.allSettled(cancellableBookings.map(booking => updateBookingStatus(booking.id, 'cancelled')));
 
-    // 3. Delete all services for this provider (including inactive ones)
+    // 2. Delete all services for this provider (including inactive ones) - while still authenticated
     const services = await getServices({ providerId: uid, activeOnly: false });
     await Promise.allSettled(services.map(service => deleteService(service)));
 
-    // 4. Clean up provider booking index, user profile, and notifications
+    // 3. Clean up database entries (users, notifications, fcmTokens, provider booking index)
+    // Do this while user is still authenticated
     const bookingIds = cancellableBookings.map(b => b.id);
     const updates: Record<string, null> = {
       [`users/${uid}`]: null,
       [`notifications/${uid}`]: null,
+      [`fcmTokens/${uid}`]: null,
     };
     bookingIds.forEach(id => {
       updates[`providerBookingIndex/${uid}/${id}`] = null;
     });
     await update(ref(database), updates);
+
+    // 4. Delete the Firebase Auth user LAST
+    const auth = getAuth();
+    const currentUser = auth.currentUser;
+    if (currentUser && currentUser.uid === uid) {
+      await currentUser.delete();
+    }
   } catch (error) {
     console.error('[DB] deleteAccount FAILED', { uid, error });
     throw new Error('Unable to delete account. Please try again.');

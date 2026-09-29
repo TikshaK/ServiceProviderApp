@@ -98,20 +98,27 @@ export const styles = StyleSheet.create({
 		fontSize: fontSize[12],
 		color: colors.grey[700],
 	},
+	// CustomInput's container defaults to marginBottom 14; this screen's form
+	// uses gap-based spacing instead, so keep it at 0.
+	inputContainer: {
+		marginBottom: 0,
+	},
+	// Passed to CustomInput as `dropStyle` — keeps this screen's original
+	// borderless card look. No backgroundColor here: CustomInput supplies the
+	// white background, and its grey disabled background must show through
+	// (borderWidth/opacity cancel CustomInput's border and disabled fade).
 	inputWrap: {
 		minHeight: verticalScale(48),
 		flexDirection: 'row',
 		alignItems: 'center',
 		paddingHorizontal: scale(14),
 		borderRadius: scale(11),
-		backgroundColor: colors.white[100],
+		borderWidth: 0,
+		opacity: 1,
 		shadowColor: colors.black[400],
 		shadowOpacity: 0.04,
 		shadowRadius: scale(3),
 		elevation: 1,
-	},
-	inputDisabled: {
-		backgroundColor: colors.grey[100],
 	},
 	input: {
 		flex: 1,

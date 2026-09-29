@@ -28,7 +28,8 @@ function formatDate(value: Date) {
 }
 
 function formatTime(value: Date) {
-  return value.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+  // Force 12-hour format with AM/PM regardless of device settings (booking times).
+  return value.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
 }
 
 function formatValue(value: Date, mode: CalendarInputProps['mode']) {
@@ -91,6 +92,12 @@ export default function CalendarInput({
         mode={mode}
         minimumDate={minimumDate}
         maximumDate={maximumDate}
+        // Time modes: force 12-hour format with an AM/PM selector on BOTH platforms,
+        // independent of the device's 12/24-hour setting.
+        //  - iOS: format is determined by the picker's `locale` (library contract).
+        //  - Android: `is24hourSource="locale"` → usesAmPm() is derived from `locale`
+        //    (en_US contains "a" → AM/PM wheels) instead of the device setting.
+        {...(mode === 'date' ? {} : {locale: 'en_US', is24hourSource: 'locale' as const})}
         onConfirm={selectedValue => {
           setOpen(false);
           setIsFocused(false);

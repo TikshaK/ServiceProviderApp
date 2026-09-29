@@ -24,7 +24,9 @@ const startOfDay = (value: Date) => {
 const isSameDay = (left: Date, right: Date) => startOfDay(left).getTime() === startOfDay(right).getTime();
 
 const formatDate = (value: Date) => value.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
-const formatTime = (value: Date) => value.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+// Force 12-hour format with AM/PM regardless of device settings — this value is
+// stored as `scheduledTime` (e.g. "3:45 PM") and shown in every bookings list.
+const formatTime = (value: Date) => value.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
 
 const getMinimumTime = (date: Date | null) => {
 	const minimum = date ? startOfDay(date) : new Date();
@@ -114,7 +116,7 @@ export default function CustomerBookService({ navigation, route }: Props) {
 				provider,
 				scheduledDate: formatDate(selectedDate),
 				scheduledTime: formatTime(selectedTime),
-				scheduledDateTime: selectedDate.toISOString(),
+				scheduledDateTime: selectedTime.toISOString(),
 				address,
 				specialInstructions: instructions.trim() || undefined,
 			});

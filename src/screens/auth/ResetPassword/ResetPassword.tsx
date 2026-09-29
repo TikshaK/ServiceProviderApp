@@ -6,7 +6,7 @@ import { sendPasswordResetEmail } from '@react-native-firebase/auth';
 import { colors, navigationStrings, strings } from '../../../constants';
 import { CustomButton, CustomHeader, CustomInput, ICON_TYPE, IconX } from '../../../components';
 import { getEmailError, showToast, validateEmail } from '../../../utils';
-import { firebaseAuth, isRegisteredEmail } from '../../../services/firebase';
+import { firebaseAuth } from '../../../services/firebase';
 import { styles } from './styles';
 
 type RoleType = 'customer' | 'provider';
@@ -36,12 +36,6 @@ export default function ResetPassword({ navigation, route }: ResetPasswordProps)
     setLoading(true);
     try {
       const normalizedEmail = email.trim().toLowerCase();
-      const registered = await isRegisteredEmail(normalizedEmail);
-      if (!registered) {
-        showToast({ type: 'error', title: strings.alerts.accountNotFound, message: strings.alerts.notRegistered });
-        return;
-      }
-
       await sendPasswordResetEmail(firebaseAuth, normalizedEmail);
       Alert.alert(
         strings.resetPassword.successTitle,
@@ -49,6 +43,7 @@ export default function ResetPassword({ navigation, route }: ResetPasswordProps)
         [{ text: strings.resetPassword.successButton, onPress: () => navigation.replace(navigationStrings.LOGIN) }],
       );
     } catch (error: any) {
+      console.log('Error sending password reset email:', error);
       if (error?.code === 'auth/invalid-email') {
         showToast({ type: 'error', title: strings.alerts.invalidEmail, message: strings.alerts.validEmail });
       } else if (error?.code === 'auth/user-not-found') {

@@ -77,10 +77,10 @@ export default function Welcome({ navigation }: any) {
   const [selectedRole, setSelectedRole] = useState<UserRole>('customer');
 
   return (
-    <View style={[styles.container, { 
-      paddingTop: insets.top, 
-      paddingBottom: insets.bottom 
-      }]}> 
+    <View style={[styles.container, {
+      paddingTop: insets.top,
+      paddingBottom: insets.bottom
+    }]}>
       <StatusBar barStyle="dark-content" />
       <KeyboardAwareScrollView
         style={{ flex: 1 }}
@@ -133,12 +133,23 @@ export default function Welcome({ navigation }: any) {
             accessibilityRole="button"
             onPress={() => navigation.navigate('SignUp', { role: selectedRole })}
             style={({ pressed }) => [styles.continueButton, pressed && styles.pressedButton]}>
-            <Text style={styles.continueText}>{strings.common.continue}</Text>
-      
+            <Text
+              style={styles.continueText}
+            >
+              {strings.common.continue}
+            </Text>
+
           </Pressable>
-          <View style={styles.signInRow}>
-            <Text style={styles.signInPrompt}>{strings.common.alreadyHaveAccount}</Text>
-            <Pressable accessibilityRole="button" onPress={() => navigation.navigate(navigationStrings.LOGIN)}>
+          <View
+            style={styles.signInRow}
+          >
+            <Text
+              style={styles.signInPrompt}
+            >
+              {strings.common.alreadyHaveAccount}</Text>
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => navigation.navigate(navigationStrings.LOGIN)}>
               <Text style={styles.signInText}>{strings.common.signIn}</Text>
             </Pressable>
           </View>

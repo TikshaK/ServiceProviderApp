@@ -142,9 +142,9 @@ export default function ProviderProfile({ navigation }: { navigation: any }) {
             </View>
             <View style={[styles.availabilityStatusLabel, !isOnline && styles.availabilityStatusLabelOffline]}>
               {isOnline && <View style={styles.statusDot} />}
-              <Text style={[styles.availabilityStatusText, !isOnline && styles.availabilityStatusTextOffline]}>
+              {/* <Text style={[styles.availabilityStatusText, !isOnline && styles.availabilityStatusTextOffline]}>
                 {isOnline ? strings.providerProfile.onlineAvailable : strings.providerProfile.offlineToday}
-              </Text>
+              </Text> */}
             </View>
           </View>
           <Text style={styles.availabilityDesc}>
@@ -341,7 +341,16 @@ export default function ProviderProfile({ navigation }: { navigation: any }) {
         onConfirm={async () => {
           setModal(null);
           if (modal === 'logout') await signOut();
-          else if (modal === 'delete') { try { await deleteAccount(profile?.uid ?? ''); await signOut(); } catch {} }
+          else if (modal === 'delete') {
+            try {
+              await deleteAccount(profile?.uid ?? '');
+              await signOut();
+              showToast({ type: 'success', title: strings.common.deleteAccount, message: 'Account deleted successfully' });
+            } catch (error) {
+              console.error('Delete account error:', error);
+              showToast({ type: 'error', title: 'Error', message: 'Unable to delete account. Please try again.' });
+            }
+          }
         }}
       />
     </View>

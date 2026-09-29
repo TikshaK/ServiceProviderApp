@@ -103,7 +103,9 @@ export default function CustomerHome({ navigation }: { navigation: any }) {
                     <View style={styles.headerRow}>
                         <View>
                             <View style={styles.greetingRow}>
-                                <Text style={styles.greetingText}>Hello, {displayName}</Text>
+                                <Text style={styles.greetingText}>
+                                    Hello, {displayName}
+                                    </Text>
                                 <IconX
                                     name="hand-wave"
                                     origin={ICON_TYPE.MATERIAL_COMMUNITY}
@@ -123,7 +125,6 @@ export default function CustomerHome({ navigation }: { navigation: any }) {
                         setSearchText={() => undefined}
                         placeholder="Search for a service..."
                         editable={false}
-                        showFilter
                         onPress={() => navigation.navigate(navigationStrings.CUSTOMER_SEARCH_FILTER_SERVICES)}
                         onFilterPress={() => navigation.navigate(navigationStrings.CUSTOMER_SEARCH_FILTER_SERVICES)}
                     />
