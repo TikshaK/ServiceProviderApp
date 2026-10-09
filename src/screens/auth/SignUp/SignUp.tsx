@@ -7,7 +7,7 @@ import {
   View,
 } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
-import { colors, images, strings, navigationStrings } from '../../../constants';
+import { colors, images, strings, navigationStrings, SERVICE_CATEGORIES, sWidth } from '../../../constants';
 import { CustomHeader, CustomInput, ICON_TYPE, IconX, PhoneNumberInput } from '../../../components';
 import { getEmailError, getFullNameError, getPasswordError, getPhoneError, getRequiredError, validateEmail, validateFullName, validatePassword, validatePhoneNumber, validateRequiredValue } from '../../../utils';
 import { styles } from './styles';
@@ -16,6 +16,7 @@ import { firebaseAuth, saveUserProfile } from '../../../services/firebase';
 import { storage } from '../../../services/storage';
 import storageKeys from '../../../constants/storageKeys';
 import { UserRole } from '../../../types/user';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type AccountRole = UserRole;
 
@@ -76,9 +77,10 @@ function FormField({
 
 export default function SignUp({ navigation, route }: SignUpProps) {
   const role = route?.params?.role ?? 'customer';
+  const insets = useSafeAreaInsets();
   const [fullName, setFullName] = useState('');
   const [serviceName, setServiceName] = useState('');
-  const [category] = useState('');
+  const [category, setCategory] = useState('');
   const [experience, setExperience] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
@@ -120,6 +122,7 @@ export default function SignUp({ navigation, route }: SignUpProps) {
       acceptedTerms &&
       (!isProvider ||
         (validateRequiredValue(serviceName) &&
+          validateRequiredValue(category) &&
           validateRequiredValue(experience)));
 
     if (!valid) {
@@ -199,36 +202,84 @@ export default function SignUp({ navigation, route }: SignUpProps) {
         enableOnAndroid
         bounces={false}
         enableAutomaticScroll
-        extraScrollHeight={Platform.OS === 'android' ? 180 : 120}
+        extraHeight={
+          Platform.OS === 'android'
+            ?
+            insets.bottom + sWidth * 0.38
+            :
+            75
+        }
+        extraScrollHeight={
+          Platform.OS === 'android'
+            ?
+            insets.bottom + sWidth * 0.2
+            :
+            120
+        }
         keyboardOpeningTime={0}
         keyboardShouldPersistTaps="handled"
         enableResetScrollToCoords={false}
-        showsVerticalScrollIndicator={false}>
-        <View style={styles.intro}>
-          <View style={styles.logoFrame}>
-            <Image source={images.logo} style={styles.logo} />
+        showsVerticalScrollIndicator={false}
+      >
+        <View
+          style={styles.intro}
+        >
+          <View
+            style={styles.logoFrame}
+          >
+            <Image
+              source={images.logo}
+              style={styles.logo}
+            />
           </View>
-          <Text style={styles.heading}>
-            {isProvider ? strings.signUp.providerHeading : strings.signUp.customerHeading}
+          <Text
+            style={styles.heading}
+          >
+            {
+              isProvider
+                ?
+                strings.signUp.providerHeading
+                :
+                strings.signUp.customerHeading
+            }
           </Text>
-          <Text style={styles.subheading}>
-            {isProvider
-              ? strings.signUp.providerSubheading
-              : strings.signUp.customerSubheading}
+          <Text
+            style={styles.subheading}
+          >
+            {
+              isProvider
+                ?
+                strings.signUp.providerSubheading
+                :
+                strings.signUp.customerSubheading}
           </Text>
         </View>
 
-        <View style={styles.form}>
+        <View
+          style={styles.form}
+        >
           <FormField
             icon="badge"
             iconOrigin={ICON_TYPE.MATERIAL_ICONS}
-            label={isProvider ? strings.signUp.fullLegalName : strings.signUp.fullName}
+            label={
+              isProvider
+                ?
+                strings.signUp.fullLegalName
+                :
+                strings.signUp.fullName
+            }
             maxLength={35}
             error={fullNameError}
             touched={touched.fullName || submitAttempted}
             onBlur={() => touch('fullName')}
             onChangeText={setFullName}
-            placeholder={isProvider ? 'Jane Doe' : 'Alex Johnson'}
+            placeholder={
+              isProvider
+                ?
+                'Jane Doe'
+                :
+                'Alex Johnson'
+            }
             value={fullName}
             disabled={loading}
           />
@@ -262,6 +313,48 @@ export default function SignUp({ navigation, route }: SignUpProps) {
                 keyboardType="phone-pad"
                 disabled={loading}
               />
+              <View
+                style={styles.categoryField}
+              >
+                <Text
+                  style={styles.categoryLabel}
+                >
+                  Service category
+                </Text>
+                <View
+                  style={styles.categoryOptions}
+                >
+                  {SERVICE_CATEGORIES.map(item =>
+                    <Pressable
+                      key={item}
+                      accessibilityRole="radio"
+                      accessibilityState={{
+                        selected: category === item
+                      }}
+                      disabled={loading}
+                      onPress={() => setCategory(item)}
+                      style={[styles.categoryOption, category === item && styles.categoryOptionSelected]}
+                    >
+                      <Text
+                        style={[styles.categoryOptionText, category === item && styles.categoryOptionTextSelected]}
+                      >
+                        {item}
+                      </Text>
+                    </Pressable>
+                  )}
+                </View>
+                {
+                  submitAttempted && !category
+                    ?
+                    <Text
+                      style={styles.validationError}
+                    >
+                      Choose your service category
+                    </Text>
+                    :
+                    null
+                }
+              </View>
               <FormField
                 icon="mail"
                 iconOrigin={ICON_TYPE.MATERIAL_ICONS}
@@ -325,7 +418,14 @@ export default function SignUp({ navigation, route }: SignUpProps) {
             fullWidth
             label={strings.signUp.password}
             labelPosition="above"
-            leftIcon={<IconX name="lock" origin={ICON_TYPE.MATERIAL_ICONS} color={colors.grey[700]} size={20} />}
+            leftIcon={
+              <IconX
+                name="lock"
+                origin={ICON_TYPE.MATERIAL_ICONS}
+                color={colors.grey[700]}
+                size={20}
+              />
+            }
             maxLength={10}
             error={passwordError}
             touched={touched.password || submitAttempted}
@@ -338,35 +438,135 @@ export default function SignUp({ navigation, route }: SignUpProps) {
             disabled={loading}
           />
 
-          <Pressable accessibilityRole="checkbox" disabled={loading} accessibilityState={{ checked: acceptedTerms }} onPress={() => setAcceptedTerms(current => !current)} style={styles.termsRow}>
-            <View style={[styles.checkbox, acceptedTerms && styles.checkedBox]}>
-              {acceptedTerms ? <Text style={styles.checkboxMark}>✓</Text> : null}
+          <Pressable
+            accessibilityRole="checkbox"
+            disabled={loading}
+            accessibilityState={{
+              checked: acceptedTerms
+            }}
+            onPress={() => setAcceptedTerms(current => !current)}
+            style={styles.termsRow}
+          >
+            <View
+              style={[
+                styles.checkbox,
+                acceptedTerms && styles.checkedBox
+              ]}
+            >
+              {
+                acceptedTerms
+                  ?
+
+                  <Text
+                    style={styles.checkboxMark}
+                  >
+                    ✓
+                  </Text>
+                  :
+                  null
+              }
             </View>
-            <Text style={styles.termsText}>
-              {strings.signUp.termsAgreement} <Text style={styles.linkText}>{isProvider ? strings.signUp.providerTerms : strings.signUp.terms}</Text> {strings.signUp.agreementJoiner} <Text style={styles.linkText}>{isProvider ? strings.signUp.backgroundCheck : strings.signUp.privacy}</Text>.
+            <Text
+              style={styles.termsText}
+            >
+              {strings.signUp.termsAgreement}
+              <Text
+                style={styles.linkText}
+              >
+                {isProvider
+                  ?
+                  strings.signUp.providerTerms
+                  :
+                  strings.signUp.terms
+
+                }
+              </Text>
+              {strings.signUp.agreementJoiner}
+              <Text
+                style={styles.linkText}
+              >
+                {isProvider
+                  ?
+                  strings.signUp.backgroundCheck
+                  :
+                  strings.signUp.privacy
+                }
+              </Text>.
             </Text>
           </Pressable>
-          {submitAttempted && !acceptedTerms ? <Text style={styles.validationError}>Please accept the terms to continue</Text> : null}
-          {authError ? <Text style={styles.validationError}>{authError}</Text> : null}
+
+          {submitAttempted && !acceptedTerms
+            ?
+            <Text
+              style={styles.validationError}
+            >
+              Please accept the terms to continue
+            </Text>
+            :
+            null
+          }
+          {
+            authError
+              ?
+              <Text
+                style={styles.validationError}
+              >
+                {authError}
+              </Text>
+              :
+              null
+          }
 
           <Pressable
             accessibilityRole="button"
             disabled={loading}
             onPress={handleSubmit}
-            style={({ pressed }) => [styles.submitButton, pressed && styles.pressedButton, loading && styles.pressedButton]}>
-            <Text style={styles.submitText}>
-              {loading ? 'Creating account...' : isProvider ? strings.signUp.providerSubmit : strings.signUp.customerSubmit}
+            style={({ pressed }) => [styles.submitButton, pressed && styles.pressedButton, loading && styles.pressedButton]}
+          >
+            <Text
+              style={styles.submitText}>
+              {loading
+                ?
+                'Creating account...'
+                :
+                isProvider
+                  ?
+                  strings.signUp.providerSubmit
+                  :
+                  strings.signUp.customerSubmit
+              }
             </Text>
-            {!loading ? <Text style={styles.submitArrow}>→</Text> : null}
+            {!loading
+              ?
+              <Text
+                style={styles.submitArrow}
+              >
+                →
+              </Text>
+              :
+              null
+            }
           </Pressable>
         </View>
 
-        <View style={styles.footer}>
-          <Text style={styles.footerPrompt}>{strings.common.alreadyHaveAccount}</Text>
-          <Pressable accessibilityRole="button"
+        <View
+          style={styles.footer}
+        >
+          <Text
+            style={styles.footerPrompt}
+          >
+            {strings.common.alreadyHaveAccount}
+          </Text>
+          <Pressable
+            accessibilityRole="button"
             disabled={loading}
-            onPress={() => navigation.replace(navigationStrings.LOGIN)}>
-            <Text style={styles.signInText}>{strings.common.signIn}</Text>
+            onPress={() => navigation.replace(navigationStrings.LOGIN)}
+          >
+            <Text
+              style={styles.signInText}
+            >
+              {strings.common.signIn}
+            </Text>
           </Pressable>
         </View>
 
@@ -374,4 +574,3 @@ export default function SignUp({ navigation, route }: SignUpProps) {
     </View>
   );
 }
-

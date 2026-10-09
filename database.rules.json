@@ -1,6 +1,6 @@
 {
   "rules": {
-    ".read": "auth != null",
+    ".read": false,
     ".write": false,
     "users": {
       "$uid": {
@@ -8,9 +8,16 @@
         ".write": "auth != null && auth.uid === $uid"
       }
     },
-    "services": {
-      "$serviceId": {
+    "providerPublicProfiles": {
+      "$uid": {
         ".read": "auth != null",
+        ".write": "auth != null && auth.uid === $uid"
+      }
+    },
+    "services": {
+      ".read": "auth != null",
+      ".indexOn": ["providerId", "category"],
+      "$serviceId": {
         ".write": "auth != null && (!data.exists() ? newData.child('providerId').val() === auth.uid : data.child('providerId').val() === auth.uid)"
       }
     },
@@ -23,9 +30,11 @@
       }
     },
     "bookings": {
+      ".read": "auth != null && ((query.orderByChild == 'customerId' && query.equalTo == auth.uid) || (query.orderByChild == 'providerId' && query.equalTo == auth.uid))",
+      ".indexOn": ["customerId", "providerId"],
       "$bookingId": {
-        ".read": "auth != null && (data.child('customerId').val() === auth.uid || data.child('providerId').val() === auth.uid)",
-        ".write": "auth != null && ((!data.exists() && newData.child('customerId').val() === auth.uid) || data.child('customerId').val() === auth.uid || data.child('providerId').val() === auth.uid)"
+        ".read": "auth != null && (data.child('customerId').val() == auth.uid || data.child('providerId').val() == auth.uid)",
+        ".write": "auth != null && ((!data.exists() && newData.child('customerId').val() == auth.uid) || (data.child('customerId').val() == auth.uid && newData.child('customerId').val() == auth.uid) || (data.child('providerId').val() == auth.uid && newData.child('providerId').val() == auth.uid) || ((root.child('users').child(auth.uid).child('role').val() == 'provider' || root.child('providerServiceIndex').child(auth.uid).exists()) && data.child('bookingType').val() == 'open' && data.child('status').val() == 'pending' && newData.child('status').val() == 'quotePending' && newData.child('providerId').val() == auth.uid && newData.child('customerId').val() == data.child('customerId').val() && newData.child('category').val() == data.child('category').val()))"
       }
     },
     "customerBookingIndex": {
@@ -40,7 +49,16 @@
       "$providerId": {
         ".read": "auth != null && auth.uid === $providerId",
         "$bookingId": {
-          ".write": "auth != null && (auth.uid === $providerId || newData.val() === true || newData.child('customerId').val() === auth.uid)"
+          ".write": "auth != null && (auth.uid == $providerId || (newData.val() == true && root.child('bookings').child($bookingId).child('providerId').val() == $providerId && root.child('bookings').child($bookingId).child('customerId').val() == auth.uid) || (newData.val() == null && root.child('bookings').child($bookingId).child('customerId').val() == auth.uid))"
+        }
+      }
+    },
+    "openBookingListings": {
+      ".read": "auth != null",
+      "$category": {
+        ".read": "auth != null",
+        "$bookingId": {
+          ".write": "auth != null && ((!data.exists() && newData.child('customerId').val() == auth.uid) || (data.child('customerId').val() == auth.uid && (newData.val() == null || newData.child('customerId').val() == auth.uid)) || (data.child('customerId').val() == auth.uid && newData.child('customerId').val() == auth.uid && data.child('status').val() == 'quotePending' && newData.child('status').val() == 'pending' && data.child('providerId').val() != null && newData.child('providerId').val() == null && newData.child('quotedAmount').val() == null && root.child('bookings').child($bookingId).child('bookingType').val() == 'open' && root.child('bookings').child($bookingId).child('customerId').val() == auth.uid && root.child('bookings').child($bookingId).child('status').val() == 'pending') || (newData.val() == null && root.child('bookings').child($bookingId).child('bookingType').val() == 'open' && root.child('bookings').child($bookingId).child('customerId').val() == auth.uid && root.child('bookings').child($bookingId).child('status').val() == 'accepted') || (data.child('providerId').val() == auth.uid && newData.child('providerId').val() == auth.uid) || ((root.child('users').child(auth.uid).child('role').val() == 'provider' || root.child('providerServiceIndex').child(auth.uid).exists()) && data.child('category').val() == $category && data.child('status').val() == 'pending' && newData.child('status').val() == 'quotePending' && newData.child('providerId').val() == auth.uid && newData.child('category').val() == $category))"
         }
       }
     },
@@ -51,8 +69,8 @@
       }
     },
     "reviews": {
+      ".read": "auth != null",
       "$reviewId": {
-        ".read": "auth != null",
         ".write": "auth != null && (!data.exists() ? newData.child('reviewerId').val() === auth.uid : data.child('reviewerId').val() === auth.uid)"
       }
     },

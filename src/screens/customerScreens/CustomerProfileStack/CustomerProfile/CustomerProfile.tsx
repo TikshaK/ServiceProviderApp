@@ -364,24 +364,25 @@ export default function CustomerProfile({ navigation }: { navigation: any }) {
         confirmText={modal === 'logout' ? strings.common.logOut : strings.common.deleteAccount}
         cancelText={modal === 'logout' ? strings.common.cancel : strings.common.keepAccount}
         destructive
+        showPasswordInput={modal === 'delete'}
         onCancel={() => setModal(null)}
-        onConfirm={() => {
+        onConfirm={async (password) => {
           setModal(null);
-          if (modal === 'logout') signOut();
+          if (modal === 'logout') await signOut();
           else if (modal === 'delete') {
             try {
-              deleteAccount(profile?.uid ?? '');
+              await deleteAccount(profile?.uid ?? '', password ?? '');
               showToast({
                 type: 'success',
                 title: strings.common.deleteAccount,
                 message: 'Account deleted successfully'
               });
-            } catch (error) {
+            } catch (error: any) {
               console.error('Delete account error:', error);
               showToast({
                 type: 'error',
                 title: 'Error',
-                message: 'Unable to delete account. Please try again.'
+                message: error?.message ?? 'Unable to delete account. Please try again.'
               });
             }
           }

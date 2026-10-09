@@ -140,12 +140,7 @@ export default function ProviderProfile({ navigation }: { navigation: any }) {
                 <Text style={styles.availabilitySub}>{strings.providerProfile.availabilitySub}</Text>
               </View>
             </View>
-            <View style={[styles.availabilityStatusLabel, !isOnline && styles.availabilityStatusLabelOffline]}>
-              {isOnline && <View style={styles.statusDot} />}
-              {/* <Text style={[styles.availabilityStatusText, !isOnline && styles.availabilityStatusTextOffline]}>
-                {isOnline ? strings.providerProfile.onlineAvailable : strings.providerProfile.offlineToday}
-              </Text> */}
-            </View>
+         
           </View>
           <Text style={styles.availabilityDesc}>
             {strings.profile.providerAvailabilityDescription}
@@ -337,18 +332,19 @@ export default function ProviderProfile({ navigation }: { navigation: any }) {
         confirmText={modal === 'logout' ? strings.common.logOut : strings.providerProfile.deleteConfirm}
         cancelText={strings.common.keepAccount}
         destructive
+        showPasswordInput={modal === 'delete'}
         onCancel={() => setModal(null)}
-        onConfirm={async () => {
+        onConfirm={async (password) => {
           setModal(null);
           if (modal === 'logout') await signOut();
           else if (modal === 'delete') {
             try {
-              await deleteAccount(profile?.uid ?? '');
+              await deleteAccount(profile?.uid ?? '', password ?? '');
               await signOut();
               showToast({ type: 'success', title: strings.common.deleteAccount, message: 'Account deleted successfully' });
-            } catch (error) {
+            } catch (error: any) {
               console.error('Delete account error:', error);
-              showToast({ type: 'error', title: 'Error', message: 'Unable to delete account. Please try again.' });
+              showToast({ type: 'error', title: 'Error', message: error?.message ?? 'Unable to delete account. Please try again.' });
             }
           }
         }}

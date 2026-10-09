@@ -1,26 +1,29 @@
 import React, { useCallback, useState } from 'react';
 import {
-  FlatList,
-  Image,
   Pressable,
   ScrollView,
   StatusBar,
   Text,
   TouchableOpacity,
   View,
+  Image,
 } from 'react-native';
 import {
-  EmptyState, ICON_TYPE, IconX
+  CustomSearchBar,
+  EmptyState,
+  ICON_TYPE,
+  IconX,
 } from '../../../../components';
 import { useFocusEffect } from '@react-navigation/native';
 import {
   colors,
   navigationStrings, strings
 } from '../../../../constants';
-import { getBookings } from '../../../../services/firebase';
+import { getBookings, subscribeToAllOpenBookings } from '../../../../services/firebase';
 import { useAppSelector } from '../../../../store';
-import { isBookingExpired } from '../../../../types/booking';
+import { isBookingExpired, type OpenBookingListing } from '../../../../types/booking';
 import { styles } from './styles';
+import ProviderQuoteModal from '../../ProviderQuoteModal';
 
 const OVERVIEW_STATS = [
   {
@@ -95,64 +98,68 @@ const isScheduledToday = (scheduledDate: string, scheduledTime: string) => {
 export default function ProviderHome({ navigation }: any) {
   const profile = useAppSelector(state => state.user.profile);
   const displayName = profile?.fullName?.trim() || 'Provider';
-  const [recentBookings, setRecentBookings] = useState<any[]>([]);
+  const [openBookings, setOpenBookings] = useState<OpenBookingListing[]>([]);
+  const homeOpenBookings = openBookings.slice(0, 10);
+  const [quoteBooking, setQuoteBooking] = useState<OpenBookingListing | null>(null);
   const [overviewCounts, setOverviewCounts] = useState({ pending: 0, upcoming: 0, completed: 0, cancelled: 0, expired: 0 });
 
   useFocusEffect(useCallback(() => {
+    let active = true;
     if (!profile?.uid) {
-      setRecentBookings([]);
+      console.warn('[PROVIDER_HOME] provider booking statistics skipped: profile UID is missing');
       setOverviewCounts({ pending: 0, upcoming: 0, completed: 0, cancelled: 0, expired: 0 });
-      return;
+    } else {
+      getBookings('providerId', profile.uid).then(bookings => {
+        if (!active) return;
+
+        setOverviewCounts({
+          pending: bookings.filter(booking => (booking.status === 'pending' || booking.status === 'quotePending') && !isBookingExpired(booking)).length,
+          upcoming: bookings.filter(booking => (booking.status === 'accepted' || booking.status === 'inProgress' || booking.status === 'completionRequested') && isScheduledToday(booking.scheduledDate, booking.scheduledTime)).length,
+          completed: bookings.filter(booking => booking.status === 'completed').length,
+          cancelled: bookings.filter(booking => booking.status === 'cancelled' || booking.status === 'declined').length,
+          expired: bookings.filter(booking => isBookingExpired(booking)).length,
+        });
+      }).catch(() => undefined);
     }
 
-    let active = true;
-    getBookings('providerId', profile.uid).then(bookings => {
+    const unsubscribeOpenBookings = subscribeToAllOpenBookings(bookings => {
       if (!active) return;
-
-      setOverviewCounts({
-        pending: bookings.filter(booking => booking.status === 'pending' && !isBookingExpired(booking)).length,
-        upcoming: bookings.filter(booking => (booking.status === 'accepted' || booking.status === 'inProgress') && isScheduledToday(booking.scheduledDate, booking.scheduledTime)).length,
-        completed: bookings.filter(booking => booking.status === 'completed').length,
-        cancelled: bookings.filter(booking => booking.status === 'cancelled' || booking.status === 'declined').length,
-        expired: bookings.filter(booking => isBookingExpired(booking)).length,
+      console.log('[PROVIDER_HOME] open bookings updated', {
+        count: bookings.length,
+        bookingIds: bookings.slice(0, 10).map(booking => booking.id),
       });
+      setOpenBookings(bookings);
+    }, error => {
+      console.error('[PROVIDER_HOME] open bookings subscription failed', error);
+    });
 
-      const mappedBookings = bookings
-        .sort((first, second) => second.createdAt - first.createdAt)
-        .slice(0, 10)
-        .map(booking => {
-          const expired = isBookingExpired(booking);
-          const status = expired
-            ? 'Expired'
-            : booking.status === 'accepted' || booking.status === 'inProgress'
-              ? 'Upcoming'
-              : booking.status === 'completed'
-                ? 'Completed'
-              : booking.status === 'cancelled' || booking.status === 'declined'
-                ? 'Cancelled'
-                : 'Pending';
-          const isCompleted = status === 'Completed';
-          const isCancelled = status === 'Cancelled' || status === 'Expired';
-
-          return {
-            id: booking.id,
-            clientName: booking.customerSnapshot.fullName,
-            serviceTitle: booking.serviceSnapshot.title,
-            status,
-            statusBgColor: isCompleted ? '#ECFDF5' : isCancelled ? '#FEF2F2' : status === 'Pending' ? '#FFFBEB' : '#EFF6FF',
-            statusTextColor: isCompleted ? '#047857' : isCancelled ? '#DC2626' : status === 'Pending' ? '#B45309' : '#1D4ED8',
-            dotColor: isCompleted ? undefined : isCancelled ? '#DC2626' : status === 'Pending' ? '#D97706' : '#2563EB',
-            timeText: `${booking.scheduledDate} • ${booking.scheduledTime}`,
-            avatarUrl: booking.serviceSnapshot.imageUrls?.[0] ?? '',
-            priceTag: isCompleted ? `$${booking.totalAmount} Paid` : undefined,
-          };
-        });
-
-      setRecentBookings(mappedBookings);
-    }).catch(() => undefined);
-
-    return () => { active = false; };
+    return () => {
+      active = false;
+      unsubscribeOpenBookings();
+    };
   }, [profile?.uid]));
+
+  const openBookingDetails = (booking: OpenBookingListing) => {
+    navigation.navigate(navigationStrings.PROVIDER_BOOKING_DETAILS, {
+      booking: {
+        id: booking.id,
+          clientName: booking.customerName,
+          customerName: booking.customerName,
+          avatarUrl: booking.customerAvatarUrl ?? '',
+          serviceTitle: `${booking.category} service`,
+          category: booking.category,
+          status: 'Pending',
+          dateText: `${booking.scheduledDate} • ${booking.scheduledTime}`,
+          scheduledDate: booking.scheduledDate,
+          scheduledTime: booking.scheduledTime,
+          address: booking.city,
+          city: booking.city,
+          amount: 'Awaiting quote',
+          notes: booking.specialInstructions,
+          isOpenBooking: true,
+        },
+    });
+  };
 
   return (
     <View
@@ -204,6 +211,16 @@ export default function ProviderHome({ navigation }: any) {
               {strings.home.availableNow}
             </Text>
           </Pressable>
+        </View>
+
+        <View style={styles.searchSection}>
+          <CustomSearchBar
+            placeholder="Search bookings"
+            searchText=""
+            setSearchText={() => undefined}
+            onPress={() => navigation.navigate(navigationStrings.PROVIDER_SEARCH_BOOKINGS)}
+            containerStyles={styles.searchContainer}
+          />
         </View>
 
         <View
@@ -331,7 +348,7 @@ export default function ProviderHome({ navigation }: any) {
               <Text
                 style={styles.sectionTitleInline}
               >
-                {strings.home.recentBookings}
+                Open Bookings
               </Text>
 
             </View>
@@ -340,158 +357,103 @@ export default function ProviderHome({ navigation }: any) {
           <View
             style={styles.bookingList}
           >
-            <FlatList
-              data={recentBookings}
-              keyExtractor={booking => booking.id}
-              scrollEnabled={false}
-              contentContainerStyle={styles.bookingList}
-              ListEmptyComponent={() => (
-                <EmptyState
-                  title={strings.providerBookings.noBookingsTitle}
-                  message={strings.home.noBookingsSub}
-                  icon="briefcase-outline"
-                />
-              )}
-              renderItem={({ item: booking }) => {
-                const isCompleted = booking.status === 'Completed';
-                const timeIconColor =
-                  booking.status === 'Completed'
-                    ? colors.green[350]
-                    : booking.status === 'Pending'
-                      ? '#D97706'
-                      : colors.purple[700];
-
-                return (
+            {homeOpenBookings.length === 0 ? (
+              <EmptyState
+                title="No open requests"
+                message="New open customer bookings will appear here."
+                icon="briefcase-outline"
+              />
+            ) : homeOpenBookings.map(booking => (
+              <Pressable
+                key={booking.id}
+                style={[styles.bookingCard, styles.openBookingCard]}
+                onPress={() => openBookingDetails(booking)}
+                accessibilityRole="button"
+                accessibilityHint="Opens booking details"
+              >
+                <View
+                  style={styles.bookingCardHeader}
+                >
                   <View
-                    key={booking.id}
-                    style={[styles.bookingCard, isCompleted && styles.bookingCardCompleted]}
+                    style={styles.bookingClient}
                   >
-                    <View
-                      style={styles.bookingCardHeader}
-                    >
-                      <View
-                        style={styles.bookingClient}
-                      >
-                        <Image
-                          source={{ uri: booking.avatarUrl }}
-                          style={styles.bookingAvatar}
-                        />
-                        <View
-                          style={styles.bookingClientInfo}
-                        >
-                          <Text
-                            style={styles.bookingClientName}
-                            numberOfLines={1}
-                          >
-                            {booking.clientName}
-                          </Text>
-                          <Text
-                            style={styles.bookingServiceTitle}
-                            numberOfLines={1}
-                          >
-                            {booking.serviceTitle}
-                          </Text>
-                        </View>
-                      </View>
-                      <View
-                        style={[styles.statusBadge, { backgroundColor: booking.statusBgColor }]}
-                      >
-                        {isCompleted ? (
-                          <IconX
-                            name="checkmark"
-                            origin={ICON_TYPE.IONICONS}
-                            size={12}
-                            color={booking.statusTextColor}
-                          />
-                        ) : (
-                          'dotColor' in booking && booking.dotColor ? (
-                            <View
-                              style={[styles.statusDot, { backgroundColor: booking.dotColor }]}
-                            />
-                          ) : null
-                        )}
-                        <Text
-                          style={[styles.statusBadgeText, { color: booking.statusTextColor }]}
-                        >
-                          {booking.status}
-                        </Text>
-                      </View>
-                    </View>
-
-                    <View
-                      style={styles.bookingCardFooter}
-                    >
-                      <View
-                        style={styles.bookingTimeRow}
-                      >
-                        <IconX
-                          name="time-outline"
-                          origin={ICON_TYPE.IONICONS}
-                          size={16}
-                          color={timeIconColor}
-                        />
-                        <Text
-                          style={[
-                            styles.bookingTimeText,
-                            isCompleted && styles.bookingTimeTextMuted
-                          ]}
-                          adjustsFontSizeToFit
-                        >
-                          {booking.timeText}
-                        </Text>
-                      </View>
-
-                      {'priceTag' in booking && booking.priceTag ? (
-                        <View
-                          style={styles.priceTag}
-                        >
-                          <Text
-                            style={styles.priceTagText}
-                          >
-                            {booking.priceTag}
-                          </Text>
-                        </View>
+                    <View style={styles.bookingAvatar}>
+                      {booking.customerAvatarUrl ? (
+                        <Image source={{ uri: booking.customerAvatarUrl }} style={styles.bookingAvatarImage} />
                       ) : (
-                        <View
-                          style={styles.bookingActions}
-                        >
-                          {'showCallAction' in booking && booking.showCallAction && (
-                            <TouchableOpacity
-                              accessibilityLabel={`Call ${booking.clientName}`}
-                              activeOpacity={0.7}
-                              style={styles.bookingActionButton}>
-                              <IconX
-                                name="call-outline"
-                                origin={ICON_TYPE.IONICONS}
-                                size={18}
-                                color={colors.black[250]}
-                              />
-                            </TouchableOpacity>
-                          )}
-                          {'showDetailAction' in booking && booking.showDetailAction && (
-                            <TouchableOpacity
-                              accessibilityLabel="Booking Details"
-                              activeOpacity={0.7}
-                              style={styles.bookingActionButtonPrimary}
-                            >
-                              <IconX name="arrow-forward"
-                                origin={ICON_TYPE.IONICONS}
-                                size={18}
-                                color={colors.purple[700]}
-                              />
-                            </TouchableOpacity>
-                          )}
-
-                        </View>
+                        <Text style={styles.openBookingInitial}>{booking.customerName.charAt(0)}</Text>
                       )}
                     </View>
+                    <View
+                      style={styles.bookingClientInfo}
+                    >
+                      <Text
+                        style={styles.bookingClientName}
+                        numberOfLines={1}
+                      >
+                        {booking.customerName}
+                      </Text>
+                      <Text
+                        style={styles.bookingServiceTitle}
+                        numberOfLines={1}
+                      >
+                        {booking.category} service
+                      </Text>
+                    </View>
                   </View>
-                );
-              }}
-            />
+                  <View style={[styles.statusBadge, styles.openBookingBadge]}>
+                    <View style={[styles.statusDot, styles.openBookingDot]} />
+                    <Text style={[styles.statusBadgeText, styles.openBookingStatus]}>Open</Text>
+                  </View>
+                </View>
+
+                <Text style={styles.openBookingLocation}>{booking.city}</Text>
+                {booking.specialInstructions ? <Text style={styles.openBookingNotes} numberOfLines={2}>{booking.specialInstructions}</Text> : null}
+
+                <View
+                  style={styles.bookingCardFooter}
+                >
+                  <View
+                    style={styles.bookingTimeRow}
+                  >
+                    <IconX
+                      name="time-outline"
+                      origin={ICON_TYPE.IONICONS}
+                      size={16}
+                      color="#D97706"
+                    />
+                    <Text
+                      style={styles.bookingTimeText}
+                      adjustsFontSizeToFit
+                    >
+                      {booking.scheduledDate} • {booking.scheduledTime}
+                    </Text>
+                  </View>
+
+                  <TouchableOpacity
+                    style={styles.openBookingQuoteButton}
+                    activeOpacity={0.8}
+                    onPress={event => {
+                      event.stopPropagation();
+                      setQuoteBooking(booking);
+                    }}
+                  >
+                    <Text
+                      style={styles.openBookingQuoteButtonText}
+                    >
+                      Send quote</Text>
+                  </TouchableOpacity>
+                </View>
+              </Pressable>
+            ))}
           </View>
         </View>
       </ScrollView >
+      <ProviderQuoteModal
+        booking={quoteBooking}
+        onClose={() => setQuoteBooking(null)}
+        onQuoteSent={bookingId => setOpenBookings(current => current.filter(item => item.id !== bookingId))}
+      />
     </View >
   );
 }

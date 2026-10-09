@@ -1,5 +1,6 @@
 import ProviderBookings from "./ProviderBookingsStack/ProviderBookings/ProviderBookings";
 import ProviderHome from "./ProviderHomeStack/ProviderHome/ProviderHome";
+import ProviderSearchBookings from "./ProviderHomeStack/ProviderSearchBookings/ProviderSearchBookings";
 import ProviderServices from "./ProviderServicesStack/ProviderServices/ProviderServices";
 import ProviderProfile from "./ProviderProfileStack/ProviderProfile/ProviderProfile";
 import AddEditServices from "./ProviderServicesStack/AddEditServices/AddEditServices";
@@ -10,6 +11,7 @@ import ProviderNotifications from "./ProviderProfileStack/ProviderNotifications/
 
 export {
     ProviderHome,
+    ProviderSearchBookings,
     ProviderBookings,
     ProviderServices,
     ProviderProfile,

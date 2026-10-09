@@ -293,4 +293,40 @@ export const styles = StyleSheet.create({
 		color: colors.grey[700],
 		textAlign: 'center',
 	},
+	approvalActions: {
+		gap: scale(9),
+		padding: scale(14),
+		borderRadius: scale(12),
+		backgroundColor: colors.white[100],
+	},
+	approvalHint: {
+		fontFamily: fonts.Regular,
+		fontSize: fontSize[12],
+		lineHeight: verticalScale(17),
+		color: colors.grey[700],
+	},
+	approveButton: {
+		minHeight: verticalScale(46),
+		alignItems: 'center',
+		justifyContent: 'center',
+		borderRadius: scale(10),
+		backgroundColor: colors.purple[700],
+	},
+	approveButtonText: {
+		fontFamily: fonts.SemiBold,
+		fontSize: fontSize[13],
+		color: colors.white[100],
+	},
+	rejectButton: {
+		minHeight: verticalScale(44),
+		alignItems: 'center',
+		justifyContent: 'center',
+		borderRadius: scale(10),
+		backgroundColor: '#FDEBEC',
+	},
+	rejectButtonText: {
+		fontFamily: fonts.SemiBold,
+		fontSize: fontSize[13],
+		color: colors.red[200],
+	},
 });

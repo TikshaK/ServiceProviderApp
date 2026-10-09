@@ -168,7 +168,8 @@ export default function ProviderServices({ navigation }: ProviderServicesProps) 
                               size={15}
                               color={colors.grey[700]}
                             />
-                            <Text style={styles.editText}
+                            <Text
+                              style={styles.editText}
                             >
                               {strings.common.edit}
                             </Text>
@@ -217,11 +218,12 @@ export default function ProviderServices({ navigation }: ProviderServicesProps) 
                             <Text
                               style={styles.tagText}
                             >
-                              {service.ratingAverage
-                                ?
-                                `${service.ratingAverage} (${service.reviewCount})`
-                                :
-                                'New'
+                              {
+                                service.ratingAverage
+                                  ?
+                                  `${service.ratingAverage} (${service.reviewCount})`
+                                  :
+                                  'New'
                               }
                             </Text>
                           </View>
@@ -231,12 +233,16 @@ export default function ProviderServices({ navigation }: ProviderServicesProps) 
 
                     <View style={styles.cardBottom}>
                       <View style={styles.priceContainer}>
-                        <Text style={styles.priceLabel}
+                        <Text
+                          style={styles.priceLabel}
                         >
                           Starting from
                         </Text>
                         <Text
-                          style={[styles.priceValue, !service.isActive && styles.priceValueInactive]}
+                          style={[
+                            styles.priceValue,
+                            !service.isActive && styles.priceValueInactive
+                          ]}
                         >
                           ${service.price}
                         </Text>
@@ -246,21 +252,21 @@ export default function ProviderServices({ navigation }: ProviderServicesProps) 
                       >
                         <View
                           style={[
-                            styles.statusBadge, service.isActive 
-                            ?
-                             styles.statusActive 
-                            :
-                             styles.statusInactive
+                            styles.statusBadge, service.isActive
+                              ?
+                              styles.statusActive
+                              :
+                              styles.statusInactive
                           ]}
                         >
                           <Text
                             style={[
-                              styles.statusText, 
-                              service.isActive 
-                              ? 
-                              styles.statusTextActive 
-                              : 
-                              styles.statusTextInactive
+                              styles.statusText,
+                              service.isActive
+                                ?
+                                styles.statusTextActive
+                                :
+                                styles.statusTextInactive
                             ]}
                           >
                             {service.isActive ? 'Active' : 'Inactive'}
@@ -269,9 +275,9 @@ export default function ProviderServices({ navigation }: ProviderServicesProps) 
                         <Switch
                           value={service.isActive}
                           onValueChange={() => toggleService(service)}
-                          trackColor={{ 
-                            false: colors.grey[300], 
-                            true: colors.purple[700] 
+                          trackColor={{
+                            false: colors.grey[300],
+                            true: colors.purple[700]
                           }}
                           thumbColor={colors.white[100]}
                           ios_backgroundColor={colors.grey[300]}

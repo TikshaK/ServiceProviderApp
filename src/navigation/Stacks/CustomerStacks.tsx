@@ -11,10 +11,22 @@ interface NavigationProps {
   route: any;
 }
 
-const CustomerPlaceholderScreen: React.FC<{ title: string }> = ({ title }) => (
-  <View style={styles.placeholderContainer}>
-    <Text style={styles.placeholderTitle}>{title}</Text>
-    <Text style={styles.placeholderSub}>Coming Soon</Text>
+const CustomerPlaceholderScreen: React.FC<{
+  title: string
+}> = ({ title }) => (
+  <View
+    style={styles.placeholderContainer}
+  >
+    <Text
+      style={styles.placeholderTitle}
+    >
+      {title}
+    </Text>
+    <Text
+      style={styles.placeholderSub}
+    >
+      Coming Soon
+    </Text>
   </View>
 );
 
@@ -22,7 +34,10 @@ const commonDetailScreens = () => [];
 
 const CustomerHomeStack: React.FC<NavigationProps> = ({ navigation, route }) => {
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false, animation: 'ios_from_right' }}>
+    <Stack.Navigator screenOptions={{
+      headerShown: false,
+      animation: 'ios_from_right'
+    }}>
       <Stack.Screen
         name={navigationStrings.CUSTOMER_HOME}
         component={CustomerHome}
@@ -50,7 +65,10 @@ const CustomerHomeStack: React.FC<NavigationProps> = ({ navigation, route }) => 
 
 const CustomerBookingsStack: React.FC<NavigationProps> = ({ navigation, route }) => {
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false, animation: 'ios_from_right' }}>
+    <Stack.Navigator screenOptions={{
+      headerShown: false,
+      animation: 'ios_from_right'
+    }}>
       <Stack.Screen
         name={navigationStrings.CUSTOMER_BOOKINGS}
         component={CustomerBookings}

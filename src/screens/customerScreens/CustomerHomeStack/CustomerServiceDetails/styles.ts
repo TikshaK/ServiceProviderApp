@@ -261,6 +261,57 @@ export const styles = StyleSheet.create({
 		backgroundColor: colors.purple[100],
 		gap: scale(8),
 	},
+	reviewCount: {
+		fontFamily: fonts.Regular,
+		fontSize: fontSize[12],
+		color: colors.grey[700],
+	},
+	reviewList: {
+		gap: scale(10),
+	},
+	reviewHeader: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		gap: scale(10),
+	},
+	reviewerAvatar: {
+		width: scale(36),
+		height: scale(36),
+		borderRadius: scale(18),
+		alignItems: 'center',
+		justifyContent: 'center',
+		backgroundColor: colors.purple[200],
+	},
+	reviewerInitial: {
+		fontFamily: fonts.Bold,
+		fontSize: fontSize[14],
+		color: colors.purple[700],
+	},
+	reviewerCopy: {
+		flex: 1,
+		gap: scale(4),
+	},
+	reviewerName: {
+		fontFamily: fonts.SemiBold,
+		fontSize: fontSize[13],
+		color: colors.black[250],
+	},
+	starsRow: {
+		flexDirection: 'row',
+		gap: scale(2),
+	},
+	reviewDate: {
+		fontFamily: fonts.Regular,
+		fontSize: fontSize[11],
+		color: colors.grey[700],
+	},
+	reviewText: {
+		fontFamily: fonts.Regular,
+		fontSize: fontSize[13],
+		lineHeight: verticalScale(19),
+		color: colors.grey[700],
+		fontStyle: 'italic',
+	},
 	bottomBar: {
 		position: 'absolute',
 		left: scale(0),

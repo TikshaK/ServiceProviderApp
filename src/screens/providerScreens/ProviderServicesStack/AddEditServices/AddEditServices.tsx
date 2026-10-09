@@ -202,29 +202,7 @@ export default function AddEditServices({ navigation, route }: AddEditServicesPr
 					showBackButton
 					onLeftPress={() => navigation.goBack()}
 				/>
-				{/* <View style={styles.contextRow}>
-					<Text style={styles.screenTitle}>{service ? strings.servicesForm.editService : strings.servicesForm.newService}</Text>
-					{service ? (
-						<Pressable
-							accessibilityRole="button"
-							onPress={confirmDelete}
-							style={styles.quickDelete}
-						>
-							<IconX
-								name="trash-outline"
-								origin={ICON_TYPE.IONICONS}
-								size={16}
-								color={colors.red[200]}
-							/>
-							<Text
-								style={styles.quickDeleteText}
-							>
-								{strings.servicesForm.deleteService}
-							</Text>
-						</Pressable>
-					) : null}
-				</View> */}
-
+				
 				<Section
 					title={strings.servicesForm.basicInformation}
 					step="Step 1 of 4"
@@ -304,41 +282,126 @@ export default function AddEditServices({ navigation, route }: AddEditServicesPr
 						maxLength={50}
 					/>
 
-					<FieldLabel text="Category" required />
-					<SelectField value={category} icon="chevron-down" onPress={() => setSelector('category')} />
+					<FieldLabel
+						text="Category" required
+					/>
+					<SelectField
+						value={category}
+						icon="chevron-down"
+						onPress={() => setSelector('category')}
+					/>
 				</Section>
 
-				<Section title={strings.servicesForm.pricingTiming} step="Step 2 of 4">
+				<Section title={strings.servicesForm.pricingTiming}
+					step="Step 2 of 4">
 					<View style={styles.twoColumn}>
 						<View style={styles.column}>
-							<FieldLabel text={strings.servicesForm.startingPrice} required />
-							<View style={styles.priceInputWrap}>
-								<Text style={styles.currency}>$</Text>
-								<TextInput value={price} onChangeText={setPrice} keyboardType="decimal-pad" placeholder={strings.services.pricePlaceholder} placeholderTextColor={colors.grey[400]} style={styles.priceInput} />
+							<FieldLabel
+								text={strings.servicesForm.startingPrice}
+								required
+							/>
+							<View
+								style={styles.priceInputWrap}
+							>
+								<Text
+									style={styles.currency}>
+									$
+								</Text>
+								<TextInput
+									value={price}
+									onChangeText={setPrice}
+									keyboardType="decimal-pad"
+									placeholder={strings.services.pricePlaceholder}
+									placeholderTextColor={colors.grey[400]}
+									style={styles.priceInput}
+									maxLength={10}
+								/>
 							</View>
-							<Text style={styles.helper}>{strings.servicesForm.baseBilling}</Text>
+							<Text
+								style={styles.helper}
+							>
+								{strings.servicesForm.baseBilling}
+							</Text>
 						</View>
 						<View style={styles.column}>
-							<FieldLabel text="Duration" required />
-							<SelectField value={duration} icon="chevron-down" onPress={() => setSelector('duration')} compact />
-							<Text style={styles.helper}>{strings.servicesForm.slotAllocation}</Text>
+							<FieldLabel
+								text="Duration"
+								required
+							/>
+							<SelectField
+								value={duration}
+								icon="chevron-down"
+								onPress={() => setSelector('duration')}
+								compact
+							/>
+							<Text
+								style={styles.helper}
+							>
+								{strings.servicesForm.slotAllocation}
+							</Text>
 						</View>
 					</View>
 				</Section>
 
-				<Section title={strings.servicesForm.description} step="Step 3 of 4">
-					<FieldLabel text={strings.servicesForm.clientScope} />
-					<TextInput value={description} onChangeText={setDescription} maxLength={400} multiline numberOfLines={5} placeholder={strings.services.descriptionPlaceholder} placeholderTextColor={colors.grey[400]} style={styles.textArea} textAlignVertical="top" />
-					<View style={styles.counterRow}><Text style={styles.helper}>{description.length}/400</Text></View>
+				<Section
+					title={strings.servicesForm.description}
+					step="Step 3 of 4"
+				>
+					<FieldLabel
+						text={strings.servicesForm.clientScope}
+					/>
+					<TextInput
+						value={description}
+						onChangeText={setDescription}
+						maxLength={400}
+						multiline
+						numberOfLines={5}
+						placeholder={strings.services.descriptionPlaceholder}
+						placeholderTextColor={colors.grey[400]}
+						style={styles.textArea}
+						textAlignVertical="top"
+					/>
+					<View
+						style={styles.counterRow}>
+						<Text
+							style={styles.helper}
+						>
+							{description.length}/400
+						</Text>
+					</View>
 				</Section>
 
-				<Section title={strings.servicesForm.status} step="Step 4 of 4">
-					<View style={styles.statusRow}>
-						<View style={styles.statusCopy}>
-							<Text style={styles.statusTitle}>{isActive ? strings.servicesForm.activeMarketplace : strings.servicesForm.hiddenMarketplace}</Text>
-							<Text style={styles.helper}>{isActive ? strings.servicesForm.activeDescription : strings.servicesForm.hiddenDescription}</Text>
+				<Section
+					title={strings.servicesForm.status}
+					step="Step 4 of 4"
+				>
+					<View
+						style={styles.statusRow}
+					>
+						<View
+							style={styles.statusCopy}
+						>
+							<Text
+								style={styles.statusTitle}
+							>
+								{isActive ? strings.servicesForm.activeMarketplace : strings.servicesForm.hiddenMarketplace}
+							</Text>
+							<Text
+								style={styles.helper}
+							>
+								{isActive ? strings.servicesForm.activeDescription : strings.servicesForm.hiddenDescription}
+							</Text>
 						</View>
-						<Switch value={isActive} onValueChange={setIsActive} trackColor={{ false: colors.grey[300], true: colors.purple[600] }} thumbColor={colors.white[100]} ios_backgroundColor={colors.grey[300]} />
+						<Switch
+							value={isActive}
+							onValueChange={setIsActive}
+							trackColor={{
+								false: colors.grey[300],
+								true: colors.purple[600]
+							}}
+							thumbColor={colors.white[100]}
+							ios_backgroundColor={colors.grey[300]}
+						/>
 					</View>
 				</Section>
 
@@ -366,14 +429,43 @@ export default function AddEditServices({ navigation, route }: AddEditServicesPr
 				</View>
 			</Modal>
 
-			<Modal visible={selector !== null} transparent animationType="fade" onRequestClose={() => setSelector(null)}>
-				<Pressable style={styles.modalBackdrop} onPress={() => setSelector(null)}>
-					<View style={styles.optionsSheet}>
-						<Text style={styles.optionsTitle}>{selector === 'category' ? 'Choose category' : 'Choose duration'}</Text>
+			<Modal
+				visible={selector !== null}
+				transparent
+				animationType="fade"
+				onRequestClose={() => setSelector(null)}
+			>
+				<Pressable
+					style={styles.modalBackdrop}
+					onPress={() => setSelector(null)}
+				>
+					<View
+						style={styles.optionsSheet}
+					>
+						<Text
+							style={styles.optionsTitle}
+						>
+							{selector === 'category' ? 'Choose category' : 'Choose duration'}
+						</Text>
 						{options.map(option => (
-							<Pressable key={option} onPress={() => { selector === 'category' ? setCategory(option) : setDuration(option); setSelector(null); }} style={styles.optionRow}>
-								<Text style={styles.optionText}>{option}</Text>
-								{(selector === 'category' ? category : duration) === option ? <IconX name="checkmark" origin={ICON_TYPE.IONICONS} size={20} color={colors.purple[700]} /> : null}
+							<Pressable
+								key={option}
+								onPress={() => { selector === 'category' ? setCategory(option) : setDuration(option); setSelector(null); }}
+								style={styles.optionRow}
+							>
+								<Text
+									style={styles.optionText}
+								>
+									{option}
+								</Text>
+								{(selector === 'category' ? category : duration) === option ?
+									<IconX
+										name="checkmark"
+										origin={ICON_TYPE.IONICONS}
+										size={20}
+										color={colors.purple[700]}
+									/>
+									: null}
 							</Pressable>
 						))}
 					</View>
@@ -384,13 +476,48 @@ export default function AddEditServices({ navigation, route }: AddEditServicesPr
 }
 
 function Section({ title, step, children }: { title: string; step: string; children: React.ReactNode }) {
-	return <View style={styles.section}><View style={styles.sectionHeader}><View style={styles.headingGroup}><View style={styles.headingMark} /><Text style={styles.sectionTitle}>{title}</Text></View><Text style={styles.step}>{step}</Text></View>{children}</View>;
+	return <View style={styles.section}>
+		<View style={styles.sectionHeader}>
+			<View style={styles.headingGroup}>
+				<View style={styles.headingMark} />
+				<Text style={styles.sectionTitle}>{title}</Text>
+			</View>
+			<Text style={styles.step}>{step}</Text>
+		</View>{children}
+		ƒ</View>;
 }
 
 function FieldLabel({ text, required = false }: { text: string; required?: boolean }) {
-	return <Text style={styles.label}>{text}{required ? <Text style={styles.required}> *</Text> : null}</Text>;
+	return <Text
+		style={styles.label}
+	>
+		{text}{required ?
+			<Text
+				style={styles.required}
+			>
+				*
+			</Text>
+			:
+			null}
+	</Text>;
 }
 
 function SelectField({ value, icon, onPress, compact = false }: { value: string; icon: string; onPress: () => void; compact?: boolean }) {
-	return <Pressable onPress={onPress} style={[styles.selectField, compact && styles.selectCompact]}><Text numberOfLines={1} style={styles.selectText}>{value}</Text><IconX name={icon} origin={ICON_TYPE.IONICONS} size={18} color={colors.grey[700]} /></Pressable>;
+	return <Pressable
+		onPress={onPress}
+		style={[styles.selectField, compact && styles.selectCompact]}
+	>
+		<Text
+			numberOfLines={1}
+			style={styles.selectText}
+		>
+			{value}
+		</Text>
+		<IconX
+			name={icon}
+			origin={ICON_TYPE.IONICONS}
+			size={18}
+			color={colors.grey[700]}
+		/>
+	</Pressable>;
 }

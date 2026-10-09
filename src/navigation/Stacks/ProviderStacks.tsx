@@ -3,7 +3,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { colors, fonts, navigationStrings } from '../../constants';
 import { fontSize } from '../../constants/metrics';
-import { ProviderHome, ProviderBookings, BookingDetails, ProviderServices, ProviderProfile, AddEditServices, ProviderEditProfile, EarningsAndReviews, ProviderNotifications } from '../../screens/providerScreens';
+import { ProviderHome, ProviderSearchBookings, ProviderBookings, BookingDetails, ProviderServices, ProviderProfile, AddEditServices, ProviderEditProfile, EarningsAndReviews, ProviderNotifications } from '../../screens/providerScreens';
 
 const Stack = createNativeStackNavigator();
 interface NavigationProps {
@@ -11,23 +11,48 @@ interface NavigationProps {
   route: any;
 }
 
-const ProviderPlaceholderScreen: React.FC<{ title: string }> = ({ title }) => (
-  <View style={styles.placeholderContainer}>
-    <Text style={styles.placeholderTitle}>{title}</Text>
-    <Text style={styles.placeholderSub}>Coming Soon</Text>
+const ProviderPlaceholderScreen: React.FC<{
+  title: string
+}> = ({ title }) => (
+  <View
+    style={styles.placeholderContainer}
+  >
+    <Text
+      style={styles.placeholderTitle}
+    >
+      {title}
+    </Text>
+    <Text
+      style={styles.placeholderSub}
+    >
+      Coming Soon
+    </Text>
   </View>
 );
 
-const commonDetailScreens = () => [];
+const commonDetailScreens = () => [
+  <Stack.Screen
+    key={navigationStrings.PROVIDER_BOOKING_DETAILS}
+    name={navigationStrings.PROVIDER_BOOKING_DETAILS}
+    component={BookingDetails}
+  />
+];
 
 const ProviderHomeStack: React.FC<NavigationProps> = ({ navigation, route }) => {
   return (
     <Stack.Navigator
-      screenOptions={{ headerShown: false, animation: 'ios_from_right' }}
+      screenOptions={{
+        headerShown: false,
+        animation: 'ios_from_right'
+      }}
     >
       <Stack.Screen
         name={navigationStrings.PROVIDER_HOME}
         component={ProviderHome}
+      />
+      <Stack.Screen
+        name={navigationStrings.PROVIDER_SEARCH_BOOKINGS}
+        component={ProviderSearchBookings}
       />
       {commonDetailScreens()}
     </Stack.Navigator>
@@ -37,15 +62,14 @@ const ProviderHomeStack: React.FC<NavigationProps> = ({ navigation, route }) => 
 const ProviderBookingsStack: React.FC<NavigationProps> = ({ navigation, route }) => {
   return (
     <Stack.Navigator
-      screenOptions={{ headerShown: false, animation: 'ios_from_right' }}
+      screenOptions={{
+        headerShown: false,
+        animation: 'ios_from_right'
+      }}
     >
       <Stack.Screen
         name={navigationStrings.PROVIDER_BOOKINGS}
         component={ProviderBookings}
-      />
-      <Stack.Screen
-        name={navigationStrings.PROVIDER_BOOKING_DETAILS}
-        component={BookingDetails}
       />
       {commonDetailScreens()}
     </Stack.Navigator>
@@ -55,7 +79,10 @@ const ProviderBookingsStack: React.FC<NavigationProps> = ({ navigation, route })
 const ProviderServicesStack: React.FC<NavigationProps> = ({ navigation, route }) => {
   return (
     <Stack.Navigator
-      screenOptions={{ headerShown: false, animation: 'ios_from_right' }}
+      screenOptions={{
+        headerShown: false,
+        animation: 'ios_from_right'
+      }}
     >
       <Stack.Screen
         name={navigationStrings.PROVIDER_SERVICES}
@@ -73,7 +100,10 @@ const ProviderServicesStack: React.FC<NavigationProps> = ({ navigation, route })
 const ProviderProfileStack: React.FC<NavigationProps> = ({ navigation, route }) => {
   return (
     <Stack.Navigator
-      screenOptions={{ headerShown: false, animation: 'ios_from_right' }}
+      screenOptions={{
+        headerShown: false,
+        animation: 'ios_from_right'
+      }}
     >
       <Stack.Screen
         name={navigationStrings.PROVIDER_PROFILE}
@@ -117,4 +147,3 @@ const styles = StyleSheet.create({
 });
 
 export { ProviderHomeStack, ProviderBookingsStack, ProviderServicesStack, ProviderProfileStack };
-

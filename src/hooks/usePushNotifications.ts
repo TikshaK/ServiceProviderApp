@@ -169,6 +169,37 @@ export function usePushNotifications() {
           }
         }
 
+        // Notify the customer when their booking status changes to a final state.
+        if (isFinalStatus && isCustomerBooking && currentStatus !== previousStatus) {
+          previousBookingStatuses.set(bookingId, currentStatus);
+
+          let title = '';
+          let body = '';
+
+          switch (currentStatus) {
+            case 'accepted':
+              title = 'Booking Accepted';
+              body = `Your booking for ${b.serviceSnapshot?.title ?? 'service'} has been accepted.`;
+              break;
+            case 'declined':
+              title = 'Booking Declined';
+              body = `Your booking for ${b.serviceSnapshot?.title ?? 'service'} was declined.`;
+              break;
+            case 'completed':
+              title = 'Booking Completed';
+              body = `Your booking for ${b.serviceSnapshot?.title ?? 'service'} has been completed.`;
+              break;
+            case 'cancelled':
+              title = 'Booking Cancelled';
+              body = `Your booking for ${b.serviceSnapshot?.title ?? 'service'} has been cancelled.`;
+              break;
+          }
+
+          if (title && body) {
+            showBookingNotification(title, body, bookingId);
+          }
+        }
+
         // NEW: Send notification when a pending booking is newly created (customer booked)
         if (currentStatus === 'pending' && isProviderBooking && !previousStatus) {
           // This is a new pending booking - notify the provider

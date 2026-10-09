@@ -111,6 +111,32 @@ export const styles = StyleSheet.create({
 		fontSize: fontSize[14],
 		color: colors.black[250],
 	},
+	categoryGrid: {
+		flexDirection: 'row',
+		flexWrap: 'wrap',
+		gap: scale(8),
+	},
+	categoryOption: {
+		minHeight: verticalScale(40),
+		justifyContent: 'center',
+		paddingHorizontal: scale(12),
+		borderRadius: scale(10),
+		backgroundColor: colors.purple[50],
+		borderWidth: scale(1),
+		borderColor: colors.purple[200],
+	},
+	categoryOptionSelected: {
+		backgroundColor: colors.purple[700],
+		borderColor: colors.purple[700],
+	},
+	categoryOptionText: {
+		fontFamily: fonts.Medium,
+		fontSize: fontSize[12],
+		color: colors.black[250],
+	},
+	categoryOptionTextSelected: {
+		color: colors.white[100],
+	},
 	datePicker: {
 		flexDirection: 'row',
 		alignItems: 'center',

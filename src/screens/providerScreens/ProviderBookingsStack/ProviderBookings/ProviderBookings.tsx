@@ -11,7 +11,7 @@ import {
   View,
 } from 'react-native';
 import {
-  CustomHeader, CustomSearchBar,
+  CustomSearchBar,
   CustomTab, ICON_TYPE, IconX
 } from '../../../../components';
 import {
@@ -20,6 +20,7 @@ import {
 } from '../../../../constants';
 import {
   getBookings,
+  requestBookingCompletion,
   updateBookingStatus
 } from '../../../../services/firebase';
 import { useAppSelector } from '../../../../store';
@@ -48,6 +49,9 @@ export interface BookingItem {
   statusTextColor: string;
   dotColor?: string;
   notes?: string;
+  quotePending?: boolean;
+  completionRequested?: boolean;
+  statusLabel?: string;
 }
 
 const TABS: FilterTab[] = ['All',
@@ -76,15 +80,18 @@ export default function ProviderBookings({ navigation }: ProviderBookingsProps) 
           customerPhone: item.customerSnapshot.phone,
           serviceTitle: item.serviceSnapshot.title,
           serviceImageUrl: item.serviceSnapshot.imageUrls?.[0] ?? '',
-          status: isBookingExpired(item) ? 'Expired' : item.status === 'accepted' || item.status === 'inProgress' ? 'Upcoming' : item.status === 'completed' ? 'Completed' : item.status === 'cancelled' || item.status === 'declined' ? 'Cancelled' : 'Pending',
+          status: isBookingExpired(item) ? 'Expired' : item.status === 'accepted' || item.status === 'inProgress' || item.status === 'completionRequested' ? 'Upcoming' : item.status === 'completed' ? 'Completed' : item.status === 'cancelled' || item.status === 'declined' ? 'Cancelled' : 'Pending',
           dateText: `${item.scheduledDate} • ${item.scheduledTime}`,
           address: item.addressSnapshot?.street ?? '',
-          amount: `$${item.totalAmount}`,
+          amount: `$${item.totalAmount ?? item.quotedAmount ?? 0}`,
           statusBgColor: isBookingExpired(item) ? '#FEF2F2' : item.status === 'pending' ? '#FFFBEB' : item.status === 'completed' ? '#ECFDF5' : item.status === 'cancelled' || item.status === 'declined' ? '#FEF2F2' : '#EFF6FF',
           statusTextColor: isBookingExpired(item) ? '#DC2626' : item.status === 'pending' ? '#B45309' : item.status === 'completed' ? '#047857' : item.status === 'cancelled' || item.status === 'declined' ? '#DC2626' : '#1D4ED8',
           dotColor: isBookingExpired(item) ? '#DC2626' : item.status === 'pending' ? '#D97706' : item.status === 'cancelled' || item.status === 'declined' ? '#DC2626' : '#2563EB',
           avatarUrl: '',
-          notes: item.specialInstructions,
+          notes: item.specialInstructions ?? undefined,
+          quotePending: item.status === 'quotePending',
+          completionRequested: item.status === 'completionRequested',
+          statusLabel: item.status === 'quotePending' ? 'Quote sent' : item.status === 'completionRequested' ? 'Awaiting customer' : undefined,
         })));
       }).catch(() => setBookings([]));
       return () => { active = false; };
@@ -160,6 +167,19 @@ export default function ProviderBookings({ navigation }: ProviderBookingsProps) 
         title: 'error',
         message: 'Failed to change booking status. Please try again.'
       });
+    }
+  };
+
+  const requestCompletion = async (bookingId: string) => {
+    if (!profile?.uid) return;
+    try {
+      await requestBookingCompletion(bookingId, profile.uid);
+      setBookings(current => current.map(booking => booking.id === bookingId
+        ? { ...booking, completionRequested: true, statusLabel: 'Awaiting customer' }
+        : booking));
+      showToast({ type: 'success', title: 'Completion requested', message: 'The customer will approve the completed service.' });
+    } catch {
+      showToast({ type: 'error', title: 'Unable to request completion', message: 'Please try again.' });
     }
   };
 
@@ -283,7 +303,7 @@ export default function ProviderBookings({ navigation }: ProviderBookingsProps) 
                       <Text
                         style={[styles.statusBadgeText, { color: booking.statusTextColor }]}
                       >
-                        {booking.status}
+                        {booking.statusLabel ?? booking.status}
                       </Text>
                     </View>
                   </View>
@@ -359,7 +379,7 @@ export default function ProviderBookings({ navigation }: ProviderBookingsProps) 
                     </View>
 
                     <View style={styles.bookingActions}>
-                      {booking.status === 'Pending' && (
+                      {booking.status === 'Pending' && !booking.quotePending && (
                         <>
                           <TouchableOpacity
                             activeOpacity={0.7}
@@ -383,6 +403,8 @@ export default function ProviderBookings({ navigation }: ProviderBookingsProps) 
                         </>
                       )}
 
+                      {booking.quotePending && <Text style={styles.actionButtonOutlineText}>Awaiting customer quote approval</Text>}
+
                       {booking.status === 'Upcoming' && (
                         <>
                           <TouchableOpacity
@@ -399,15 +421,15 @@ export default function ProviderBookings({ navigation }: ProviderBookingsProps) 
                             />
                           </TouchableOpacity>
 
-                          <TouchableOpacity activeOpacity={0.7}
+                          {booking.completionRequested ? <Text style={styles.actionButtonOutlineText}>Awaiting customer approval</Text> : <TouchableOpacity activeOpacity={0.7}
                             style={styles.actionButtonPrimary}
-                            onPress={() => changeStatus(booking.id, 'completed')}
+                            onPress={() => requestCompletion(booking.id)}
                           >
                             <Text style={styles.actionButtonPrimaryText}
                             >
-                              {strings.providerBookings?.complete ?? 'Complete Job'}
+                              Request to complete
                             </Text>
-                          </TouchableOpacity>
+                          </TouchableOpacity>}
                         </>
                       )}
 

@@ -49,6 +49,17 @@ export const styles = StyleSheet.create({
     fontFamily: fonts.SemiBold,
     color: colors.black[500],
   },
+  bookServiceBtn: {
+    backgroundColor: colors.purple[700],
+    paddingHorizontal: scale(12),
+    paddingVertical: verticalScale(6),
+    borderRadius: scale(8),
+    shadowColor: colors.purple[700],
+    shadowOffset: { width: scale(0), height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: scale(2),
+    elevation: 2,
+  },
   notificationBtn: {
     width: scale(40),
     height: verticalScale(40),

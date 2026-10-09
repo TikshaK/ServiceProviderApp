@@ -9,13 +9,14 @@ import { Service } from '../../../../types/service';
 import { styles } from './styles';
 
 type Props = { navigation: any; route?: { params?: { category?: string; query?: string; fromBookings?: boolean } } };
-type DisplayService = { id: string; providerName: string; title: string; duration: string; rating: string; price: string; description: string; imageUrl: string; imageUrls?: string[]; category: string };
+type DisplayService = { id: string; providerId: string; providerName: string; title: string; duration: string; rating: string; price: string; description: string; imageUrl: string; imageUrls?: string[]; category: string };
 type DisplayBooking = { id: string; title: string; provider: string; date: string; status: string; price: string; image: string };
 
 const CATEGORIES = ['All', ...SERVICE_CATEGORIES];
 
 const toDisplayService = (service: Service): DisplayService => ({
 	id: service.id,
+	providerId: service.providerId,
 	providerName: service.providerName,
 	title: service.title,
 	duration: `${service.durationMinutes ? service.durationMinutes / 60 : 0} hrs`,
@@ -30,7 +31,7 @@ const toDisplayService = (service: Service): DisplayService => ({
 const toDisplayBooking = (booking: Booking): DisplayBooking => ({
 	id: booking.id,
 	title: booking.serviceSnapshot.title,
-	provider: booking.providerSnapshot.serviceName ?? booking.providerSnapshot.fullName,
+	provider: booking.providerSnapshot?.serviceName ?? booking.providerSnapshot?.fullName ?? 'Awaiting provider',
 	date: `${booking.scheduledDate} • ${booking.scheduledTime}`,
 	status: booking.status,
 	price: `$${booking.totalAmount}`,
@@ -74,7 +75,7 @@ export default function CustomerSearchFilterServices({ navigation, route }: Prop
 	const filteredServices = useMemo(() => {
 		const normalizedQuery = query.trim().toLowerCase();
 		return services.filter(service => {
-			const matchesCategory = category === 'All' || service.category.toLowerCase() === category.toLowerCase();
+			const matchesCategory = category === 'All' || service?.category?.toLowerCase() === category.toLowerCase();
 			const matchesQuery = !normalizedQuery || `${service.title} ${service.providerName} ${service.category}`.toLowerCase().includes(normalizedQuery);
 			return matchesCategory && matchesQuery;
 		});

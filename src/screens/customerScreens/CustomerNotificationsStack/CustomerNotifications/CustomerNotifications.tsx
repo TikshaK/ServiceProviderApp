@@ -30,7 +30,13 @@ type NotificationItem = {
   bgColor: string;
 };
 
-export default function CustomerNotifications({navigation}) {
+type CustomerNotificationsProps = {
+  navigation: {
+    goBack: () => void;
+  };
+};
+
+export default function CustomerNotifications({navigation}: CustomerNotificationsProps) {
   const insets = useSafeAreaInsets();
   const [activeFilter, setActiveFilter] = useState<FilterType>('All');
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);

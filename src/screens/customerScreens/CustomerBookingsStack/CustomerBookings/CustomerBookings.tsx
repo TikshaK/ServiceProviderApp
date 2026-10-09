@@ -20,6 +20,8 @@ type TabKey = 'upcoming' | 'completed' | 'cancelled' | 'expired';
 type DisplayBooking = {
   id: string;
   providerId?: string;
+  bookingType?: 'direct' | 'open';
+  category?: string;
   date: string;
   status: string;
   title: string;
@@ -28,6 +30,9 @@ type DisplayBooking = {
   location: string;
   price: string;
   image: string;
+  totalAmount?: number;
+  platformFee?: number;
+  quoteAmount?: number;
 };
 
 export default function CustomerBookings({ navigation }: { navigation: any }) {
@@ -52,16 +57,23 @@ export default function CustomerBookings({ navigation }: { navigation: any }) {
         setRatedBookingIds(ratedIds);
         const mapBooking = (booking: any) => ({
           id: booking.id,
-          providerId: booking.providerId,
+          providerId: booking.providerId ?? undefined,
+          bookingType: booking.bookingType,
+          category: booking.category,
           date: `${booking.scheduledDate} • ${booking.scheduledTime}`,
-          status: isBookingExpired(booking) ? 'Expired' : booking.status === 'completed' ? 'Completed' : booking.status === 'accepted' || booking.status === 'inProgress' ? 'Accepted' : booking.status === 'cancelled' || booking.status === 'declined' ? 'Cancelled' : 'Pending',
+          status: isBookingExpired(booking) ? 'Expired' : booking.status === 'completed' ? 'Completed' : booking.status === 'completionRequested' ? 'Completion requested' : booking.status === 'quotePending' ? 'Quote pending' : booking.status === 'accepted' || booking.status === 'inProgress' ? 'Accepted' : booking.status === 'cancelled' || booking.status === 'declined' ? 'Cancelled' : 'Pending',
           title: booking.serviceSnapshot.title,
-          provider: booking.providerSnapshot.serviceName ?? booking.providerSnapshot.fullName,
-          specialist: booking.providerSnapshot.fullName,
+          provider: booking.providerSnapshot?.serviceName ?? booking.providerSnapshot?.fullName ?? 'Waiting for quotes',
+          specialist: booking.providerSnapshot?.fullName ?? 'Not assigned',
           location: booking.addressSnapshot.street,
-          price: `$${booking.totalAmount}`,
+          price: booking.bookingType === 'open' && booking.status === 'pending'
+            ? 'Awaiting quote'
+            : `$${booking.quotedAmount ?? booking.baseAmount}`,
           // price: `$${booking.totalAmount.toFixed(2)}`,
           image: booking.serviceSnapshot.imageUrls?.[0] ?? '',
+          totalAmount: booking.totalAmount,
+          platformFee: booking.platformFee,
+          quoteAmount: booking.quotedAmount,
         });
         setUpcomingBookings(sortedBookings.filter(booking => booking.status !== 'completed' && booking.status !== 'cancelled' && booking.status !== 'declined' && !isBookingExpired(booking)).map(mapBooking));
         setCompletedBookings(sortedBookings.filter(booking => booking.status === 'completed').map(mapBooking));
@@ -72,18 +84,19 @@ export default function CustomerBookings({ navigation }: { navigation: any }) {
     }, [profile?.uid])
   );
 
-  const matchesSearch = (booking: DisplayBooking) => {
-    const query = searchQuery.trim().toLowerCase();
-    return !query || [booking.title, booking.provider, booking.specialist, booking.date, booking.status, booking.location, booking.price]
-      .some(value => value.toLowerCase().includes(query));
-  };
-
-  const filteredBookings = useMemo(() => ({
-    upcoming: upcomingBookings.filter(matchesSearch),
-    completed: completedBookings.filter(matchesSearch),
-    cancelled: cancelledBookings.filter(matchesSearch),
-    expired: expiredBookings.filter(matchesSearch),
-  }), [searchQuery, upcomingBookings, completedBookings, cancelledBookings, expiredBookings]);
+  const filteredBookings = useMemo(() => {
+    const matchesSearch = (booking: DisplayBooking) => {
+      const query = searchQuery.trim().toLowerCase();
+      return !query || [booking.title, booking.provider, booking.specialist, booking.date, booking.status, booking.location, booking.price]
+        .some(value => value.toLowerCase().includes(query));
+    };
+    return {
+      upcoming: upcomingBookings.filter(matchesSearch),
+      completed: completedBookings.filter(matchesSearch),
+      cancelled: cancelledBookings.filter(matchesSearch),
+      expired: expiredBookings.filter(matchesSearch),
+    };
+  }, [searchQuery, upcomingBookings, completedBookings, cancelledBookings, expiredBookings]);
 
   const renderTabs = () => (
     <CustomTab
@@ -169,7 +182,8 @@ export default function CustomerBookings({ navigation }: { navigation: any }) {
                     <View style={[
                       styles.statusBadge,
                       item.status === 'Accepted' && styles.statusBadgeAccepted,
-                      item.status === 'Pending' && styles.statusBadgePending,
+                      (item.status === 'Pending' || item.status === 'Quote pending' || item.status === 'Completion requested') && styles.statusBadgePending,
+                      item.status === 'Completion requested' && styles.statusBadgeWrapping,
                       item.status === 'Completed' && styles.statusBadgeCompleted,
                       item.status === 'Cancelled' && styles.statusBadgeCancelled,
                       item.status === 'Expired' && styles.statusBadgeCancelled,
@@ -202,11 +216,14 @@ export default function CustomerBookings({ navigation }: { navigation: any }) {
                       <Text style={[
                         styles.statusText,
                         item.status === 'Accepted' && styles.statusTextAccepted,
-                        item.status === 'Pending' && styles.statusTextPending,
+                        (item.status === 'Pending' || item.status === 'Quote pending' || item.status === 'Completion requested') && styles.statusTextPending,
+                        item.status === 'Completion requested' && styles.statusTextWrapping,
                         item.status === 'Completed' && styles.statusTextCompleted,
                         item.status === 'Cancelled' && styles.statusTextCancelled,
                         item.status === 'Expired' && styles.statusTextCancelled,
-                      ]}>
+                      ]}
+                        numberOfLines={item.status === 'Completion requested' ? 2 : 1}
+                      >
                         {item.status}
                       </Text>
                     </View>

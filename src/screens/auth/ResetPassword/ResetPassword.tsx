@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Alert, Platform, Pressable, StatusBar, Text, View } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { sendPasswordResetEmail } from '@react-native-firebase/auth';
+import { sendPasswordResetEmail, signInWithEmailAndPassword } from '@react-native-firebase/auth';
 import { colors, navigationStrings, strings } from '../../../constants';
 import { CustomButton, CustomHeader, CustomInput, ICON_TYPE, IconX } from '../../../components';
 import { getEmailError, showToast, validateEmail } from '../../../utils';
@@ -36,6 +36,21 @@ export default function ResetPassword({ navigation, route }: ResetPasswordProps)
     setLoading(true);
     try {
       const normalizedEmail = email.trim().toLowerCase();
+
+      // Check if the email exists in Firebase Authentication.
+      // Attempt sign-in with a dummy password — if the email doesn't exist,
+      // we get auth/user-not-found. If it exists, we get auth/wrong-password
+      // or auth/invalid-credential.
+      try {
+        await signInWithEmailAndPassword(firebaseAuth, normalizedEmail, 'dummyPassword123!');
+      } catch (checkError: any) {
+        if (checkError?.code === 'auth/user-not-found') {
+          showToast({ type: 'error', title: strings.alerts.accountNotFound, message: strings.alerts.notRegistered });
+          return;
+        }
+        // auth/wrong-password or auth/invalid-credential means the email exists.
+      }
+
       await sendPasswordResetEmail(firebaseAuth, normalizedEmail);
       Alert.alert(
         strings.resetPassword.successTitle,

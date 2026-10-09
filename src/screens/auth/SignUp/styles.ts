@@ -1,5 +1,5 @@
 import { StyleSheet } from 'react-native';
-import { colors, fonts, images, fontSize, scale, verticalScale, strings } from '../../../constants';
+import { colors, fonts, fontSize, scale, verticalScale } from '../../../constants';
 
 export const styles = StyleSheet.create({
     container: {
@@ -70,7 +70,8 @@ export const styles = StyleSheet.create({
     content: {
         flexGrow: 1,
         paddingHorizontal: scale(16),
-        paddingBottom: verticalScale(24)
+        paddingBottom: verticalScale(24),
+        // backgroundColor: 'green'
     },
     intro: {
         alignItems: 'center',
@@ -108,6 +109,40 @@ export const styles = StyleSheet.create({
     },
     form: {
         gap: verticalScale(14)
+    },
+    categoryField: {
+        gap: verticalScale(8),
+    },
+    categoryLabel: {
+        fontFamily: fonts.Medium,
+        color: colors.black[250],
+        fontSize: fontSize[13],
+    },
+    categoryOptions: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: scale(8),
+    },
+    categoryOption: {
+        minHeight: verticalScale(38),
+        justifyContent: 'center',
+        paddingHorizontal: scale(11),
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: colors.purple[200],
+        borderRadius: scale(9),
+        backgroundColor: colors.white[100],
+    },
+    categoryOptionSelected: {
+        borderColor: colors.purple[700],
+        backgroundColor: colors.purple[700],
+    },
+    categoryOptionText: {
+        fontFamily: fonts.Medium,
+        color: colors.black[250],
+        fontSize: fontSize[12],
+    },
+    categoryOptionTextSelected: {
+        color: colors.white[100],
     },
     termsRow: {
         flexDirection: 'row',

@@ -2,18 +2,16 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Image, Platform, Pressable, StatusBar, Text, TextInput, View } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { CalendarInput, CustomHeader, ICON_TYPE, IconX } from '../../../../components';
-import { colors, navigationStrings, strings } from '../../../../constants';
-import { createBooking, getAddresses, getService, getUserProfile } from '../../../../services/firebase';
+import { colors, navigationStrings, SERVICE_CATEGORIES, strings } from '../../../../constants';
+import { createBooking, createOpenBooking, getAddresses, getProviderPublicProfile, getService } from '../../../../services/firebase';
 import { useAppSelector } from '../../../../store';
 import { styles } from './styles';
 import { showToast } from '../../../../utils';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-type Service = { id: string; providerName: string; title: string; duration: string; rating: string; price: string; description: string; imageUrl: string };
+type Service = { id: string; providerId?: string; providerName: string; title: string; duration: string; rating: string; price: string; description: string; imageUrl: string };
 type Props = { navigation: any; route?: { params?: { service?: Service } } };
 type SelectedAddress = { street: string; city: string; state?: string; postalCode: string };
-
-const FALLBACK_SERVICE: Service = { id: 'service', providerName: 'Apex Cleaners', title: 'Deep Home Cleaning', duration: '3 hrs', rating: '4.9', price: '$120', description: '', imageUrl: '' };
 
 const startOfDay = (value: Date) => {
 	const result = new Date(value);
@@ -39,14 +37,16 @@ const getMinimumTime = (date: Date | null) => {
 
 export default function CustomerBookService({ navigation, route }: Props) {
 	const insets = useSafeAreaInsets()
-	const service = route?.params?.service ?? FALLBACK_SERVICE;
+	const service = route?.params?.service;
+	const isOpenBooking = !service;
 	const customer = useAppSelector(state => state.user.profile);
+	const [selectedCategory, setSelectedCategory] = useState('');
 	const [selectedDate, setSelectedDate] = useState<Date | null>(null);
 	const [selectedTime, setSelectedTime] = useState<Date | null>(null);
 	const [instructions, setInstructions] = useState('');
 	const [address, setAddress] = useState<SelectedAddress | null>(null);
 	const [isBooking, setIsBooking] = useState(false);
-	const price = useMemo(() => `${service.price}.00`, [service.price]);
+	const price = useMemo(() => service ? `${service.price}.00` : 'Quote pending', [service]);
 	const minimumDate = useMemo(() => startOfDay(new Date()), []);
 	const minimumTime = useMemo(() => getMinimumTime(selectedDate), [selectedDate]);
 
@@ -101,12 +101,64 @@ export default function CustomerBookService({ navigation, route }: Props) {
 		}
 		setIsBooking(true);
 		try {
+			if (isOpenBooking) {
+				if (!selectedCategory) {
+					showToast({ type: 'error', title: 'Choose a category', message: 'Select the type of service you need.' });
+					return;
+				}
+			await createOpenBooking({
+					customerId: customer.uid,
+					customer,
+					category: selectedCategory,
+					scheduledDate: formatDate(selectedDate),
+					scheduledTime: formatTime(selectedTime),
+					scheduledDateTime: selectedTime.toISOString(),
+					scheduledAt: selectedTime.getTime(),
+					address,
+					specialInstructions: instructions.trim() || undefined,
+				});
+				navigation.replace(navigationStrings.CUSTOMER_BOOKING_SUCCESS, {
+					bookingType: 'open',
+					service: { title: `${selectedCategory} service`, providerName: 'Waiting for provider quotes', rating: '', imageUrl: '', price: 'Quote pending' },
+					date: formatDate(selectedDate),
+					time: formatTime(selectedTime),
+					address: address.street,
+					price: 'Awaiting quote',
+				});
+				return;
+			}
+
+			console.log('[DIRECT_BOOKING] loading selected service', {
+				serviceId: service.id,
+				providerIdFromRoute: service.providerId,
+			});
 			const storedService = await getService(service.id);
-			const providerId = storedService?.providerId ?? service.providerName;
-			const provider = await getUserProfile(providerId);
-			if (!storedService || !provider) {
+			console.log('[DIRECT_BOOKING] selected service lookup result', {
+				serviceId: service.id,
+				found: Boolean(storedService),
+				storedServiceId: storedService?.id,
+				storedProviderId: storedService?.providerId,
+			});
+			if (!storedService) {
 				showToast({ type: 'error', title: 'Service unavailable', message: 'This service is no longer available.' });
 				return;
+			}
+			const providerId = storedService.providerId || service.providerId;
+			if (!providerId) {
+				console.error('[DIRECT_BOOKING] service has no provider ID', { serviceId: service.id });
+				showToast({ type: 'error', title: 'Service unavailable', message: 'This service is missing its provider information.' });
+				return;
+			}
+			const providerProfile = await getProviderPublicProfile(providerId);
+			const provider = providerProfile ?? {
+				uid: providerId,
+				fullName: storedService.providerName || service.providerName,
+			};
+			if (!providerProfile) {
+				console.warn('[DIRECT_BOOKING] public provider profile missing; using service snapshot', {
+					serviceId: service.id,
+					providerId,
+				});
 			}
 			await createBooking({
 				customerId: customer.uid,
@@ -164,12 +216,22 @@ export default function CustomerBookService({ navigation, route }: Props) {
 				enableResetScrollToCoords={false}
 				showsVerticalScrollIndicator={false}
 			>
-				<View style={styles.stepRow}><View><Text style={styles.step}>Step 1 of 3</Text><Text style={styles.heading}>{strings.booking.pickDateTime}</Text></View></View>
+				<View style={styles.stepRow}><View><Text style={styles.step}>{isOpenBooking ? 'Open booking' : 'Step 1 of 3'}</Text><Text style={styles.heading}>{isOpenBooking ? 'Tell us what you need' : strings.booking.pickDateTime}</Text></View></View>
 
-				<View style={styles.serviceSummary}>
+				{service ? <View style={styles.serviceSummary}>
 					{service.imageUrl ? <Image source={{ uri: service.imageUrl }} style={styles.serviceImage} /> : <View style={styles.serviceImagePlaceholder}><IconX name="image-outline" origin={ICON_TYPE.IONICONS} size={26} color={colors.grey[400]} /></View>}
 					<View style={styles.serviceCopy}><Text style={styles.serviceTitle} numberOfLines={1}>{service.title}</Text><Text style={styles.serviceProvider}>{service.providerName}</Text><Text style={styles.servicePrice}>{price}</Text></View>
-				</View>
+				</View> : null}
+
+				{isOpenBooking ? <View style={styles.section}>
+					<Text style={styles.label}>Service category</Text>
+					<View style={styles.categoryGrid}>
+						{SERVICE_CATEGORIES.map(category => <Pressable key={category} accessibilityRole="radio" accessibilityState={{ selected: selectedCategory === category }} style={[styles.categoryOption, selectedCategory === category && styles.categoryOptionSelected]} onPress={() => setSelectedCategory(category)}>
+							<Text style={[styles.categoryOptionText, selectedCategory === category && styles.categoryOptionTextSelected]}>{category}</Text>
+						</Pressable>)}
+					</View>
+					<Text style={styles.hint}>A matching provider will send you a price to review.</Text>
+				</View> : null}
 
 				<View style={styles.section}>
 					<Text style={styles.label}>{strings.booking.serviceDate}</Text>
@@ -213,7 +275,7 @@ export default function CustomerBookService({ navigation, route }: Props) {
 					<Text
 						style={styles.total}
 					>
-						{price}
+						{isOpenBooking ? 'Price after quote' : price}
 						<Text
 							style={styles.totalLabel}
 						>
@@ -228,7 +290,7 @@ export default function CustomerBookService({ navigation, route }: Props) {
 				>
 					<Text
 						style={styles.continueText}>
-						Book the service
+										{isOpenBooking ? 'Post request' : 'Book the service'}
 					</Text>
 					<IconX
 						name="arrow-forward"

@@ -1,11 +1,12 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Alert, Image, Linking, Pressable, ScrollView, StatusBar, Text, View } from 'react-native';
 import { CustomHeader, ICON_TYPE, IconX } from '../../../../components';
 import { colors } from '../../../../constants';
-import { updateBookingStatus } from '../../../../services/firebase';
+import { approveBookingCompletion, respondToOpenBookingQuote, updateBookingStatus } from '../../../../services/firebase';
 import { styles } from './styles';
+import { showToast } from '../../../../utils';
 
-type Booking = { id: string; date: string; status: string; title: string; provider: string; specialist: string; location: string; price: string; image: string };
+type Booking = { id: string; date: string; status: string; title: string; provider: string; specialist: string; location: string; price: string; image: string; providerId?: string; bookingType?: 'direct' | 'open'; category?: string; quoteAmount?: number; totalAmount?: number; platformFee?: number };
 type Props = { navigation: any; route?: { params?: { booking?: Booking } } };
 
 const FALLBACK_BOOKING: Booking = { id: 'booking', date: 'Tomorrow, 25 Oct • 10:00 AM', status: 'Accepted', title: 'Deep Home Cleaning (3-Bed)', provider: 'Apex Home & Repair Services', specialist: 'John Reynolds', location: '128 Pinecrest Blvd, Apt 4B, Austin', price: '$120.00', image: '' };
@@ -15,18 +16,62 @@ export default function CustomerBookingDetails({ navigation, route }: Props) {
 	const isAccepted = booking.status === 'Accepted';
 	const isCompleted = booking.status === 'Completed';
 	const isCancelled = booking.status === 'Cancelled';
+	const isQuotePending = booking.status === 'Quote pending';
+	const isCompletionRequested = booking.status === 'Completion requested';
+	const [savingApproval, setSavingApproval] = useState(false);
+
+	const respondToQuote = async (approve: boolean) => {
+		console.log('[QUOTE_APPROVAL][UI] button pressed', {
+			bookingId: booking.id,
+			action: approve ? 'approve' : 'decline',
+			displayedStatus: booking.status,
+		});
+		setSavingApproval(true);
+		try {
+			console.log('[QUOTE_APPROVAL][UI] service call started', { bookingId: booking.id });
+			await respondToOpenBookingQuote(booking.id, approve, {
+				providerId: booking.providerId,
+				quotedAmount: booking.quoteAmount,
+			});
+			console.log('[QUOTE_APPROVAL][UI] service call succeeded', { bookingId: booking.id, approve });
+			showToast({ type: 'success', title: approve ? 'Quote approved' : 'Quote declined', message: approve ? 'Your booking is confirmed.' : 'The request is open for another provider quote.' });
+			navigation.goBack();
+		} catch (error: any) {
+			console.error('[QUOTE_APPROVAL][UI] service call failed', { bookingId: booking.id, approve, error });
+			showToast({ type: 'error', title: 'Unable to update quote', message: error?.message ?? 'Please try again.' });
+		} finally {
+			console.log('[QUOTE_APPROVAL][UI] processing finished', { bookingId: booking.id, approve });
+			setSavingApproval(false);
+		}
+	};
+
+	const approveCompletion = async () => {
+		setSavingApproval(true);
+		try {
+			await approveBookingCompletion(booking.id);
+			showToast({ type: 'success', title: 'Booking completed', message: 'Thanks for confirming the completed service.' });
+			navigation.goBack();
+		} catch (error: any) {
+			console.error('Failed to approve completion:', error);
+			showToast({ type: 'error', title: 'Unable to approve completion', message: error?.message ?? 'Please try again.' });
+		} finally {
+			setSavingApproval(false);
+		}
+	};
 
 	const cancelBooking = () => {
 		Alert.alert('Cancel Booking?', 'Are you sure you want to cancel this booking? Free cancellation is available up to 2 hours before arrival.', [
 			{ text: 'Keep Booking', style: 'cancel' },
-			{ text: 'Cancel Booking', style: 'destructive', onPress: async () => {
-				try {
-					await updateBookingStatus(booking.id, 'cancelled');
-					navigation.goBack();
-				} catch (error) {
-					console.error('Failed to cancel booking:', error);
+			{
+				text: 'Cancel Booking', style: 'destructive', onPress: async () => {
+					try {
+						await updateBookingStatus(booking.id, 'cancelled');
+						navigation.goBack();
+					} catch (error) {
+						console.error('Failed to cancel booking:', error);
+					}
 				}
-			} },
+			},
 		]);
 	};
 
@@ -65,16 +110,16 @@ export default function CustomerBookingDetails({ navigation, route }: Props) {
 							<Text
 								style={styles.statusTitle}
 							>
-								{isAccepted ? 'Accepted & Confirmed' : isCompleted ? 'Booking Completed' : isCancelled ? 'Booking Cancelled' : 'Booking Pending'}
+								{isAccepted ? 'Accepted & Confirmed' : isCompleted ? 'Booking Completed' : isCancelled ? 'Booking Cancelled' : isQuotePending ? 'Review provider quote' : isCompletionRequested ? 'Confirm completion' : 'Booking Pending'}
 							</Text>
 							<Text style={styles.scheduleBadge}
-							>{isAccepted ? 'On Schedule' : isCompleted ? 'Completed' : isCancelled ? 'Cancelled' : 'Awaiting approval'}
+							>{isAccepted ? 'On Schedule' : isCompleted ? 'Completed' : isCancelled ? 'Cancelled' : isQuotePending ? 'Quote awaiting you' : isCompletionRequested ? 'Awaiting your approval' : 'Awaiting provider'}
 							</Text>
 						</View>
 						<Text
 							style={styles.statusDescription}
 						>
-							{isAccepted ? `Technician ${booking.specialist} is scheduled to arrive on ${booking.date}.` : isCompleted ? `Your booking with ${booking.specialist} has been completed.` : isCancelled ? 'This booking has been cancelled.' : 'Your request has been sent to the service provider.'}
+							{isAccepted ? `Technician ${booking.specialist} is scheduled to arrive on ${booking.date}.` : isCompleted ? `Your booking with ${booking.specialist} has been completed.` : isCancelled ? 'This booking has been cancelled.' : isQuotePending ? `${booking.specialist} sent a price for your ${booking.category ?? 'service'} request.` : isCompletionRequested ? `${booking.specialist} says the service is complete. Confirm to close this booking.` : 'Your request has been sent to matching service providers.'}
 						</Text>
 					</View>
 				</View>
@@ -91,12 +136,87 @@ export default function CustomerBookingDetails({ navigation, route }: Props) {
 							Selected Service
 						</Text>
 						<Text
-							style={styles.categoryBadge}>Home Cleaning</Text></View><View style={styles.serviceRow}>{booking.image ? <Image source={{ uri: booking.image }} style={styles.serviceImage} /> : <View style={styles.servicePlaceholder}><IconX name="cleaning-services" origin={ICON_TYPE.MATERIAL_ICONS} size={29} color={colors.purple[700]} /></View>}<View style={styles.serviceCopy}><Text style={styles.serviceTitle}>{booking.title}</Text><View style={styles.serviceMeta}><IconX name="time-outline" origin={ICON_TYPE.IONICONS} size={15} color={colors.grey[700]} /><Text style={styles.mutedText}>~3 hrs</Text><Text style={styles.mutedText}>•</Text><Text style={styles.servicePrice}>{booking.price}</Text></View></View></View></View>
+							style={styles.categoryBadge}
+						>
+							{
+								booking.category
+								??
+								'Service'
+							}
+						</Text>
+					</View>
+					<View
+						style={styles.serviceRow}
+					>
+						{
+							booking.image
+								?
+								<Image
+									source={{ uri: booking.image }}
+									style={styles.serviceImage}
+								/>
+								:
+								<View
+									style={styles.servicePlaceholder}
+								>
+									<IconX
+										name="cleaning-services"
+										origin={ICON_TYPE.MATERIAL_ICONS}
+										size={29}
+										color={colors.purple[700]}
+									/>
+								</View>
+						}
+						<View
+							style={styles.serviceCopy}
+						>
+							<Text
+								style={styles.serviceTitle}
+							>
+								{booking.title}
+							</Text>
+							<View
+								style={styles.serviceMeta}
+							>
+								<IconX
+									name="time-outline"
+									origin={ICON_TYPE.IONICONS}
+									size={15}
+									color={colors.grey[700]}
+								/>
+								<Text
+									style={styles.mutedText}
+								>
+									{
+										booking.quoteAmount
+											?
+											'Provider quote'
+											:
+											'Schedule'
+									}
+								</Text>
+								<Text
+									style={styles.mutedText}
+								>
+									•
+								</Text>
+								<Text
+									style={styles.servicePrice}
+								>
+									{
+										booking.price
+									}
+								</Text>
+							</View>
+						</View>
+					</View>
+				</View>
 
 				<View
 					style={styles.card}
 				>
-					<Text style={styles.cardLabel}
+					<Text
+						style={styles.cardLabel}
 					>
 						Schedule & Location
 					</Text>
@@ -117,26 +237,35 @@ export default function CustomerBookingDetails({ navigation, route }: Props) {
 					<Text
 						style={styles.cardLabel}
 					>
-						Your Assigned Pro
+						{
+							booking.providerId
+								?
+								'Your Assigned Pro'
+								:
+								'Provider matching'
+						}
 					</Text>
 					<View
 						style={styles.providerRow}
 					>
-						{booking.image ?
-							<Image
-								source={{ uri: booking.image }}
-								style={styles.providerImage}
-							/> :
-							<View
-								style={styles.providerPlaceholder}
-							>
-								<IconX
-									name="person"
-									origin={ICON_TYPE.IONICONS}
-									size={24}
-									color={colors.purple[700]}
+						{
+							booking.image
+								?
+								<Image
+									source={{ uri: booking.image }}
+									style={styles.providerImage}
 								/>
-							</View>
+								:
+								<View
+									style={styles.providerPlaceholder}
+								>
+									<IconX
+										name="person"
+										origin={ICON_TYPE.IONICONS}
+										size={24}
+										color={colors.purple[700]}
+									/>
+								</View>
 						}
 						<View
 							style={styles.providerCopy}
@@ -174,23 +303,32 @@ export default function CustomerBookingDetails({ navigation, route }: Props) {
 							</View>
 						</View>
 					</View>
-					<Pressable
-						style={styles.callButton}
-						onPress={
-							() => Linking.openURL('tel:5550192834')}
-					>
-						<IconX
-							name="call"
-							origin={ICON_TYPE.IONICONS}
-							size={18}
-							color={colors.purple[700]}
-						/>
-						<Text
-							style={styles.callText}
+					{booking.providerId
+						?
+						<Pressable
+							style={styles.callButton}
+							onPress={
+								() => Linking.openURL('tel:5550192834')}
 						>
-							Call Provider
+							<IconX
+								name="call"
+								origin={ICON_TYPE.IONICONS}
+								size={18}
+								color={colors.purple[700]}
+							/>
+							<Text
+								style={styles.callText}
+							>
+								Call Provider
+							</Text>
+						</Pressable>
+						:
+						<Text
+							style={styles.mutedText}
+						>
+							Your address and contact details are shared after a provider is assigned.
 						</Text>
-					</Pressable>
+					}
 				</View>
 
 				<View
@@ -226,7 +364,7 @@ export default function CustomerBookingDetails({ navigation, route }: Props) {
 						<Text
 							style={styles.paymentValue}
 						>
-							$8.50
+							${booking.platformFee ?? 0}
 						</Text>
 					</View>
 					<View
@@ -250,12 +388,70 @@ export default function CustomerBookingDetails({ navigation, route }: Props) {
 						<Text
 							style={styles.totalAmount}
 						>
-							{isAccepted ? '$128.50' : booking.price}
+							${
+								booking.totalAmount
+								??
+								booking.quoteAmount
+								??
+								0
+							}
 						</Text>
 					</View>
 				</View>
 
-				{!isCancelled && !isCompleted &&
+				{
+					isQuotePending
+						?
+						<View
+							style={styles.approvalActions}
+						>
+							<Pressable
+								style={styles.approveButton}
+								disabled={savingApproval}
+								onPress={() => respondToQuote(true)}
+							>
+								<Text
+									style={styles.approveButtonText}
+								>
+									Approve quote
+								</Text>
+							</Pressable>
+							<Pressable
+								style={styles.rejectButton}
+								disabled={savingApproval}
+								onPress={() => respondToQuote(false)}
+							>
+								<Text
+									style={styles.rejectButtonText}
+								>
+									Decline quote
+								</Text>
+							</Pressable>
+						</View>
+						:
+						isCompletionRequested
+							?
+							<View
+								style={styles.approvalActions}
+							>
+								<Text
+									style={styles.approvalHint}
+								>
+									Confirm only after the service has been completed.
+								</Text>
+								<Pressable
+									style={styles.approveButton}
+									disabled={savingApproval}
+									onPress={approveCompletion}>
+									<Text
+										style={styles.approveButtonText}
+									>
+										Approve completion
+									</Text>
+								</Pressable>
+							</View> : null}
+
+				{!isCancelled && !isCompleted && !isQuotePending && !isCompletionRequested &&
 					<View
 						style={styles.cancelArea}
 					>

@@ -2,14 +2,16 @@ import React, { useState } from 'react';
 import { Alert, Image, Linking, Pressable, ScrollView, StatusBar, Text, View } from 'react-native';
 import { CustomHeader, ICON_TYPE, IconX } from '../../../../components';
 import { colors } from '../../../../constants';
-import { updateBookingStatus } from '../../../../services/firebase';
+import { requestBookingCompletion, updateBookingStatus } from '../../../../services/firebase';
+import { useAppSelector } from '../../../../store';
 import type { BookingItem } from '../ProviderBookings/ProviderBookings';
+import ProviderQuoteModal from '../../ProviderQuoteModal';
 import { styles } from './styles';
 import { showToast } from '../../../../utils';
 
 type BookingDetailsProps = {
 	navigation: any;
-	route?: { params?: { booking?: BookingItem } };
+	route?: { params?: { booking?: BookingItem | any } };
 };
 
 const FALLBACK_BOOKING: BookingItem = {
@@ -29,9 +31,41 @@ const FALLBACK_BOOKING: BookingItem = {
 
 export default function BookingDetails({ navigation, route }: BookingDetailsProps) {
 	const booking = route?.params?.booking ?? FALLBACK_BOOKING;
+	const profile = useAppSelector(state => state.user.profile);
 	const [decision, setDecision] = useState<'accepted' | 'rejected' | null>(null);
-	const [completed, setCompleted] = useState(booking.status === 'Completed');
-	const isAccepted = booking.status === 'Upcoming' || decision === 'accepted';
+	const [quoteBooking, setQuoteBooking] = useState<{
+		id: string;
+		category: string;
+		scheduledDate: string;
+		city: string;
+	} | null>(null);
+	const isOpenBookingRequest = Boolean(booking?.isOpenBooking || booking?.bookingType === 'open');
+	const clientName = booking?.clientName ?? booking?.customerName ?? 'Customer';
+	const serviceTitle = booking?.serviceTitle ?? `${booking?.category ?? 'Service'} service`;
+	const bookingStatusText = booking?.status ?? 'Pending';
+	const normalizedStatus = typeof bookingStatusText === 'string' ? bookingStatusText : 'Pending';
+	const completed = normalizedStatus === 'Completed' || booking?.status === 'completed';
+	const [completionRequested, setCompletionRequested] = useState(Boolean(booking?.completionRequested));
+	const isAccepted = normalizedStatus === 'Upcoming' || normalizedStatus === 'accepted' || decision === 'accepted';
+	const displayAddress = booking?.address ?? booking?.city ?? 'Service location unavailable';
+	const displayDateText = booking?.dateText ?? `${booking?.scheduledDate ?? 'Scheduled'} • ${booking?.scheduledTime ?? ''}`.trim();
+	const displayAmount = booking?.amount ?? (typeof booking?.quotedAmount === 'number' ? `$${booking.quotedAmount.toFixed(2)}` : 'Awaiting quote');
+	const displayNotes = booking?.notes ?? booking?.specialInstructions;
+	const canQuoteOpenBooking = isOpenBookingRequest
+		&& (normalizedStatus === 'Pending' || normalizedStatus === 'pending')
+		&& !booking?.quotePending
+		&& Boolean(booking?.id && booking?.category);
+
+	const requestCompletion = async () => {
+		if (!profile?.uid) return;
+		try {
+			await requestBookingCompletion(booking.id, profile.uid);
+			setCompletionRequested(true);
+			showToast({ type: 'success', title: 'Completion requested', message: 'The customer will approve the completed service.' });
+		} catch (error: any) {
+			showToast({ type: 'error', title: 'Unable to request completion', message: error?.message ?? 'Please try again.' });
+		}
+	};
 
 	const handleDecision = (nextDecision: 'accepted' | 'rejected') => {
 		setDecision(nextDecision);
@@ -72,11 +106,7 @@ export default function BookingDetails({ navigation, route }: BookingDetailsProp
 				title={`Booking #${booking.id.replace('booking_', 'BK-')}`}
 				showBackButton
 				onLeftPress={() => navigation.goBack()}
-				rightComponent={
-					<View style={[styles.headerStatus, { backgroundColor: decision === 'accepted' ? colors.green[100] : booking.statusBgColor }]}>
-						<View style={[styles.headerStatusDot, { backgroundColor: decision === 'accepted' ? colors.green[500] : booking.dotColor ?? colors.grey[700] }]} />
-					</View>
-				}
+
 			/>
 
 			<ScrollView
@@ -119,7 +149,7 @@ export default function BookingDetails({ navigation, route }: BookingDetailsProp
 							<Text
 								style={styles.scheduleText}
 							>
-								{booking.dateText}
+								{displayDateText}
 							</Text>
 						</View>
 					</View>
@@ -137,7 +167,7 @@ export default function BookingDetails({ navigation, route }: BookingDetailsProp
 								<Text
 									style={styles.avatarInitial}
 								>
-									{booking.clientName.charAt(0)}
+									{clientName.charAt(0)}
 								</Text>
 							}
 						</View>
@@ -147,7 +177,7 @@ export default function BookingDetails({ navigation, route }: BookingDetailsProp
 							<Text
 								style={styles.clientName}
 							>
-								{booking.clientName}
+								{clientName}
 							</Text>
 							<Text
 								style={styles.clientLabel}
@@ -215,7 +245,7 @@ export default function BookingDetails({ navigation, route }: BookingDetailsProp
 							<Text
 								style={styles.serviceTitle}
 							>
-								{booking.serviceTitle}
+								{serviceTitle}
 							</Text>
 							<View
 								style={styles.serviceMeta}
@@ -247,7 +277,7 @@ export default function BookingDetails({ navigation, route }: BookingDetailsProp
 							<Text
 								style={styles.payoutAmount}
 							>
-								{booking.amount}
+								{displayAmount}
 							</Text>
 							<Text
 								style={styles.payoutLabel}
@@ -264,7 +294,7 @@ export default function BookingDetails({ navigation, route }: BookingDetailsProp
 					<InfoRow
 						icon="calendar-outline"
 						label="Scheduled Window"
-						value={booking.dateText}
+						value={displayDateText}
 						detail="Arrival window: 15 minutes before scheduled time"
 					/>
 					{booking.address
@@ -277,10 +307,9 @@ export default function BookingDetails({ navigation, route }: BookingDetailsProp
 								style={styles.locationRow}
 							>
 								<InfoRow
-
 									icon="location-outline"
 									label="Service Location"
-									value={booking.address}
+									value={displayAddress}
 									detail="Springfield, OR 97477"
 								/>
 
@@ -289,39 +318,40 @@ export default function BookingDetails({ navigation, route }: BookingDetailsProp
 						:
 						null
 					}
-					{booking.notes
-						?
-						<>
-							<View
-								style={styles.cardDivider}
-							/>
-							<View
-								style={styles.notesBox}
-							>
+					{
+						displayNotes
+							?
+							<>
 								<View
-									style={styles.notesHeading}
+									style={styles.cardDivider}
+								/>
+								<View
+									style={styles.notesBox}
 								>
-									<IconX
-										name="chatbox-ellipses-outline"
-										origin={ICON_TYPE.IONICONS}
-										size={16}
-										color={colors.grey[700]}
-									/>
-									<Text
-										style={styles.cardLabel}
+									<View
+										style={styles.notesHeading}
 									>
-										Customer Special Instructions
+										<IconX
+											name="chatbox-ellipses-outline"
+											origin={ICON_TYPE.IONICONS}
+											size={16}
+											color={colors.grey[700]}
+										/>
+										<Text
+											style={styles.cardLabel}
+										>
+											Customer Special Instructions
+										</Text>
+									</View>
+									<Text
+										style={styles.notesText}
+									>
+										“{displayNotes}”
 									</Text>
 								</View>
-								<Text
-									style={styles.notesText}
-								>
-									“{booking.notes}”
-								</Text>
-							</View>
-						</>
-						:
-						null
+							</>
+							:
+							null
 					}
 				</View>
 
@@ -332,10 +362,10 @@ export default function BookingDetails({ navigation, route }: BookingDetailsProp
 						>
 							Current Phase
 						</Text>
-						{!completed ?
+						{!completed && !completionRequested ?
 							<Pressable
 								style={styles.acceptButton}
-								onPress={() => { setCompleted(true); updateBookingStatus(booking.id, 'completed').catch(() => undefined); }}
+								onPress={requestCompletion}
 							>
 								<IconX
 									name="checkmark-circle"
@@ -346,10 +376,10 @@ export default function BookingDetails({ navigation, route }: BookingDetailsProp
 								<Text
 									style={styles.acceptText}
 								>
-									Mark as Completed
+									Request to Complete
 								</Text>
 							</Pressable>
-							:
+							: completionRequested ? <Text style={styles.mutedText}>Awaiting customer approval</Text> :
 							null
 						}
 						{
@@ -377,7 +407,27 @@ export default function BookingDetails({ navigation, route }: BookingDetailsProp
 				) : null}
 			</ScrollView>
 
-			{booking.status === 'Pending' && !decision ? (
+			{canQuoteOpenBooking ? (
+				<View style={styles.bottomBar}>
+					<Pressable
+						style={styles.acceptButton}
+						onPress={() => setQuoteBooking({
+							id: booking.id,
+							category: booking.category,
+							scheduledDate: booking.scheduledDate ?? '',
+							city: booking.city ?? displayAddress,
+						})}
+					>
+						<IconX
+							name="pricetag-outline"
+							origin={ICON_TYPE.IONICONS}
+							size={20}
+							color={colors.white[100]}
+						/>
+						<Text style={styles.acceptText}>Send quote</Text>
+					</Pressable>
+				</View>
+			) : (normalizedStatus === 'Pending' || normalizedStatus === 'pending') && !decision && !booking.quotePending && !isOpenBookingRequest ? (
 				<View
 					style={styles.bottomBar}
 				>
@@ -415,6 +465,11 @@ export default function BookingDetails({ navigation, route }: BookingDetailsProp
 					</Pressable>
 				</View>
 			) : null}
+			<ProviderQuoteModal
+				booking={quoteBooking}
+				onClose={() => setQuoteBooking(null)}
+				onQuoteSent={() => navigation.goBack()}
+			/>
 		</View>
 	);
 }

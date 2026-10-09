@@ -1,11 +1,16 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Image, Modal, Pressable, ScrollView, Share, StatusBar, Text, TouchableOpacity, View } from 'react-native';
 import { CustomHeader, ICON_TYPE, IconX } from '../../../../components';
-import { colors, navigationStrings } from '../../../../constants';
+import { colors } from '../../../../constants';
+import { getReviews } from '../../../../services/firebase';
+import { useAppSelector } from '../../../../store';
+import type { Review } from '../../../../types/review';
+import { navigateToBookingIfAddressExists } from '../../../../utils/bookingNavigation';
 import { styles } from './styles';
 
 type Service = {
 	id: string;
+	providerId: string;
 	providerName: string;
 	title: string;
 	duration: string;
@@ -23,6 +28,7 @@ type CustomerServiceDetailsProps = {
 
 const FALLBACK_SERVICE: Service = {
 	id: 'service',
+	providerId: '',
 	providerName: 'Apex Cleaners',
 	title: 'Deep Home Cleaning',
 	duration: '3 hrs',
@@ -35,6 +41,7 @@ const FALLBACK_SERVICE: Service = {
 
 export default function CustomerServiceDetails({ navigation, route }: CustomerServiceDetailsProps) {
 	const service = route?.params?.service ?? FALLBACK_SERVICE;
+	const profile = useAppSelector(state => state.user.profile);
 	const images = service.imageUrls && service.imageUrls.length > 0
 		?
 		service.imageUrls
@@ -43,6 +50,21 @@ export default function CustomerServiceDetails({ navigation, route }: CustomerSe
 
 	const [activeIndex, setActiveIndex] = useState(0);
 	const [previewVisible, setPreviewVisible] = useState(false);
+	const [reviews, setReviews] = useState<Review[]>([]);
+	const [loadingReviews, setLoadingReviews] = useState(true);
+
+	useEffect(() => {
+		if (!service.providerId) {
+			setLoadingReviews(false);
+			return;
+		}
+		getReviews(service.providerId)
+			.then(fetchedReviews => {
+				setReviews(fetchedReviews.sort((a, b) => b.createdAt - a.createdAt));
+			})
+			.catch(() => setReviews([]))
+			.finally(() => setLoadingReviews(false));
+	}, [service.providerId]);
 
 	const shareService = async () => {
 		await Share.share({ message: `${service.title} by ${service.providerName} - ${service.price}` });
@@ -273,12 +295,38 @@ export default function CustomerServiceDetails({ navigation, route }: CustomerSe
 						>
 							Customer Reviews
 						</Text>
+						{reviews.length > 0 && (
+							<Text
+								style={styles.reviewCount}
+							>
+								({reviews.length})
+							</Text>
+						)}
 					</View>
-					<View
-						style={styles.reviewCard}
-					>
-						<Text style={styles.mutedText}>No reviews yet</Text>
-					</View>
+					{loadingReviews ? (
+						<View
+							style={styles.reviewCard}
+						>
+							<Text style={styles.mutedText}>Loading reviews...</Text>
+						</View>
+					) : reviews.length === 0 ? (
+						<View
+							style={styles.reviewCard}
+						>
+							<Text style={styles.mutedText}>No reviews yet</Text>
+						</View>
+					) : (
+						<View
+							style={styles.reviewList}
+						>
+							{reviews.map(review => (
+								<ReviewCard
+									key={review.id}
+									review={review}
+								/>
+							))}
+						</View>
+					)}
 				</View>
 			</ScrollView>
 
@@ -406,7 +454,7 @@ export default function CustomerServiceDetails({ navigation, route }: CustomerSe
 				</View>
 				<Pressable
 					style={styles.bookButton}
-					onPress={() => navigation.navigate(navigationStrings.CUSTOMER_BOOK_SERVICE, { service })}
+					onPress={() => navigateToBookingIfAddressExists(navigation, profile?.uid, service)}
 				>
 					<Text
 						style={styles.bookText}
@@ -421,6 +469,66 @@ export default function CustomerServiceDetails({ navigation, route }: CustomerSe
 					/>
 				</Pressable>
 			</View>
+		</View>
+	);
+}
+
+function Stars({ rating, size = 14 }: { rating: number; size?: number }) {
+	return (
+		<View
+			style={styles.starsRow}
+		>
+			{[1, 2, 3, 4, 5].map(star => (
+				<IconX
+					key={star}
+					name="star"
+					origin={ICON_TYPE.IONICONS}
+					size={size}
+					color={star <= Math.round(rating) ? colors.yellow[400] : colors.grey[300]}
+				/>
+			))}
+		</View>
+	);
+}
+
+function ReviewCard({ review }: { review: Review }) {
+	return (
+		<View
+			style={styles.reviewCard}
+		>
+			<View
+				style={styles.reviewHeader}
+			>
+				<View
+					style={styles.reviewerAvatar}
+				>
+					<Text
+						style={styles.reviewerInitial}
+					>
+						V
+					</Text>
+				</View>
+				<View
+					style={styles.reviewerCopy}
+				>
+					<Text
+						style={styles.reviewerName}
+					>
+						Verified Customer
+					</Text>
+					<Stars rating={review.rating} />
+				</View>
+				<Text
+					style={styles.reviewDate}
+				>
+					{new Date(review.createdAt).toLocaleDateString()}
+				</Text>
+			</View>
+			<Text
+				style={styles.reviewText}
+			>
+				“{review.comment}”
+			</Text>
 		</View>
 	);
 }

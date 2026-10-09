@@ -4,4 +4,4 @@
  * Deploy with:   firebase deploy --only functions
  * Watch logs:    firebase functions:log
  */
-export { newBooking, bookingStatusChanged } from './notifications/bookingNotifications';
+export { newBooking, bookingStatusChanged, expireBookings } from './notifications/bookingNotifications';

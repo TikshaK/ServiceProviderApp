@@ -29,7 +29,13 @@ type NotificationItem = {
   bgColor: string;
 };
 
-export default function ProviderNotifications({ navigation }) {
+type ProviderNotificationsProps = {
+  navigation: {
+    goBack: () => void;
+  };
+};
+
+export default function ProviderNotifications({ navigation }: ProviderNotificationsProps) {
   const insets = useSafeAreaInsets();
   const [activeFilter, setActiveFilter] = useState<FilterType>('All');
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);

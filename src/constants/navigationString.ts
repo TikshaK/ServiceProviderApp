@@ -24,6 +24,7 @@ const navigationStrings = {
   //Provider
   //Home
   PROVIDER_HOME: "ProviderHome",
+  PROVIDER_SEARCH_BOOKINGS: "ProviderSearchBookings",
   PROVIDER_BOOKINGS: "ProviderBookings",
   PROVIDER_BOOKING_DETAILS: "ProviderBookingDetails",
   PROVIDER_SERVICES: "ProviderServices",

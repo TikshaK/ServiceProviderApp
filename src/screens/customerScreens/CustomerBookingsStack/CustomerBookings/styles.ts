@@ -99,18 +99,23 @@ export const styles = StyleSheet.create({
   },
   cardTop: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     alignItems: 'center',
     justifyContent: 'space-between',
+    rowGap: scale(6),
   },
   cardDateRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: scale(6),
+    flexGrow: 1,
+    flexShrink: 1,
   },
   cardDateText: {
     fontSize: fontSize[11],
     fontFamily: fonts.SemiBold,
     color: colors.black[500],
+    flexShrink: 1,
   },
   statusBadge: {
     flexDirection: 'row',
@@ -119,6 +124,11 @@ export const styles = StyleSheet.create({
     paddingHorizontal: scale(10),
     paddingVertical: verticalScale(2),
     borderRadius: scale(12),
+  },
+  statusBadgeWrapping: {
+    maxWidth: '52%',
+    flexShrink: 1,
+    alignSelf: 'flex-end',
   },
   statusBadgeAccepted: {
     backgroundColor: '#ECFDF5',
@@ -135,6 +145,11 @@ export const styles = StyleSheet.create({
   statusText: {
     fontSize: fontSize[11],
     fontFamily: fonts.SemiBold,
+  },
+  statusTextWrapping: {
+    maxWidth: scale(110),
+    flexShrink: 1,
+    textAlign: 'center',
   },
   statusTextAccepted: {
     color: '#059669',

@@ -15,6 +15,7 @@ import { initializeApp } from 'firebase-admin/app';
 import { getDatabase } from 'firebase-admin/database';
 import { getMessaging } from 'firebase-admin/messaging';
 import { onValueCreated, onValueUpdated } from 'firebase-functions/v2/database';
+import { onSchedule } from 'firebase-functions/v2/scheduler';
 import { logger } from 'firebase-functions/v2';
 
 initializeApp();
@@ -189,6 +190,13 @@ export const bookingStatusChanged = onValueUpdated('/bookings/{bookingId}', asyn
   });
 
   switch (after.status) {
+    case 'quotePending':
+      await sendToUser(after.customerId, 'New Provider Quote', `${providerName} sent a quote for ${serviceTitle}.`, {
+        type: 'BOOKING_QUOTE_RECEIVED',
+        bookingId,
+      });
+      break;
+
     case 'accepted':
       await sendToUser(after.customerId, 'Booking Accepted', `${providerName} accepted your booking.`, {
         type: 'BOOKING_ACCEPTED',
@@ -204,8 +212,22 @@ export const bookingStatusChanged = onValueUpdated('/bookings/{bookingId}', asyn
       break;
 
     case 'completed':
-      await sendToUser(after.customerId, 'Booking Completed', `${providerName} has completed ${serviceTitle}.`, {
-        type: 'BOOKING_COMPLETED',
+      if (before.status === 'completionRequested') {
+        await sendToUser(after.providerId, 'Completion Approved', 'The customer approved your completion request.', {
+          type: 'BOOKING_COMPLETION_APPROVED',
+          bookingId,
+        });
+      } else {
+        await sendToUser(after.customerId, 'Booking Completed', `${providerName} has completed ${serviceTitle}.`, {
+          type: 'BOOKING_COMPLETED',
+          bookingId,
+        });
+      }
+      break;
+
+    case 'completionRequested':
+      await sendToUser(after.customerId, 'Completion Approval Needed', `${providerName} requested completion approval for ${serviceTitle}.`, {
+        type: 'BOOKING_COMPLETION_REQUESTED',
         bookingId,
       });
       break;
@@ -228,5 +250,37 @@ export const bookingStatusChanged = onValueUpdated('/bookings/{bookingId}', asyn
     default:
       // pending / inProgress — no push needed.
       break;
+  }
+});
+
+export const expireBookings = onSchedule('every 5 minutes', async () => {
+  const timestamp = Date.now();
+  const snapshot = await getDatabase().ref('openBookingListings').get();
+  const categories = snapshot.val() as Record<string, Record<string, {
+    status?: string;
+    scheduledAt?: number;
+    providerId?: string | null;
+  }>> | null;
+  const updates: Record<string, unknown> = {};
+
+  for (const [category, listings] of Object.entries(categories ?? {})) {
+    for (const [bookingId, listing] of Object.entries(listings)) {
+      if ((listing.status !== 'pending' && listing.status !== 'quotePending')
+        || !listing.scheduledAt
+        || listing.scheduledAt > timestamp) {
+        continue;
+      }
+      updates[`bookings/${bookingId}/status`] = 'expired';
+      updates[`bookings/${bookingId}/updatedAt`] = timestamp;
+      updates[`openBookingListings/${category}/${bookingId}`] = null;
+      if (listing.providerId) {
+        updates[`providerBookingIndex/${listing.providerId}/${bookingId}`] = null;
+      }
+    }
+  }
+
+  if (Object.keys(updates).length > 0) {
+    await getDatabase().ref().update(updates);
+    logger.info('Expired scheduled bookings', { count: Object.keys(updates).filter(path => path.endsWith('/status')).length });
   }
 });

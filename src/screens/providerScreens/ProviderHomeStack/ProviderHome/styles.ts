@@ -138,6 +138,14 @@ export const styles = StyleSheet.create({
     fontWeight: '600',
     lineHeight: verticalScale(14),
   },
+  searchSection: {
+    marginTop: verticalScale(8),
+    marginBottom: verticalScale(8),
+  },
+  searchContainer: {
+    backgroundColor: colors.white[100],
+    borderRadius: scale(14),
+  },
   section: {
     marginTop: verticalScale(12),
   },
@@ -337,6 +345,14 @@ export const styles = StyleSheet.create({
     height: scale(40),
     borderRadius: scale(20),
     backgroundColor: colors.purple[400],
+    overflow: 'hidden',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  bookingAvatarImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: scale(20),
   },
   bookingClientInfo: {
     flex: 1,
@@ -443,5 +459,48 @@ export const styles = StyleSheet.create({
     fontSize: fontSize[11],
     fontWeight: '600',
     lineHeight: verticalScale(14),
+  },
+  openBookingCard: {
+    borderLeftWidth: scale(3),
+    borderLeftColor: '#D97706',
+  },
+  openBookingInitial: {
+    fontFamily: fonts.SemiBold,
+    color: colors.white[100],
+    fontSize: fontSize[16],
+  },
+  openBookingLocation: {
+    marginLeft: scale(50),
+    fontFamily: fonts.Medium,
+    color: colors.grey[700],
+    fontSize: fontSize[12],
+  },
+  openBookingNotes: {
+    marginLeft: scale(50),
+    fontFamily: fonts.Regular,
+    color: colors.black[250],
+    fontSize: fontSize[12],
+    lineHeight: verticalScale(17),
+  },
+  openBookingBadge: {
+    backgroundColor: '#ECFDF5',
+  },
+  openBookingDot: {
+    backgroundColor: '#059669',
+  },
+  openBookingStatus: {
+    color: '#047857',
+  },
+  openBookingQuoteButton: {
+    minHeight: verticalScale(38),
+    justifyContent: 'center',
+    paddingHorizontal: scale(14),
+    borderRadius: scale(9),
+    backgroundColor: colors.purple[700],
+  },
+  openBookingQuoteButtonText: {
+    fontFamily: fonts.SemiBold,
+    color: colors.white[100],
+    fontSize: fontSize[12],
   },
 });

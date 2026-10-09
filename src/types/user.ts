@@ -15,6 +15,11 @@ export interface UserProfile {
   createdAt?: number;
 }
 
+export type PublicProviderProfile = Pick<
+  UserProfile,
+  'uid' | 'fullName' | 'avatarUrl' | 'role' | 'serviceName' | 'experience' | 'category' | 'availability'
+>;
+
 export interface SignUpProfilePayload {
   email: string;
   fullName: string;

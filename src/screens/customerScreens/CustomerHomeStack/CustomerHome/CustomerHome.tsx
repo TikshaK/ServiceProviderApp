@@ -8,11 +8,12 @@ import {
     TouchableOpacity,
     View
 } from 'react-native';
-import { CustomSearchBar, EmptyState, ICON_TYPE, IconX } from '../../../../components';
+import { CustomButton, CustomSearchBar, EmptyState, ICON_TYPE, IconX } from '../../../../components';
 import { useFocusEffect } from '@react-navigation/native';
 import { colors, navigationStrings, SERVICE_CATEGORIES, strings } from '../../../../constants';
 import { useAppSelector } from '../../../../store';
 import { getAddresses, getServices } from '../../../../services/firebase';
+import { navigateToBookingIfAddressExists } from '../../../../utils/bookingNavigation';
 import { styles } from './styles';
 
 const CATEGORY_META = [
@@ -29,6 +30,7 @@ const CATEGORIES = SERVICE_CATEGORIES.map(name => CATEGORY_META.find(category =>
 
 type PopularService = {
     id: string;
+    providerId: string;
     providerName: string;
     title: string;
     duration: string;
@@ -70,6 +72,7 @@ export default function CustomerHome({ navigation }: { navigation: any }) {
             if (!active) return;
             setPopularServices(services.slice(0, 10).map(service => ({
                 id: service.id,
+                providerId: service.providerId,
                 providerName: service.providerName,
                 title: service.title,
                 duration: `${service.durationMinutes ? service.durationMinutes / 60 : 0} hrs`,
@@ -105,7 +108,7 @@ export default function CustomerHome({ navigation }: { navigation: any }) {
                             <View style={styles.greetingRow}>
                                 <Text style={styles.greetingText}>
                                     Hello, {displayName}
-                                    </Text>
+                                </Text>
                                 <IconX
                                     name="hand-wave"
                                     origin={ICON_TYPE.MATERIAL_COMMUNITY}
@@ -117,6 +120,18 @@ export default function CustomerHome({ navigation }: { navigation: any }) {
                                 <IconX name="location-on" origin={ICON_TYPE.MATERIAL_ICONS} size={18} color={colors.purple[700]} />
                                 <Text style={styles.locationText} numberOfLines={1}>{location}</Text>
                             </TouchableOpacity> : null}
+                        </View>
+
+                        <View>
+                            <CustomButton
+                                title="Book a service"
+                                onPress={() => navigateToBookingIfAddressExists(navigation, profile?.uid)}
+                                style={styles.bookServiceBtn}
+                                textStyle={{
+                                    fontSize: 14,
+                                    fontFamily: 'Poppins-SemiBold'
+                                }}
+                            />
                         </View>
                     </View>
 
@@ -221,7 +236,7 @@ export default function CustomerHome({ navigation }: { navigation: any }) {
                                                         <Text style={styles.priceLabel}>From</Text>
                                                         <Text style={styles.priceText}>{service.price}</Text>
                                                     </View>
-                                                    <TouchableOpacity style={styles.bookBtn} activeOpacity={0.8} onPress={() => navigation.navigate(navigationStrings.CUSTOMER_BOOK_SERVICE, { service })}>
+                                                    <TouchableOpacity style={styles.bookBtn} activeOpacity={0.8} onPress={() => navigateToBookingIfAddressExists(navigation, profile?.uid, service)}>
                                                         <Text style={styles.bookBtnText}>Book Now</Text>
                                                     </TouchableOpacity>
                                                 </View>

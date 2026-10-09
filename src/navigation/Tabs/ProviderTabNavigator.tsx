@@ -1,7 +1,7 @@
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { getFocusedRouteNameFromRoute } from '@react-navigation/native';
+import { getFocusedRouteNameFromRoute, StackActions } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { IconX } from '../../components';
 import { colors, fonts, navigationStrings, sWidth } from '../../constants';
@@ -37,7 +37,8 @@ const noTabsRoutes: string[] = [
     navigationStrings.PROVIDER_EDIT_PROFILE,
     navigationStrings.PROVIDER_EARNINGS_REVIEWS,
     navigationStrings.PROVIDER_BOOKING_DETAILS,
-    navigationStrings.PROVIDER_NOTIFICATIONS
+    navigationStrings.PROVIDER_NOTIFICATIONS,
+    navigationStrings.PROVIDER_SEARCH_BOOKINGS
 ];
 
 export const ProviderTabNavigator = () => {
@@ -119,13 +120,22 @@ export const ProviderTabNavigator = () => {
             <Tab.Screen
                 name={navigationStrings.PROVIDER_BOOKINGS_STACK}
                 component={ProviderBookingsStack}
+                options={{ popToTopOnBlur: true }}
                 listeners={({ navigation }) => ({
                     tabPress: () => {
-                        navigation.navigate(navigationStrings.PROVIDER_BOOKINGS_STACK, {
-                            screen: navigationStrings.PROVIDER_BOOKINGS,
-                        });
+                        const bookingsRoute = navigation.getState().routes.find(
+                            tabRoute => tabRoute.name === navigationStrings.PROVIDER_BOOKINGS_STACK,
+                        );
+                        const stackKey = bookingsRoute?.state?.key;
+                        if (stackKey) {
+                            navigation.dispatch({
+                                ...StackActions.popToTop(),
+                                target: stackKey,
+                            });
+                        }
                     },
-                })} />
+                })}
+            />
             <Tab.Screen
                 name={navigationStrings.PROVIDER_SERVICES_STACK}
                 component={ProviderServicesStack}

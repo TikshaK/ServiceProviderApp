@@ -128,7 +128,7 @@ export default function Login({ navigation }: LoginProps) {
             label={strings.login.email}
             labelPosition="above"
             leftIcon={<IconX name="mail" origin={ICON_TYPE.MATERIAL_ICONS} color={colors.grey[700]} size={20} />}
-            maxLength={64}
+            maxLength={35}
             onChangeText={setEmail}
             onBlur={() => setTouched(current => ({ ...current, email: true }))}
             placeholder={strings.login.emailPlaceholder}
@@ -144,7 +144,7 @@ export default function Login({ navigation }: LoginProps) {
             label={strings.login.password}
             labelPosition="above"
             leftIcon={<IconX name="lock" origin={ICON_TYPE.MATERIAL_ICONS} color={colors.grey[700]} size={20} />}
-            maxLength={64}
+            maxLength={25}
             onChangeText={setPassword}
             onBlur={() => setTouched(current => ({ ...current, password: true }))}
             placeholder={strings.login.passwordPlaceholder}

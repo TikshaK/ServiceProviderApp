@@ -1,7 +1,13 @@
 import React, { useEffect } from 'react';
 import { navigationStrings } from '../../constants';
-import { Login, ResetPassword, SignUp, UpdatePassword, Verification, Welcome } from '../../screens/auth';
-import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import {
+  Login, ResetPassword,
+  SignUp, UpdatePassword,
+  Verification, Welcome
+} from '../../screens/auth';
+import {
+  createNativeStackNavigator
+} from '@react-navigation/native-stack';
 import { useAppSelector } from '../../store';
 
 const Stack = createNativeStackNavigator();
@@ -34,9 +40,18 @@ function AuthStackNavigator({
     <Stack.Navigator
       initialRouteName={initialRouteName}
       screenOptions={{ headerShown: false }}>
-      <Stack.Screen name={navigationStrings.WELCOME} component={Welcome} />
-      <Stack.Screen name={navigationStrings.SIGNUP} component={SignUp} />
-      <Stack.Screen name={navigationStrings.LOGIN} component={Login} />
+      <Stack.Screen
+        name={navigationStrings.WELCOME}
+        component={Welcome}
+      />
+      <Stack.Screen
+        name={navigationStrings.SIGNUP}
+        component={SignUp}
+      />
+      <Stack.Screen
+        name={navigationStrings.LOGIN}
+        component={Login}
+      />
       <Stack.Screen
         name={navigationStrings.VERIFICATION}
         component={Verification}
@@ -45,8 +60,12 @@ function AuthStackNavigator({
           role: verificationParams?.role,
         }}
       />
-      <Stack.Screen name={navigationStrings.RESETPASSWORD} component={ResetPassword} />
-      <Stack.Screen name={navigationStrings.UPDATEPASSWORD} component={UpdatePassword} />
+      <Stack.Screen
+        name={navigationStrings.RESETPASSWORD}
+        component={ResetPassword} />
+      <Stack.Screen
+        name={navigationStrings.UPDATEPASSWORD}
+        component={UpdatePassword} />
     </Stack.Navigator>
   );
 }
