@@ -1,8 +1,9 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import {
   Image,
   Linking,
+  RefreshControl,
   ScrollView,
   StatusBar,
   Text,
@@ -12,9 +13,9 @@ import {
 } from 'react-native';
 import { CustomSearchBar, CustomTab, EmptyState, ICON_TYPE, IconX } from '../../../../components';
 import { colors, navigationStrings, strings } from '../../../../constants';
-import { getBookings, getReviewsByReviewerId } from '../../../../services/firebase';
+import { getBookings, getReviewsByReviewerId, subscribeToCustomerBookings } from '../../../../services/firebase';
 import { useAppSelector } from '../../../../store';
-import { isBookingExpired, type BookingQuote } from '../../../../types/booking';
+import { isBookingExpired, type Booking, type BookingQuote } from '../../../../types/booking';
 import { styles } from './styles';
 
 type TabKey = 'all' | 'upcoming' | 'completed' | 'cancelled' | 'expired';
@@ -37,6 +38,43 @@ type DisplayBooking = {
   quotes?: BookingQuote[];
 };
 
+function mapCustomerBooking(booking: Booking): DisplayBooking {
+  const quotes = Object.values(booking.quotes ?? {}) as BookingQuote[];
+  const hasPendingQuote = quotes.some(quote => quote.status === 'pending');
+  return {
+    id: booking.id,
+    providerId: booking.providerId ?? undefined,
+    bookingType: booking.bookingType,
+    category: booking.category,
+    date: `${booking.scheduledDate} • ${booking.scheduledTime}`,
+    status: isBookingExpired(booking)
+      ? 'Expired'
+      : booking.status === 'completed'
+        ? 'Completed'
+        : booking.status === 'completionRequested'
+          ? 'Completion requested'
+          : booking.status === 'quotePending' || hasPendingQuote
+            ? 'Quote pending'
+            : booking.status === 'accepted' || booking.status === 'inProgress'
+              ? 'Accepted'
+              : booking.status === 'cancelled' || booking.status === 'declined'
+                ? 'Cancelled'
+                : 'Pending',
+    title: booking.serviceSnapshot?.title ?? 'Service Request',
+    provider: booking.providerSnapshot?.serviceName ?? booking.providerSnapshot?.fullName ?? 'Waiting for quotes',
+    specialist: booking.providerSnapshot?.fullName ?? 'Not assigned',
+    location: booking.addressSnapshot?.street ?? 'Location pending',
+    price: booking.bookingType === 'open' && booking.status === 'pending'
+      ? 'Awaiting quote'
+      : `$${booking.quotedAmount ?? booking.baseAmount ?? 0}`,
+    image: booking.serviceSnapshot?.imageUrls?.[0] ?? '',
+    totalAmount: booking.totalAmount,
+    platformFee: booking.platformFee,
+    quoteAmount: booking.quotedAmount,
+    quotes,
+  };
+}
+
 export default function CustomerBookings({ navigation }: { navigation: any }) {
   const [activeTab, setActiveTab] = useState<TabKey>('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -48,62 +86,77 @@ export default function CustomerBookings({ navigation }: { navigation: any }) {
   const [expiredBookings, setExpiredBookings] = useState<DisplayBooking[]>([]);
   const [ratedBookingIds, setRatedBookingIds] = useState<Set<string>>(new Set());
   const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const hasLoadedOnce = useRef(false);
+
+  const applyBookings = useCallback((bookingsList: Booking[]) => {
+    const sortedBookings = [...bookingsList].sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0));
+    const allMapped = sortedBookings.map(mapCustomerBooking);
+    setAllBookings(allMapped);
+    setUpcomingBookings(sortedBookings.filter(b => b.status !== 'completed' && b.status !== 'cancelled' && b.status !== 'declined' && !isBookingExpired(b)).map(mapCustomerBooking));
+    setCompletedBookings(sortedBookings.filter(b => b.status === 'completed').map(mapCustomerBooking));
+    setCancelledBookings(sortedBookings.filter(b => b.status === 'cancelled' || b.status === 'declined').map(mapCustomerBooking));
+    setExpiredBookings(sortedBookings.filter(isBookingExpired).map(mapCustomerBooking));
+  }, []);
+
+  const handleRefresh = useCallback(async () => {
+    if (!profile?.uid) return;
+    setIsRefreshing(true);
+    try {
+      const [bookings, reviews] = await Promise.all([
+        getBookings('customerId', profile.uid),
+        getReviewsByReviewerId(profile.uid),
+      ]);
+      setRatedBookingIds(new Set(reviews.map(r => r.bookingId)));
+      applyBookings(bookings);
+    } catch (error) {
+      console.warn('[CustomerBookings] Manual refresh error:', error);
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, [profile?.uid, applyBookings]);
 
   useFocusEffect(
     useCallback(() => {
-      let active = true;
-      if (!profile?.uid) return;
-      setIsLoading(true);
-      Promise.all([
-        getBookings('customerId', profile.uid),
-        getReviewsByReviewerId(profile.uid),
-      ]).then(([bookings, reviews]) => {
-        if (!active) return;
-        const sortedBookings = bookings.sort((a, b) => b.createdAt - a.createdAt);
-        const ratedIds = new Set(reviews.map(review => review.bookingId));
-        setRatedBookingIds(ratedIds);
-        const mapBooking = (booking: any): DisplayBooking => {
-          const quotes = Object.values(booking.quotes ?? {}) as BookingQuote[];
-          const hasPendingQuote = quotes.some(quote => quote.status === 'pending');
-          return ({
-            id: booking.id,
-            providerId: booking.providerId ?? undefined,
-            bookingType: booking.bookingType,
-            category: booking.category,
-            date: `${booking.scheduledDate} • ${booking.scheduledTime}`,
-            status: isBookingExpired(booking) ? 'Expired' : booking.status === 'completed' ? 'Completed' : booking.status === 'completionRequested' ? 'Completion requested' : booking.status === 'quotePending' || hasPendingQuote ? 'Quote pending' : booking.status === 'accepted' || booking.status === 'inProgress' ? 'Accepted' : booking.status === 'cancelled' || booking.status === 'declined' ? 'Cancelled' : 'Pending',
-            title: booking.serviceSnapshot.title,
-            provider: booking.providerSnapshot?.serviceName ?? booking.providerSnapshot?.fullName ?? 'Waiting for quotes',
-            specialist: booking.providerSnapshot?.fullName ?? 'Not assigned',
-            location: booking.addressSnapshot.street,
-            price: booking.bookingType === 'open' && booking.status === 'pending'
-              ? 'Awaiting quote'
-              : `$${booking.quotedAmount ?? booking.baseAmount}`,
-            image: booking.serviceSnapshot.imageUrls?.[0] ?? '',
-            totalAmount: booking.totalAmount,
-            platformFee: booking.platformFee,
-            quoteAmount: booking.quotedAmount,
-            quotes,
-          });
-        };
-        const allMapped = sortedBookings.map(mapBooking);
-        setAllBookings(allMapped);
-        setUpcomingBookings(sortedBookings.filter(booking => booking.status !== 'completed' && booking.status !== 'cancelled' && booking.status !== 'declined' && !isBookingExpired(booking)).map(mapBooking));
-        setCompletedBookings(sortedBookings.filter(booking => booking.status === 'completed').map(mapBooking));
-        setCancelledBookings(sortedBookings.filter(booking => booking.status === 'cancelled' || booking.status === 'declined').map(mapBooking));
-        setExpiredBookings(sortedBookings.filter(isBookingExpired).map(mapBooking));
-        setIsLoading(false);
-      }).catch(() => {
-        if (!active) return;
+      if (!profile?.uid) {
         setAllBookings([]);
         setUpcomingBookings([]);
         setCompletedBookings([]);
         setCancelledBookings([]);
         setExpiredBookings([]);
         setIsLoading(false);
-      });
-      return () => { active = false; };
-    }, [profile?.uid])
+        return;
+      }
+
+      if (!hasLoadedOnce.current) {
+        setIsLoading(true);
+      }
+
+      getReviewsByReviewerId(profile.uid)
+        .then(reviews => {
+          setRatedBookingIds(new Set(reviews.map(r => r.bookingId)));
+        })
+        .catch(err => console.warn('[CustomerBookings] Reviews fetch error:', err));
+
+      const unsubscribe = subscribeToCustomerBookings(
+        profile.uid,
+        (bookingsList: Booking[]) => {
+          applyBookings(bookingsList);
+          hasLoadedOnce.current = true;
+          setIsLoading(false);
+          setIsRefreshing(false);
+        },
+        error => {
+          console.warn('[CustomerBookings] Realtime subscription error:', error);
+          setIsLoading(false);
+          setIsRefreshing(false);
+        },
+      );
+
+      return () => {
+        unsubscribe();
+      };
+    }, [profile?.uid, applyBookings])
   );
 
   const filteredBookings = useMemo(() => {
@@ -169,7 +222,7 @@ export default function CustomerBookings({ navigation }: { navigation: any }) {
 
     return (
       <View style={styles.feedContainer}>
-        {isLoading ? (
+        {isLoading && allBookings.length === 0 ? (
           <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 40 }}>
             <ActivityIndicator size="large" color={colors.purple[700]} />
           </View>
@@ -342,6 +395,7 @@ export default function CustomerBookings({ navigation }: { navigation: any }) {
       <ScrollView
         contentContainerStyle={styles.contentContainer}
         showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} />}
       >
         <CustomSearchBar
           searchText={searchQuery}

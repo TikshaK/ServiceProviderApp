@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Alert, Image, Linking, Pressable, ScrollView, StatusBar, Text, View } from 'react-native';
 import { CustomHeader, ICON_TYPE, IconX } from '../../../../components';
 import { colors } from '../../../../constants';
-import { requestBookingCompletion, updateBookingStatus } from '../../../../services/firebase';
+import { requestBookingCompletion, subscribeToBooking, updateBookingStatus } from '../../../../services/firebase';
 import { useAppSelector } from '../../../../store';
-import { hasActiveProviderQuote } from '../../../../types/booking';
+import { hasActiveProviderQuote, isBookingExpired } from '../../../../types/booking';
 import type { BookingItem } from '../ProviderBookings/ProviderBookings';
 import ProviderQuoteModal from '../../ProviderQuoteModal';
 import { styles } from './styles';
@@ -33,7 +33,8 @@ const FALLBACK_BOOKING: BookingItem = {
 
 export default function BookingDetails({ navigation, route }: BookingDetailsProps) {
 	const insets = useSafeAreaInsets();
-	const booking = route?.params?.booking ?? FALLBACK_BOOKING;
+	const initialBooking = route?.params?.booking ?? FALLBACK_BOOKING;
+	const [booking, setBooking] = useState<any>(initialBooking);
 	const profile = useAppSelector(state => state.user.profile);
 	const [decision, setDecision] = useState<'accepted' | 'rejected' | null>(null);
 	const [quoteBooking, setQuoteBooking] = useState<{
@@ -42,13 +43,62 @@ export default function BookingDetails({ navigation, route }: BookingDetailsProp
 		scheduledDate: string;
 		city: string;
 	} | null>(null);
+
+	useEffect(() => {
+		if (route?.params?.booking) {
+			setBooking(route.params.booking);
+		}
+	}, [route?.params?.booking]);
+
+	useEffect(() => {
+		const bookingId = booking?.id;
+		if (!bookingId || bookingId === 'booking') return;
+
+		const unsubscribe = subscribeToBooking(bookingId, (freshBooking: any) => {
+			if (freshBooking) {
+				const myQuote = freshBooking.quotes?.[profile?.uid ?? ''];
+				const isQuoteRejected = myQuote && myQuote.status === 'rejected';
+				const mappedStatus = isBookingExpired(freshBooking)
+					? 'Expired'
+					: isQuoteRejected
+						? 'Rejected Quote'
+						: freshBooking.status === 'accepted' || freshBooking.status === 'inProgress' || freshBooking.status === 'completionRequested'
+							? 'Upcoming'
+							: freshBooking.status === 'completed'
+								? 'Completed'
+								: freshBooking.status === 'cancelled' || freshBooking.status === 'declined'
+									? 'Cancelled'
+									: 'Pending';
+
+				setBooking((prev: any) => ({
+					...prev,
+					...freshBooking,
+					status: mappedStatus,
+					clientName: freshBooking.customerSnapshot?.fullName ?? prev?.clientName,
+					customerPhone: freshBooking.customerSnapshot?.phone ?? prev?.customerPhone,
+					serviceTitle: freshBooking.serviceSnapshot?.title ?? prev?.serviceTitle,
+					address: freshBooking.addressSnapshot?.street ?? prev?.address,
+					completionRequested: freshBooking.status === 'completionRequested',
+				}));
+			}
+		});
+
+		return () => {
+			unsubscribe();
+		};
+	}, [booking?.id, profile?.uid]);
+
 	const isOpenBookingRequest = Boolean(booking?.isOpenBooking || booking?.bookingType === 'open');
 	const clientName = booking?.clientName ?? booking?.customerName ?? 'Customer';
 	const serviceTitle = booking?.serviceTitle ?? `${booking?.category ?? 'Service'} service`;
 	const bookingStatusText = booking?.status ?? 'Pending';
 	const normalizedStatus = typeof bookingStatusText === 'string' ? bookingStatusText : 'Pending';
 	const completed = normalizedStatus === 'Completed' || booking?.status === 'completed';
-	const [completionRequested, setCompletionRequested] = useState(Boolean(booking?.completionRequested));
+	const [completionRequested, setCompletionRequested] = useState(Boolean(booking?.completionRequested || booking?.status === 'completionRequested'));
+
+	useEffect(() => {
+		setCompletionRequested(Boolean(booking?.completionRequested || booking?.status === 'completionRequested'));
+	}, [booking?.completionRequested, booking?.status]);
 	const isAccepted = normalizedStatus === 'Upcoming' || normalizedStatus === 'accepted' || decision === 'accepted';
 	const displayAddress = booking?.address ?? booking?.city ?? 'Service location unavailable';
 	const displayDateText = booking?.dateText ?? `${booking?.scheduledDate ?? 'Scheduled'} • ${booking?.scheduledTime ?? ''}`.trim();

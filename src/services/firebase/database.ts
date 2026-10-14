@@ -1328,6 +1328,162 @@ export async function getBooking(bookingId: string): Promise<Booking | null> {
   return { ...(snapshot.val() as object), id: bookingId } as Booking;
 }
 
+export function subscribeToBooking(
+  bookingId: string,
+  onChange: (booking: Booking | null) => void,
+  onError?: (error: Error) => void,
+): () => void {
+  return onValue(
+    ref(database, `bookings/${bookingId}`),
+    snapshot => {
+      if (!snapshot.exists()) {
+        onChange(null);
+      } else {
+        onChange({ ...(snapshot.val() as object), id: bookingId } as Booking);
+      }
+    },
+    error => {
+      if (onError) onError(error);
+      else console.error(`[DB] Error subscribing to booking ${bookingId}:`, error);
+    },
+  );
+}
+
+export function subscribeToCustomerBookings(
+  customerId: string,
+  onChange: (bookings: Booking[]) => void,
+  onError?: (error: Error) => void,
+): () => void {
+  const bookingQuery = query(
+    ref(database, 'bookings'),
+    orderByChild('customerId'),
+    equalTo(customerId),
+  );
+
+  return onValue(
+    bookingQuery,
+    snapshot => {
+      const bookings = snapshotValues<Booking>(snapshot);
+      bookings.sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0));
+      onChange(bookings);
+    },
+    error => {
+      if (onError) onError(error);
+      else console.error('[DB] subscribeToCustomerBookings error:', error);
+    },
+  );
+}
+
+export function subscribeToProviderBookings(
+  providerId: string,
+  onChange: (bookings: Booking[]) => void,
+  onError?: (error: Error) => void,
+): () => void {
+  const directBookingsMap = new Map<string, Booking>();
+  const indexedBookingsMap = new Map<string, Booking>();
+  const indexedSubscribers = new Map<string, () => void>();
+  let isCleanedUp = false;
+
+  let emitTimer: ReturnType<typeof setTimeout> | null = null;
+  const emit = () => {
+    if (isCleanedUp) return;
+    if (emitTimer) {
+      clearTimeout(emitTimer);
+    }
+    emitTimer = setTimeout(() => {
+      if (isCleanedUp) return;
+      const combined = new Map<string, Booking>();
+      directBookingsMap.forEach((booking, id) => combined.set(id, booking));
+      indexedBookingsMap.forEach((booking, id) => combined.set(id, booking));
+      const list = Array.from(combined.values());
+      list.sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0));
+      onChange(list);
+    }, 16);
+  };
+
+  // 1. Direct bookings listener (where booking.providerId == providerId)
+  const directQuery = query(ref(database, 'bookings'), orderByChild('providerId'), equalTo(providerId));
+  const unsubscribeDirect = onValue(
+    directQuery,
+    snapshot => {
+      if (isCleanedUp) return;
+      directBookingsMap.clear();
+      snapshotValues<Booking>(snapshot).forEach(b => directBookingsMap.set(b.id, b));
+      emit();
+    },
+    error => {
+      if (!isCleanedUp) {
+        if (onError) onError(error);
+        else console.error('[DB] Direct provider bookings subscription error:', error);
+      }
+    },
+  );
+
+  // 2. Indexed bookings listener (for open booking requests quoted by the provider)
+  const indexRef = ref(database, `providerBookingIndex/${providerId}`);
+  const unsubscribeIndex = onValue(
+    indexRef,
+    snapshot => {
+      if (isCleanedUp) return;
+      const indexObj = (snapshot.val() ?? {}) as Record<string, boolean>;
+      const currentIndexedIds = new Set(Object.keys(indexObj));
+
+      // Remove listeners for booking IDs that were removed from the index
+      for (const [id, unsub] of indexedSubscribers.entries()) {
+        if (!currentIndexedIds.has(id)) {
+          unsub();
+          indexedSubscribers.delete(id);
+          indexedBookingsMap.delete(id);
+        }
+      }
+
+      // Add listeners for newly added booking IDs
+      currentIndexedIds.forEach(bookingId => {
+        if (!indexedSubscribers.has(bookingId)) {
+          const unsubItem = onValue(
+            ref(database, `bookings/${bookingId}`),
+            itemSnap => {
+              if (isCleanedUp) return;
+              if (itemSnap.exists()) {
+                indexedBookingsMap.set(bookingId, { ...(itemSnap.val() as object), id: bookingId } as Booking);
+              } else {
+                indexedBookingsMap.delete(bookingId);
+              }
+              emit();
+            },
+            err => {
+              console.warn(`[DB] Error in indexed booking subscription (${bookingId}):`, err);
+            },
+          );
+          indexedSubscribers.set(bookingId, unsubItem);
+        }
+      });
+
+      emit();
+    },
+    error => {
+      if (!isCleanedUp) {
+        if (onError) onError(error);
+        else console.error('[DB] Provider booking index subscription error:', error);
+      }
+    },
+  );
+
+  return () => {
+    isCleanedUp = true;
+    if (emitTimer) {
+      clearTimeout(emitTimer);
+      emitTimer = null;
+    }
+    unsubscribeDirect();
+    unsubscribeIndex();
+    indexedSubscribers.forEach(unsub => unsub());
+    indexedSubscribers.clear();
+    directBookingsMap.clear();
+    indexedBookingsMap.clear();
+  };
+}
+
 export async function updateBookingStatus(
   bookingId: string,
   status: BookingStatus,

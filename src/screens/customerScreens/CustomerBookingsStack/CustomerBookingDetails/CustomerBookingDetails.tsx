@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, BackHandler, Image, Linking, Pressable, ScrollView, StatusBar, Text, View } from 'react-native';
 import { CustomHeader, ICON_TYPE, IconX } from '../../../../components';
 import { colors } from '../../../../constants';
-import { approveBookingCompletion, rejectBookingCompletion, respondToOpenBookingQuote, updateBookingStatus } from '../../../../services/firebase';
+import { approveBookingCompletion, rejectBookingCompletion, respondToOpenBookingQuote, subscribeToBooking, updateBookingStatus } from '../../../../services/firebase';
 import type { BookingQuote } from '../../../../types/booking';
 import { styles } from './styles';
 import { showToast } from '../../../../utils';
@@ -62,6 +62,21 @@ export default function CustomerBookingDetails({ navigation, route }: Props) {
 			setBooking(normalizeBooking(route.params.booking));
 		}
 	}, [route?.params?.booking]);
+
+	useEffect(() => {
+		const bookingId = route?.params?.booking?.id;
+		if (!bookingId || bookingId === 'booking') return;
+
+		const unsubscribe = subscribeToBooking(bookingId, (freshBooking) => {
+			if (freshBooking) {
+				setBooking(normalizeBooking(freshBooking));
+			}
+		});
+
+		return () => {
+			unsubscribe();
+		};
+	}, [route?.params?.booking?.id]);
 
 	const isAccepted = booking.status === 'Accepted';
 	const isCompleted = booking.status === 'Completed';

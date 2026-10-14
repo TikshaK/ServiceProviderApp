@@ -23,12 +23,14 @@ import {
 import {
   getBookings,
   requestBookingCompletion,
+  subscribeToProviderBookings,
   updateBookingStatus
 } from '../../../../services/firebase';
 import { useAppSelector } from '../../../../store';
 import {
   hasActiveProviderQuote,
   isBookingExpired,
+  type Booking,
   type BookingStatus as FirebaseBookingStatus
 } from '../../../../types/booking';
 import { styles } from './styles';
@@ -67,88 +69,110 @@ interface ProviderBookingsProps {
   navigation?: any;
 }
 
+function mapBookingToItem(item: Booking, providerUid: string): BookingItem {
+  const myQuote = item.quotes?.[providerUid];
+  const previousRejectedQuotes = Object.values(item.quoteHistory ?? {})
+    .filter(quote => quote.providerId === providerUid
+      && quote.status === 'rejected'
+      && quote.quoteId !== myQuote?.quoteId)
+    .map(quote => quote.amount);
+  const isQuotePending = myQuote && myQuote.status === 'pending';
+  const isQuoteRejected = myQuote && myQuote.status === 'rejected';
+
+  const mappedStatus = isBookingExpired(item)
+    ? 'Expired'
+    : isQuoteRejected
+      ? 'Rejected Quote'
+      : item.status === 'accepted' || item.status === 'inProgress' || item.status === 'completionRequested'
+        ? 'Upcoming'
+        : item.status === 'completed'
+          ? 'Completed'
+          : item.status === 'cancelled' || item.status === 'declined'
+            ? 'Cancelled'
+            : 'Pending';
+
+  return {
+    id: item.id,
+    clientName: item.customerSnapshot?.fullName ?? 'Customer',
+    customerPhone: item.customerSnapshot?.phone,
+    serviceTitle: item.serviceSnapshot?.title ?? 'Service',
+    serviceImageUrl: item.serviceSnapshot?.imageUrls?.[0] ?? '',
+    status: mappedStatus,
+    dateText: `${item.scheduledDate} • ${item.scheduledTime}`,
+    address: item.addressSnapshot?.street ?? '',
+    amount: `$${myQuote ? myQuote.amount : item.totalAmount ?? item.quotedAmount ?? 0}`,
+    statusBgColor: isBookingExpired(item) ? '#FEF2F2' : mappedStatus === 'Pending' ? '#FFFBEB' : mappedStatus === 'Completed' ? '#ECFDF5' : mappedStatus === 'Cancelled' || mappedStatus === 'Rejected Quote' ? '#FEF2F2' : '#EFF6FF',
+    statusTextColor: isBookingExpired(item) ? '#DC2626' : mappedStatus === 'Pending' ? '#B45309' : mappedStatus === 'Completed' ? '#047857' : mappedStatus === 'Cancelled' || mappedStatus === 'Rejected Quote' ? '#DC2626' : '#1D4ED8',
+    dotColor: isBookingExpired(item) ? '#DC2626' : mappedStatus === 'Pending' ? '#D97706' : mappedStatus === 'Cancelled' || mappedStatus === 'Rejected Quote' ? '#DC2626' : '#2563EB',
+    avatarUrl: '',
+    notes: item.specialInstructions ?? undefined,
+    quotePending: isQuotePending,
+    hasSentQuote: hasActiveProviderQuote(item, providerUid),
+    previousRejectedQuotes,
+    completionRequested: item.status === 'completionRequested',
+    statusLabel: isQuotePending ? 'Quote sent' : isQuoteRejected ? 'Quote rejected' : item.status === 'completionRequested' ? 'Awaiting customer' : undefined,
+  };
+}
+
 export default function ProviderBookings({ navigation }: ProviderBookingsProps) {
   const profile = useAppSelector(state => state.user.profile);
   const [bookings, setBookings] = useState<BookingItem[]>([]);
   const [activeTab, setActiveTab] = useState<FilterTab>('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(true);
-  const requestId = useRef(0);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const hasLoadedOnce = useRef(false);
 
-  const refreshBookings = useCallback(async () => {
-    const currentRequestId = ++requestId.current;
-    if (!profile?.uid) {
-      setBookings([]);
-      setIsLoading(false);
-      return;
-    }
-
-    setIsLoading(true);
+  const handleRefresh = useCallback(async () => {
+    if (!profile?.uid) return;
+    setIsRefreshing(true);
     try {
       const items = await getBookings('providerId', profile.uid);
-      if (currentRequestId !== requestId.current) return;
-      setBookings(items.map(item => {
-        const myQuote = item.quotes?.[profile.uid];
-        const previousRejectedQuotes = Object.values(item.quoteHistory ?? {})
-          .filter(quote => quote.providerId === profile.uid
-            && quote.status === 'rejected'
-            && quote.quoteId !== myQuote?.quoteId)
-          .map(quote => quote.amount);
-        const isQuotePending = myQuote && myQuote.status === 'pending';
-        const isQuoteRejected = myQuote && myQuote.status === 'rejected';
-
-        const mappedStatus = isBookingExpired(item)
-          ? 'Expired'
-          : isQuoteRejected
-            ? 'Rejected Quote'
-            : item.status === 'accepted' || item.status === 'inProgress' || item.status === 'completionRequested'
-              ? 'Upcoming'
-              : item.status === 'completed'
-                ? 'Completed'
-                : item.status === 'cancelled' || item.status === 'declined'
-                  ? 'Cancelled'
-                  : 'Pending';
-
-        return {
-          id: item.id,
-          clientName: item.customerSnapshot.fullName,
-          customerPhone: item.customerSnapshot.phone,
-          serviceTitle: item.serviceSnapshot.title,
-          serviceImageUrl: item.serviceSnapshot.imageUrls?.[0] ?? '',
-          status: mappedStatus,
-          dateText: `${item.scheduledDate} • ${item.scheduledTime}`,
-          address: item.addressSnapshot?.street ?? '',
-          amount: `$${myQuote ? myQuote.amount : item.totalAmount ?? item.quotedAmount ?? 0}`,
-          statusBgColor: isBookingExpired(item) ? '#FEF2F2' : mappedStatus === 'Pending' ? '#FFFBEB' : mappedStatus === 'Completed' ? '#ECFDF5' : mappedStatus === 'Cancelled' || mappedStatus === 'Rejected Quote' ? '#FEF2F2' : '#EFF6FF',
-          statusTextColor: isBookingExpired(item) ? '#DC2626' : mappedStatus === 'Pending' ? '#B45309' : mappedStatus === 'Completed' ? '#047857' : mappedStatus === 'Cancelled' || mappedStatus === 'Rejected Quote' ? '#DC2626' : '#1D4ED8',
-          dotColor: isBookingExpired(item) ? '#DC2626' : mappedStatus === 'Pending' ? '#D97706' : mappedStatus === 'Cancelled' || mappedStatus === 'Rejected Quote' ? '#DC2626' : '#2563EB',
-          avatarUrl: '',
-          notes: item.specialInstructions ?? undefined,
-          quotePending: isQuotePending,
-          hasSentQuote: hasActiveProviderQuote(item, profile.uid),
-          previousRejectedQuotes,
-          completionRequested: item.status === 'completionRequested',
-          statusLabel: isQuotePending ? 'Quote sent' : isQuoteRejected ? 'Quote rejected' : item.status === 'completionRequested' ? 'Awaiting customer' : undefined,
-        };
-      }));
+      setBookings(items.map(item => mapBookingToItem(item, profile.uid)));
     } catch (error) {
-      if (currentRequestId !== requestId.current) return;
-      console.log('[ProviderBookings] Failed to load bookings:', error);
+      console.warn('[ProviderBookings] Manual refresh error:', error);
       showToast({
         type: 'error',
-        title: 'Unable to load bookings',
-        message: 'Check your connection and Firebase permissions, then refresh.',
+        title: 'Unable to refresh',
+        message: 'Check your connection and try again.',
       });
     } finally {
-      if (currentRequestId === requestId.current) setIsLoading(false);
+      setIsRefreshing(false);
     }
   }, [profile?.uid]);
 
   useFocusEffect(
     useCallback(() => {
-      refreshBookings();
-      return () => { requestId.current += 1; };
-    }, [refreshBookings])
+      if (!profile?.uid) {
+        setBookings([]);
+        setIsLoading(false);
+        return;
+      }
+
+      if (!hasLoadedOnce.current) {
+        setIsLoading(true);
+      }
+
+      const unsubscribe = subscribeToProviderBookings(
+        profile.uid,
+        (items: Booking[]) => {
+          const mapped = items.map(item => mapBookingToItem(item, profile.uid));
+          setBookings(mapped);
+          hasLoadedOnce.current = true;
+          setIsLoading(false);
+          setIsRefreshing(false);
+        },
+        error => {
+          console.warn('[ProviderBookings] Realtime subscription error:', error);
+          setIsLoading(false);
+          setIsRefreshing(false);
+        },
+      );
+
+      return () => {
+        unsubscribe();
+      };
+    }, [profile?.uid])
   );
 
   const counts = useMemo(() => {
@@ -268,7 +292,7 @@ export default function ProviderBookings({ navigation }: ProviderBookingsProps) 
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={isLoading} onRefresh={refreshBookings} />}>
+        refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} />}>
         <View style={styles.summaryBar}>
           <Text style={styles.summaryText}>
             Showing <Text style={styles.summaryHighlight}>
@@ -277,7 +301,7 @@ export default function ProviderBookings({ navigation }: ProviderBookingsProps) 
           </Text>
         </View>
 
-        {isLoading ? (
+        {isLoading && bookings.length === 0 ? (
           <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 40 }}>
             <ActivityIndicator size="large" color={colors.purple[700]} />
           </View>
