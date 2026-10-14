@@ -19,10 +19,12 @@ export const styles = StyleSheet.create({
     paddingBottom: verticalScale(8),
   },
   headerRow: {
+    // width: "60%",
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     marginBottom: verticalScale(16),
+    // backgroundColor:"red"
   },
   greetingRow: {
     flexDirection: 'row',
@@ -43,11 +45,15 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     gap: scale(4),
     marginTop: verticalScale(2),
+
   },
   locationText: {
     fontSize: fontSize[14],
     fontFamily: fonts.SemiBold,
     color: colors.black[500],
+    width:"95%"
+    // marginRight: scale(8),
+
   },
   bookServiceBtn: {
     backgroundColor: colors.purple[700],

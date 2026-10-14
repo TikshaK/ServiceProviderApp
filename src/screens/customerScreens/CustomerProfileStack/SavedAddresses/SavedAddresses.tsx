@@ -2,7 +2,7 @@ import React, { useCallback, useState } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import { Alert, Pressable, ScrollView, StatusBar, Text, View } from 'react-native';
 import { CustomHeader, ICON_TYPE, IconX } from '../../../../components';
-import { colors, navigationStrings } from '../../../../constants';
+import { colors, navigationStrings, strings } from '../../../../constants';
 import { getAddresses, deleteAddress } from '../../../../services/firebase';
 import { useAppSelector } from '../../../../store';
 import type { CustomerAddress } from '../../../../types/address';
@@ -50,7 +50,7 @@ export default function SavedAddresses({ navigation }: { navigation: any }) {
 				barStyle="dark-content"
 			/>
 			<CustomHeader
-				title="Add Edit Address"
+				title={strings.customerProfile.savedAddresses}
 				showBackButton
 				onLeftPress={() => navigation.goBack()}
 			/>

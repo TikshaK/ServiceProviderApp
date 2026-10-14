@@ -1,14 +1,16 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import {
   Image,
   Linking,
   Pressable,
+  RefreshControl,
   ScrollView,
   StatusBar,
   Text,
   TouchableOpacity,
   View,
+  ActivityIndicator,
 } from 'react-native';
 import {
   CustomSearchBar,
@@ -25,14 +27,15 @@ import {
 } from '../../../../services/firebase';
 import { useAppSelector } from '../../../../store';
 import {
+  hasActiveProviderQuote,
   isBookingExpired,
   type BookingStatus as FirebaseBookingStatus
 } from '../../../../types/booking';
 import { styles } from './styles';
 import { showToast } from '../../../../utils';
 
-type BookingStatus = 'Pending' | 'Upcoming' | 'Completed' | 'Cancelled' | 'Expired';
-type FilterTab = 'All' | 'Pending' | 'Upcoming' | 'Completed' | 'Cancelled' | 'Expired';
+type BookingStatus = 'Pending' | 'Upcoming' | 'Completed' | 'Cancelled' | 'Expired' | 'Rejected Quote';
+type FilterTab = 'All' | 'Pending' | 'Upcoming' | 'Completed' | 'Cancelled' | 'Expired' | 'Rejected Quotes';
 
 export interface BookingItem {
   id: string;
@@ -50,13 +53,15 @@ export interface BookingItem {
   dotColor?: string;
   notes?: string;
   quotePending?: boolean;
+  hasSentQuote?: boolean;
+  previousRejectedQuotes?: number[];
   completionRequested?: boolean;
   statusLabel?: string;
 }
 
 const TABS: FilterTab[] = ['All',
   'Pending', 'Upcoming', 'Completed',
-  'Cancelled', 'Expired'];
+  'Cancelled', 'Expired', 'Rejected Quotes'];
 
 interface ProviderBookingsProps {
   navigation?: any;
@@ -67,35 +72,83 @@ export default function ProviderBookings({ navigation }: ProviderBookingsProps) 
   const [bookings, setBookings] = useState<BookingItem[]>([]);
   const [activeTab, setActiveTab] = useState<FilterTab>('All');
   const [searchQuery, setSearchQuery] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
+  const requestId = useRef(0);
 
-  useFocusEffect(
-    useCallback(() => {
-      let active = true;
-      if (!profile?.uid) return;
-      getBookings('providerId', profile.uid).then(items => {
-        if (!active) return;
-        setBookings(items.map(item => ({
+  const refreshBookings = useCallback(async () => {
+    const currentRequestId = ++requestId.current;
+    if (!profile?.uid) {
+      setBookings([]);
+      setIsLoading(false);
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const items = await getBookings('providerId', profile.uid);
+      if (currentRequestId !== requestId.current) return;
+      setBookings(items.map(item => {
+        const myQuote = item.quotes?.[profile.uid];
+        const previousRejectedQuotes = Object.values(item.quoteHistory ?? {})
+          .filter(quote => quote.providerId === profile.uid
+            && quote.status === 'rejected'
+            && quote.quoteId !== myQuote?.quoteId)
+          .map(quote => quote.amount);
+        const isQuotePending = myQuote && myQuote.status === 'pending';
+        const isQuoteRejected = myQuote && myQuote.status === 'rejected';
+
+        const mappedStatus = isBookingExpired(item)
+          ? 'Expired'
+          : isQuoteRejected
+            ? 'Rejected Quote'
+            : item.status === 'accepted' || item.status === 'inProgress' || item.status === 'completionRequested'
+              ? 'Upcoming'
+              : item.status === 'completed'
+                ? 'Completed'
+                : item.status === 'cancelled' || item.status === 'declined'
+                  ? 'Cancelled'
+                  : 'Pending';
+
+        return {
           id: item.id,
           clientName: item.customerSnapshot.fullName,
           customerPhone: item.customerSnapshot.phone,
           serviceTitle: item.serviceSnapshot.title,
           serviceImageUrl: item.serviceSnapshot.imageUrls?.[0] ?? '',
-          status: isBookingExpired(item) ? 'Expired' : item.status === 'accepted' || item.status === 'inProgress' || item.status === 'completionRequested' ? 'Upcoming' : item.status === 'completed' ? 'Completed' : item.status === 'cancelled' || item.status === 'declined' ? 'Cancelled' : 'Pending',
+          status: mappedStatus,
           dateText: `${item.scheduledDate} • ${item.scheduledTime}`,
           address: item.addressSnapshot?.street ?? '',
-          amount: `$${item.totalAmount ?? item.quotedAmount ?? 0}`,
-          statusBgColor: isBookingExpired(item) ? '#FEF2F2' : item.status === 'pending' ? '#FFFBEB' : item.status === 'completed' ? '#ECFDF5' : item.status === 'cancelled' || item.status === 'declined' ? '#FEF2F2' : '#EFF6FF',
-          statusTextColor: isBookingExpired(item) ? '#DC2626' : item.status === 'pending' ? '#B45309' : item.status === 'completed' ? '#047857' : item.status === 'cancelled' || item.status === 'declined' ? '#DC2626' : '#1D4ED8',
-          dotColor: isBookingExpired(item) ? '#DC2626' : item.status === 'pending' ? '#D97706' : item.status === 'cancelled' || item.status === 'declined' ? '#DC2626' : '#2563EB',
+          amount: `$${myQuote ? myQuote.amount : item.totalAmount ?? item.quotedAmount ?? 0}`,
+          statusBgColor: isBookingExpired(item) ? '#FEF2F2' : mappedStatus === 'Pending' ? '#FFFBEB' : mappedStatus === 'Completed' ? '#ECFDF5' : mappedStatus === 'Cancelled' || mappedStatus === 'Rejected Quote' ? '#FEF2F2' : '#EFF6FF',
+          statusTextColor: isBookingExpired(item) ? '#DC2626' : mappedStatus === 'Pending' ? '#B45309' : mappedStatus === 'Completed' ? '#047857' : mappedStatus === 'Cancelled' || mappedStatus === 'Rejected Quote' ? '#DC2626' : '#1D4ED8',
+          dotColor: isBookingExpired(item) ? '#DC2626' : mappedStatus === 'Pending' ? '#D97706' : mappedStatus === 'Cancelled' || mappedStatus === 'Rejected Quote' ? '#DC2626' : '#2563EB',
           avatarUrl: '',
           notes: item.specialInstructions ?? undefined,
-          quotePending: item.status === 'quotePending',
+          quotePending: isQuotePending,
+          hasSentQuote: hasActiveProviderQuote(item, profile.uid),
+          previousRejectedQuotes,
           completionRequested: item.status === 'completionRequested',
-          statusLabel: item.status === 'quotePending' ? 'Quote sent' : item.status === 'completionRequested' ? 'Awaiting customer' : undefined,
-        })));
-      }).catch(() => setBookings([]));
-      return () => { active = false; };
-    }, [profile?.uid])
+          statusLabel: isQuotePending ? 'Quote sent' : isQuoteRejected ? 'Quote rejected' : item.status === 'completionRequested' ? 'Awaiting customer' : undefined,
+        };
+      }));
+    } catch (error) {
+      if (currentRequestId !== requestId.current) return;
+      console.log('[ProviderBookings] Failed to load bookings:', error);
+      showToast({
+        type: 'error',
+        title: 'Unable to load bookings',
+        message: 'Check your connection and Firebase permissions, then refresh.',
+      });
+    } finally {
+      if (currentRequestId === requestId.current) setIsLoading(false);
+    }
+  }, [profile?.uid]);
+
+  useFocusEffect(
+    useCallback(() => {
+      refreshBookings();
+      return () => { requestId.current += 1; };
+    }, [refreshBookings])
   );
 
   const counts = useMemo(() => {
@@ -105,22 +158,23 @@ export default function ProviderBookings({ navigation }: ProviderBookingsProps) 
     const completed = bookings.filter(b => b.status === 'Completed').length;
     const cancelled = bookings.filter(b => b.status === 'Cancelled').length;
     const expired = bookings.filter(b => b.status === 'Expired').length;
+    const rejected = bookings.filter(b => b.status === 'Rejected Quote').length;
     return {
       All: total,
       Pending: pending,
       Upcoming: upcoming,
       Completed: completed,
       Cancelled: cancelled,
-      Expired: expired
+      Expired: expired,
+      'Rejected Quotes': rejected
     };
   }, [bookings]);
 
   const filteredBookings = useMemo(() => {
     return bookings.filter(booking => {
-      console.log("Booking to filter:", booking)
       const matchesTab = activeTab === 'All'
-        ||
-        booking.status === activeTab;
+        || booking.status === activeTab
+        || (activeTab === 'Rejected Quotes' && booking.status === 'Rejected Quote');
       const query = searchQuery.trim().toLowerCase();
       const matchesSearch =
         !query ||
@@ -213,7 +267,8 @@ export default function ProviderBookings({ navigation }: ProviderBookingsProps) 
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}>
+        showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={isLoading} onRefresh={refreshBookings} />}>
         <View style={styles.summaryBar}>
           <Text style={styles.summaryText}>
             Showing <Text style={styles.summaryHighlight}>
@@ -222,7 +277,11 @@ export default function ProviderBookings({ navigation }: ProviderBookingsProps) 
           </Text>
         </View>
 
-        {filteredBookings.length === 0 ? (
+        {isLoading ? (
+          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 40 }}>
+            <ActivityIndicator size="large" color={colors.purple[700]} />
+          </View>
+        ) : filteredBookings.length === 0 ? (
           <View style={styles.emptyContainer}>
             <View style={styles.emptyIconBg}>
               <IconX
@@ -369,6 +428,12 @@ export default function ProviderBookings({ navigation }: ProviderBookingsProps) 
                       </View>
                     ) : null}
                   </View>
+
+                  {booking.previousRejectedQuotes?.length ? (
+                    <Text style={styles.infoText}>
+                      Previous rejected quote{booking.previousRejectedQuotes.length > 1 ? 's' : ''}: {booking.previousRejectedQuotes.map(amount => `$${amount.toFixed(2)}`).join(', ')}
+                    </Text>
+                  ) : null}
 
                   <View style={styles.detailsDivider} />
 

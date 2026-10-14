@@ -21,7 +21,7 @@ import {
 } from '../../../../constants';
 import { getBookings, subscribeToAllOpenBookings } from '../../../../services/firebase';
 import { useAppSelector } from '../../../../store';
-import { isBookingExpired, type OpenBookingListing } from '../../../../types/booking';
+import { hasActiveProviderQuote, isBookingExpired, type OpenBookingListing } from '../../../../types/booking';
 import { styles } from './styles';
 import ProviderQuoteModal from '../../ProviderQuoteModal';
 
@@ -157,6 +157,9 @@ export default function ProviderHome({ navigation }: any) {
           amount: 'Awaiting quote',
           notes: booking.specialInstructions,
           isOpenBooking: true,
+          quotes: booking.quotes,
+          quoteHistory: booking.quoteHistory,
+          hasSentQuote: hasActiveProviderQuote(booking, profile?.uid),
         },
     });
   };
@@ -299,9 +302,7 @@ export default function ProviderHome({ navigation }: any) {
 
                 onPress={() => {
                   if (action.id === 'add_service') {
-                    navigation.navigate(navigationStrings.PROVIDER_SERVICES_STACK, {
-                      screen: navigationStrings.ADD_EDIT_SERVICES,
-                    });
+                    navigation.navigate(navigationStrings.ADD_EDIT_SERVICES);
                   } else if (action.id === 'view_bookings') {
                     navigation.navigate(navigationStrings.PROVIDER_BOOKINGS_STACK, {
                       screen: navigationStrings.PROVIDER_BOOKINGS,
@@ -430,19 +431,23 @@ export default function ProviderHome({ navigation }: any) {
                     </Text>
                   </View>
 
-                  <TouchableOpacity
-                    style={styles.openBookingQuoteButton}
-                    activeOpacity={0.8}
-                    onPress={event => {
-                      event.stopPropagation();
-                      setQuoteBooking(booking);
-                    }}
-                  >
-                    <Text
-                      style={styles.openBookingQuoteButtonText}
-                    >
-                      Send quote</Text>
-                  </TouchableOpacity>
+                  {(() => {
+                    const hasQuoted = hasActiveProviderQuote(booking, profile?.uid);
+                    return (
+                      <TouchableOpacity
+                        style={[styles.openBookingQuoteButton, hasQuoted && { backgroundColor: colors.grey[400] }]}
+                        activeOpacity={0.8}
+                        onPress={event => {
+                          event.stopPropagation();
+                          if (!hasQuoted) setQuoteBooking(booking);
+                        }}
+                      >
+                        <Text style={styles.openBookingQuoteButtonText}>
+                          {hasQuoted ? 'Already sent' : 'Send quote'}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })()}
                 </View>
               </Pressable>
             ))}
@@ -452,7 +457,7 @@ export default function ProviderHome({ navigation }: any) {
       <ProviderQuoteModal
         booking={quoteBooking}
         onClose={() => setQuoteBooking(null)}
-        onQuoteSent={bookingId => setOpenBookings(current => current.filter(item => item.id !== bookingId))}
+        onQuoteSent={() => setQuoteBooking(null)}
       />
     </View >
   );

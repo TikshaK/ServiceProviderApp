@@ -6,6 +6,7 @@ import { signInWithEmailAndPassword, signOut } from '@react-native-firebase/auth
 import { colors, navigationStrings, strings } from '../../../constants';
 import { CustomButton, CustomHeader, CustomInput, ICON_TYPE, IconX } from '../../../components';
 import { firebaseAuth, getUserProfile } from '../../../services/firebase';
+import { baseApi } from '../../../services/baseApi';
 import { getEmailError, getPasswordError, validateEmail, validatePassword } from '../../../utils';
 import { setInteractiveLoginInProgress, syncAuthenticatedUser, useAppDispatch } from '../../../store';
 import { styles } from './styles';
@@ -46,14 +47,14 @@ export default function Login({ navigation }: LoginProps) {
 
     try {
       console.log('[Login] calling signInWithEmailAndPassword(email):', email.trim());
-      const userCredential = await signInWithEmailAndPassword(firebaseAuth, email.trim(), password);
+      const userCredential = await baseApi(() => signInWithEmailAndPassword(firebaseAuth, email.trim(), password));
       const { uid, email: fbEmail, emailVerified } = userCredential.user;
       console.log('[Login] signInWithEmailAndPassword SUCCESS -> uid:', uid, '| email:', fbEmail, '| emailVerified:', emailVerified);
 
       const currentUser = firebaseAuth.currentUser;
       if (currentUser) {
         console.log('[Login] currentUser present, calling reload()...');
-        await currentUser.reload();
+        await baseApi(() => currentUser.reload());
         console.log('[Login] reload() done -> emailVerified:', currentUser.emailVerified, '| email:', currentUser.email);
 
         if (!currentUser.emailVerified) {
@@ -71,7 +72,7 @@ export default function Login({ navigation }: LoginProps) {
         console.warn('[Login] signIn succeeded but currentUser is null!');
       }
     } catch (error: any) {
-      console.error('[Login] FAILED -> code:', error?.code ?? 'N/A', '| message:', error?.message ?? error, '| nativeErrorMessage:', error?.nativeErrorMessage ?? 'N/A');
+      console.log('[Login] FAILED -> code:', error?.code ?? 'N/A', '| message:', error?.message ?? error, '| nativeErrorMessage:', error?.nativeErrorMessage ?? 'N/A');
       switch (error.code) {
         case 'auth/invalid-credential':
           setAuthError('Invalid email or password');

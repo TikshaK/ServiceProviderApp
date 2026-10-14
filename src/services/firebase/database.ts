@@ -1,11 +1,12 @@
-import { equalTo, get, getDatabase, onValue, 
-  orderByChild, push, query, ref, runTransaction, set, update
+import { equalTo, get as firebaseGet, getDatabase, onValue as firebaseOnValue,
+  orderByChild, push, query, ref, runTransaction as firebaseRunTransaction, set as firebaseSet, update as firebaseUpdate
  } from '@react-native-firebase/database';
 import { getApp } from '@react-native-firebase/app';
 import { getAuth, EmailAuthProvider, reauthenticateWithCredential } from '@react-native-firebase/auth';
+import { baseApi, subscribeWhenOnline } from '../baseApi';
 import { PublicProviderProfile, SignUpProfilePayload, UserProfile } from '../../types/user';
 import { CreateServicePayload, Service } from '../../types/service';
-import { Booking, BookingStatus, CreateBookingPayload, CreateOpenBookingPayload, OpenBookingListing } from '../../types/booking';
+import { Booking, BookingQuote, BookingStatus, CreateBookingPayload, CreateOpenBookingPayload, OpenBookingListing } from '../../types/booking';
 import { CustomerAddress } from '../../types/address';
 import { Review } from '../../types/review';
 import { AppNotification, NotificationType } from '../../types/notification';
@@ -13,6 +14,27 @@ import { AppNotification, NotificationType } from '../../types/notification';
 const database = getDatabase(getApp());
 
 const now = () => Date.now();
+const get = (...args: Parameters<typeof firebaseGet>) => baseApi(() => firebaseGet(...args));
+const set = (...args: Parameters<typeof firebaseSet>) => baseApi(() => firebaseSet(...args));
+const update = (...args: Parameters<typeof firebaseUpdate>) => baseApi(() => firebaseUpdate(...args));
+const runTransaction = (...args: Parameters<typeof firebaseRunTransaction>) => baseApi(() => firebaseRunTransaction(...args));
+
+function onValue(
+  queryRef: Parameters<typeof firebaseOnValue>[0],
+  callback: Parameters<typeof firebaseOnValue>[1],
+  cancelCallback?: Parameters<typeof firebaseOnValue>[2],
+  options?: Parameters<typeof firebaseOnValue>[3],
+) {
+  return subscribeWhenOnline(() => {
+    if (cancelCallback && options) {
+      return firebaseOnValue(queryRef, callback, cancelCallback, options);
+    }
+    if (cancelCallback) {
+      return firebaseOnValue(queryRef, callback, cancelCallback);
+    }
+    return firebaseOnValue(queryRef, callback);
+  });
+}
 
 function toOpenBookingListing(
   id: string,
@@ -381,7 +403,7 @@ export async function submitOpenBookingQuote(
     amount,
   });
   if (!Number.isFinite(amount) || amount <= 0 || !category || provider.role !== 'provider') {
-    console.error('[QUOTE_SUBMIT] input validation failed', {
+    console.log('[QUOTE_SUBMIT] input validation failed', {
       bookingId,
       validAmount: Number.isFinite(amount) && amount > 0,
       hasCategory: Boolean(category),
@@ -393,6 +415,24 @@ export async function submitOpenBookingQuote(
   const quotedAmount = Math.round(amount * 100) / 100;
   const platformFee = Math.round(quotedAmount * 0.05 * 100) / 100;
   const timestamp = now();
+  const quoteId = push(ref(database, `bookings/${bookingId}/quoteHistory`)).key;
+  if (!quoteId) {
+    throw new Error('Unable to create this quote. Please try again.');
+  }
+  const newQuote = {
+    quoteId,
+    providerId: provider.uid,
+    providerName: provider.fullName,
+    providerSnapshot: {
+      uid: provider.uid,
+      fullName: provider.fullName,
+      ...(provider.serviceName ? { serviceName: provider.serviceName } : {}),
+    },
+    amount: quotedAmount,
+    fee: platformFee,
+    status: 'pending' as const,
+    createdAt: timestamp,
+  };
   const listingRef = ref(database, `openBookingListings/${category}/${bookingId}`);
   const listingSnapshot = await runQuoteApprovalStage(bookingId, 'quote-listing-read', () => get(listingRef));
   if (!listingSnapshot.exists()) {
@@ -428,6 +468,7 @@ export async function submitOpenBookingQuote(
 
   let transactionAttempt = 0;
   let prefetchedFallbackAvailable = true;
+  let replacedQuote: BookingQuote | undefined;
   const result = await runQuoteApprovalStage(bookingId, 'quote-listing-transaction', () => runTransaction(listingRef, current => {
     transactionAttempt += 1;
     let listing = current as OpenBookingListing | null;
@@ -462,52 +503,78 @@ export async function submitOpenBookingQuote(
       });
       return;
     }
-    console.log('[QUOTE_SUBMIT] listing transaction transition', { bookingId, category, from: listing.status, to: 'quotePending' });
+    const existingQuote = listing.quotes?.[provider.uid];
+    if (existingQuote && existingQuote.status !== 'rejected') {
+      console.warn('[QUOTE_SUBMIT] provider already has an active quote', { bookingId, providerId: provider.uid });
+      return;
+    }
+    replacedQuote = existingQuote;
+    console.log('[QUOTE_SUBMIT] listing transaction adding quote', { bookingId, category, providerId: provider.uid });
+
     return {
       ...listing,
-      status: 'quotePending',
-      providerId: provider.uid,
-      providerName: provider.fullName,
-      quotedAmount,
-      quotedFee: platformFee,
+      quotes: {
+        ...(listing.quotes || {}),
+        [provider.uid]: newQuote,
+      },
+      quoteHistory: {
+        ...(listing.quoteHistory || {}),
+        [quoteId]: newQuote,
+      },
     };
   }));
   console.log('[QUOTE_SUBMIT] listing transaction result', {
     bookingId,
     category,
     committed: result.committed,
-    finalStatus: result.snapshot.child('status').val(),
   });
 
   if (!result.committed) {
-    throw new Error(`This request could not be quoted (current status: ${result.snapshot.child('status').val() ?? 'missing'}). Refresh the bookings list and try again.`);
+    throw new Error('You already have an active quote for this request, or the request is no longer open. Refresh the bookings list and try again.');
   }
 
   const listing = result.snapshot.val() as OpenBookingListing;
   try {
     await runQuoteApprovalStage(bookingId, 'quote-booking-update', () => update(ref(database), {
-      [`bookings/${bookingId}/providerId`]: provider.uid,
-      [`bookings/${bookingId}/providerSnapshot`]: {
-        uid: provider.uid,
-        fullName: provider.fullName,
-        ...(provider.serviceName ? { serviceName: provider.serviceName } : {}),
+      [`bookings/${bookingId}/quotes/${provider.uid}`]: {
+        ...newQuote,
       },
-      [`bookings/${bookingId}/status`]: 'quotePending',
-      [`bookings/${bookingId}/quotedAmount`]: quotedAmount,
-      [`bookings/${bookingId}/quoteSubmittedAt`]: timestamp,
-      [`bookings/${bookingId}/baseAmount`]: quotedAmount,
-      [`bookings/${bookingId}/platformFee`]: platformFee,
-      [`bookings/${bookingId}/totalAmount`]: quotedAmount + platformFee,
+      [`bookings/${bookingId}/quoteHistory/${quoteId}`]: {
+        ...newQuote,
+      },
       [`bookings/${bookingId}/updatedAt`]: timestamp,
     }));
   } catch (error) {
-    await runTransaction(listingRef, current => current?.providerId === provider.uid && current.status === 'quotePending'
-      ? { ...current, status: 'pending', providerId: null, providerName: null, quotedAmount: null, quotedFee: null }
-      : undefined);
+    // Note: Transaction fallback if update fails is trickier with map, but we can delete the quote.
+    await runTransaction(listingRef, current => {
+      if (current?.quotes?.[provider.uid]?.quoteId === quoteId) {
+        const newQuotes = { ...current.quotes };
+        if (replacedQuote) {
+          newQuotes[provider.uid] = replacedQuote;
+        } else {
+          delete newQuotes[provider.uid];
+        }
+        const newHistory = { ...(current.quoteHistory ?? {}) };
+        delete newHistory[quoteId];
+        return { ...current, quotes: newQuotes, quoteHistory: newHistory };
+      }
+      return undefined;
+    });
     throw error;
   }
+    const customerId = listing?.customerId
+      ?? (await get(ref(database, `bookings/${bookingId}/customerId`))).val();
     await runQuoteApprovalStage(bookingId, 'quote-provider-index-update', () => set(ref(database, `providerBookingIndex/${provider.uid}/${bookingId}`), true));
-    await runQuoteApprovalStage(bookingId, 'quote-customer-notification', () => createNotification(listing.customerId, 'bookingAccepted', 'Quote received', `${provider.fullName} sent a quote for ${listing.category}.`, bookingId, provider.uid));
+    if (customerId) {
+      await runQuoteApprovalStage(bookingId, 'quote-customer-notification', () => createNotification(
+        customerId,
+        'quoteReceived',
+        'New quote received',
+        `${provider.fullName} sent a quote of $${quotedAmount.toFixed(2)} for ${category}.`,
+        bookingId,
+        provider.uid
+      ));
+    }
     console.log('[QUOTE_SUBMIT] service completed', { bookingId, category, providerId: provider.uid });
 }
 
@@ -522,7 +589,7 @@ async function runQuoteApprovalStage<T>(
     console.log('[QUOTE_APPROVAL] stage completed', { bookingId, stage });
     return result;
   } catch (error) {
-    console.error('[QUOTE_APPROVAL] stage failed', { bookingId, stage, error });
+    console.log('[QUOTE_APPROVAL] stage failed', { bookingId, stage, error });
     throw error;
   }
 }
@@ -530,7 +597,7 @@ async function runQuoteApprovalStage<T>(
 export async function respondToOpenBookingQuote(
   bookingId: string,
   approve: boolean,
-  expectedQuote?: { providerId?: string; quotedAmount?: number },
+  expectedQuote?: { providerId?: string; quotedAmount?: number; quoteId?: string },
 ): Promise<void> {
   console.log('[QUOTE_APPROVAL] service started', { bookingId, approve });
   const bookingRef = ref(database, `bookings/${bookingId}`);
@@ -553,13 +620,189 @@ export async function respondToOpenBookingQuote(
       : 'This booking and its quote could not be found. Refresh your bookings and try again.');
   }
 
+  const initialBooking = bookingSnapshot.val() as Booking;
+  if (initialBooking.bookingType === 'open' && initialBooking.quotes && expectedQuote?.providerId) {
+    let respondedQuote: BookingQuote | undefined;
+    let syncedBooking: Booking | null = null;
+    await runQuoteApprovalStage(bookingId, 'multi-quote-native-cache-sync', () => new Promise<void>((resolve, reject) => {
+      let unsubscribe: (() => void) | undefined;
+      const timeout = setTimeout(() => {
+        unsubscribe?.();
+        reject(new Error('Unable to sync this booking. Check your connection and try again.'));
+      }, 10000);
+
+      unsubscribe = onValue(bookingRef, snapshot => {
+        if (!snapshot.exists()) return;
+        syncedBooking = snapshot.val() as Booking;
+        clearTimeout(timeout);
+        unsubscribe?.();
+        resolve();
+      }, error => {
+        clearTimeout(timeout);
+        unsubscribe?.();
+        reject(error);
+      });
+    }));
+
+    let prefetchedFallbackAvailable = true;
+    const result = await runQuoteApprovalStage(bookingId, 'multi-quote-transaction', () => runTransaction(bookingRef, current => {
+      let booking = current as Booking | null;
+      if (!booking && prefetchedFallbackAvailable) {
+        booking = syncedBooking ?? initialBooking;
+        prefetchedFallbackAvailable = false;
+        console.warn('[QUOTE_APPROVAL] transaction using verified listener snapshot', {
+          bookingId,
+          fallbackStatus: booking.status,
+          hasQuotes: Boolean(booking.quotes),
+        });
+      }
+      if (!booking || booking.status !== 'pending' || !booking.quotes) return;
+      const quote = booking.quotes[expectedQuote.providerId as string];
+      if (
+        !quote
+        || quote.status !== 'pending'
+        || (expectedQuote.quoteId && quote.quoteId !== expectedQuote.quoteId)
+        || (expectedQuote.quotedAmount != null && quote.amount !== expectedQuote.quotedAmount)
+      ) return;
+
+      respondedQuote = quote;
+      const timestamp = now();
+      const quotes = Object.fromEntries(Object.entries(booking.quotes).map(([providerId, item]) => [
+        providerId,
+        {
+          ...item,
+          status: approve && item.status === 'pending'
+            ? providerId === expectedQuote.providerId ? 'accepted' : 'rejected'
+            : !approve && providerId === expectedQuote.providerId ? 'rejected' : item.status,
+        },
+      ])) as NonNullable<Booking['quotes']>;
+      const updatedHistory = Object.fromEntries(Object.entries(booking.quoteHistory ?? {}).map(([id, item]) => [
+        id,
+        {
+          ...item,
+          status: item.quoteId === quote.quoteId
+            ? approve ? 'accepted' : 'rejected'
+            : approve && item.status === 'pending' ? 'rejected' : item.status,
+        },
+      ])) as NonNullable<Booking['quoteHistory']>;
+
+      if (!approve) {
+        return { ...booking, quotes, quoteHistory: updatedHistory, updatedAt: timestamp };
+      }
+
+      const providerSnapshot = quote.providerSnapshot ?? {
+        uid: quote.providerId,
+        fullName: quote.providerName ?? 'Service provider',
+      };
+      return {
+        ...booking,
+        status: 'accepted',
+        providerId: quote.providerId,
+        providerSnapshot,
+        quotedAmount: quote.amount,
+        quoteSubmittedAt: quote.createdAt,
+        baseAmount: quote.amount,
+        platformFee: quote.fee,
+        totalAmount: quote.amount + quote.fee,
+        quotes,
+        quoteHistory: updatedHistory,
+        updatedAt: timestamp,
+      };
+    }));
+    const updatedBooking = result.snapshot.val() as Booking | null;
+    if (!result.committed || !updatedBooking || !respondedQuote) {
+      throw new Error('This quote is no longer awaiting a response. Refresh the booking and try again.');
+    }
+
+    if (initialBooking.category) {
+      const listingRef = ref(database, `openBookingListings/${initialBooking.category}/${bookingId}`);
+      const listingSnapshot = await runQuoteApprovalStage(bookingId, 'multi-quote-listing-read', () => get(listingRef));
+      if (listingSnapshot.exists()) {
+        let syncedListing: OpenBookingListing | null = null;
+        await runQuoteApprovalStage(bookingId, 'multi-quote-listing-cache-sync', () => new Promise<void>((resolve, reject) => {
+          let unsubscribe: (() => void) | undefined;
+          const timeout = setTimeout(() => {
+            unsubscribe?.();
+            reject(new Error('Unable to sync the open request. Check your connection and refresh the booking.'));
+          }, 10000);
+
+          unsubscribe = onValue(listingRef, snapshot => {
+            if (!snapshot.exists()) return;
+            syncedListing = snapshot.val() as OpenBookingListing;
+            clearTimeout(timeout);
+            unsubscribe?.();
+            resolve();
+          }, error => {
+            clearTimeout(timeout);
+            unsubscribe?.();
+            reject(error);
+          });
+        }));
+
+        let prefetchedListingFallbackAvailable = true;
+        const listingResult = await runQuoteApprovalStage(bookingId, 'multi-quote-listing-sync', () => runTransaction(listingRef, current => {
+          let listing = current as OpenBookingListing | null;
+          if (!listing && prefetchedListingFallbackAvailable) {
+            listing = syncedListing ?? listingSnapshot.val() as OpenBookingListing;
+            prefetchedListingFallbackAvailable = false;
+            console.warn('[QUOTE_APPROVAL] listing transaction using verified listener snapshot', {
+              bookingId,
+              fallbackStatus: listing.status,
+            });
+          }
+          if (!listing) return;
+          return {
+            ...listing,
+            status: approve ? 'accepted' : 'pending',
+            quotes: updatedBooking.quotes ?? {},
+            quoteHistory: updatedBooking.quoteHistory ?? {},
+          };
+        }));
+        if (!listingResult.committed) {
+          const currentListing = listingResult.snapshot.val() as OpenBookingListing | null;
+          if (currentListing) {
+            throw new Error(`Your response was saved, but the open request could not be synchronized (current listing status: ${currentListing.status}). Refresh the booking to confirm its status.`);
+          }
+          console.warn('[QUOTE_APPROVAL] listing disappeared after booking response was saved', { bookingId });
+        }
+      } else {
+        console.warn('[QUOTE_APPROVAL] listing missing after booking response was saved', { bookingId, category: initialBooking.category });
+      }
+    }
+
+    const pendingQuotes = Object.values(initialBooking.quotes).filter(quote => quote.status === 'pending');
+    if (approve) {
+      await Promise.all(pendingQuotes.map(quote => createNotification(
+        quote.providerId,
+        quote.providerId === respondedQuote?.providerId ? 'quoteAccepted' : 'quoteRejected',
+        quote.providerId === respondedQuote?.providerId ? 'Quote accepted' : 'Quote not selected',
+        quote.providerId === respondedQuote?.providerId
+          ? `${initialBooking.customerSnapshot.fullName} accepted your quote.`
+          : `${initialBooking.customerSnapshot.fullName} accepted another provider's quote.`,
+        bookingId,
+        initialBooking.customerId,
+      )));
+    } else {
+      await createNotification(
+        respondedQuote.providerId,
+        'quoteRejected',
+        'Quote rejected',
+        `${initialBooking.customerSnapshot.fullName} rejected your quote.`,
+        bookingId,
+        initialBooking.customerId,
+      );
+    }
+    console.log('[QUOTE_APPROVAL] multi-provider response completed', { bookingId, approve, providerId: respondedQuote.providerId });
+    return;
+  }
+
   let syncedBooking: Booking | null = null;
   await runQuoteApprovalStage(bookingId, 'native-cache-sync', () => new Promise<void>((resolve, reject) => {
     console.log('[QUOTE_APPROVAL] waiting for booking value listener', { bookingId });
     let unsubscribe: (() => void) | undefined;
     const timeout = setTimeout(() => {
       unsubscribe?.();
-      console.error('[QUOTE_APPROVAL] booking value listener timed out', { bookingId });
+      console.log('[QUOTE_APPROVAL] booking value listener timed out', { bookingId });
       reject(new Error('Unable to sync this booking. Check your connection and try again.'));
     }, 10000);
 
@@ -991,9 +1234,88 @@ export async function approveBookingCompletion(bookingId: string): Promise<void>
   console.log('[COMPLETION_APPROVAL] service completed', { bookingId });
 }
 
+export async function rejectBookingCompletion(bookingId: string): Promise<void> {
+  const bookingRef = ref(database, `bookings/${bookingId}`);
+  const bookingSnapshot = await get(bookingRef);
+  if (!bookingSnapshot.exists()) {
+    throw new Error('This booking could not be found. Refresh your bookings and try again.');
+  }
+
+  let syncedBooking: Booking | null = null;
+  await new Promise<void>((resolve, reject) => {
+    let unsubscribe: (() => void) | undefined;
+    const timeout = setTimeout(() => {
+      unsubscribe?.();
+      reject(new Error('Unable to sync this booking. Check your connection and try again.'));
+    }, 10000);
+    unsubscribe = onValue(bookingRef, snapshot => {
+      if (!snapshot.exists()) return;
+      syncedBooking = snapshot.val() as Booking;
+      clearTimeout(timeout);
+      unsubscribe?.();
+      resolve();
+    }, error => {
+      clearTimeout(timeout);
+      unsubscribe?.();
+      reject(error);
+    });
+  });
+
+  let fallbackAvailable = true;
+  const result = await runTransaction(bookingRef, current => {
+    let booking = current as Booking | null;
+    if (!booking && fallbackAvailable) {
+      booking = syncedBooking ?? bookingSnapshot.val() as Booking;
+      fallbackAvailable = false;
+    }
+    if (!booking || booking.status !== 'completionRequested') return;
+    return { ...booking, status: 'inProgress', completionRequestedAt: null, updatedAt: now() };
+  });
+  if (!result.committed) {
+    const current = result.snapshot.val() as Booking | null;
+    if (current?.status === 'inProgress') return;
+    throw new Error(`This booking is not awaiting completion approval (current status: ${current?.status ?? 'missing'}).`);
+  }
+
+  const booking = result.snapshot.val() as Booking;
+  if (booking.providerId) {
+    await createNotification(
+      booking.providerId,
+      'bookingCompletionRejected',
+      'Completion not approved',
+      `${booking.customerSnapshot.fullName} has not approved completion yet. Please follow up with the customer.`,
+      bookingId,
+      booking.customerId,
+    );
+  }
+}
+
 export async function getBookings(field: 'customerId' | 'providerId', value: string, status?: BookingStatus): Promise<Booking[]> {
   const bookingQuery = query(ref(database, 'bookings'), orderByChild(field), equalTo(value));
-  const bookings = snapshotValues<Booking>(await get(bookingQuery));
+  const directBookings = snapshotValues<Booking>(await get(bookingQuery));
+  let bookings = directBookings;
+  if (field === 'providerId') {
+    const indexSnapshot = await get(ref(database, `providerBookingIndex/${value}`));
+    const indexedBookingIds = Object.keys(indexSnapshot.val() ?? {});
+    const indexedBookingResults = await Promise.allSettled(indexedBookingIds.map(async bookingId => {
+      const bookingSnapshot = await get(ref(database, `bookings/${bookingId}`));
+      return bookingSnapshot.exists()
+        ? { ...(bookingSnapshot.val() as object), id: bookingId } as Booking
+        : null;
+    }));
+    const indexedBookings = indexedBookingResults.flatMap((result, index) => {
+      if (result.status === 'fulfilled') return result.value ? [result.value] : [];
+      console.warn('[DB] Unable to read indexed provider booking', {
+        providerId: value,
+        bookingId: indexedBookingIds[index],
+        error: result.reason,
+      });
+      return [];
+    });
+    const byId = new Map([...directBookings, ...indexedBookings]
+      .map(booking => [booking.id, booking]));
+    bookings = [...byId.values()];
+  }
   const result = status ? bookings.filter(booking => booking.status === status) : bookings;
   return result.sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0));
 }
@@ -1165,10 +1487,10 @@ export async function deleteAccount(uid: string, password: string): Promise<void
         throw new Error('Unable to delete account. Please try again.');
       }
       const credential = EmailAuthProvider.credential(email, password);
-      await reauthenticateWithCredential(currentUser, credential);
+      await baseApi(() => reauthenticateWithCredential(currentUser, credential));
 
       // 5. Delete the Firebase Auth user LAST
-      await currentUser.delete();
+      await baseApi(() => currentUser.delete());
     }
   } catch (error: any) {
     console.error('[DB] deleteAccount FAILED', {

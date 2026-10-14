@@ -7,6 +7,7 @@ import { colors, navigationStrings, strings } from '../../../constants';
 import { CustomButton, CustomHeader, CustomInput, ICON_TYPE, IconX } from '../../../components';
 import { getEmailError, showToast, validateEmail } from '../../../utils';
 import { firebaseAuth } from '../../../services/firebase';
+import { baseApi } from '../../../services/baseApi';
 import { styles } from './styles';
 
 type RoleType = 'customer' | 'provider';
@@ -42,7 +43,7 @@ export default function ResetPassword({ navigation, route }: ResetPasswordProps)
       // we get auth/user-not-found. If it exists, we get auth/wrong-password
       // or auth/invalid-credential.
       try {
-        await signInWithEmailAndPassword(firebaseAuth, normalizedEmail, 'dummyPassword123!');
+        await baseApi(() => signInWithEmailAndPassword(firebaseAuth, normalizedEmail, 'dummyPassword123!'));
       } catch (checkError: any) {
         if (checkError?.code === 'auth/user-not-found') {
           showToast({ type: 'error', title: strings.alerts.accountNotFound, message: strings.alerts.notRegistered });
@@ -51,7 +52,7 @@ export default function ResetPassword({ navigation, route }: ResetPasswordProps)
         // auth/wrong-password or auth/invalid-credential means the email exists.
       }
 
-      await sendPasswordResetEmail(firebaseAuth, normalizedEmail);
+      await baseApi(() => sendPasswordResetEmail(firebaseAuth, normalizedEmail));
       Alert.alert(
         strings.resetPassword.successTitle,
         `${strings.resetPassword.successMessage} ${normalizedEmail}. ${strings.resetPassword.successNextStep}`,

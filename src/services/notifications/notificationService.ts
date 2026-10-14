@@ -24,15 +24,17 @@ import {
   requestPermission,
 } from '@react-native-firebase/messaging';
 import {
-  get,
+  get as firebaseGet,
   getDatabase,
   push,
   ref,
-  set,
-  update,
+  set as firebaseSet,
+  update as firebaseUpdate,
 } from '@react-native-firebase/database';
 import { getApp } from '@react-native-firebase/app';
 import { PermissionsAndroid, Platform } from 'react-native';
+import notifee, { EventType } from '@notifee/react-native';
+import { baseApi } from '../baseApi';
 
 // NOTE: Background/terminated FCM messages are handled in index.js —
 // RN Firebase v26 requires setBackgroundMessageHandler(messaging, handler)
@@ -58,6 +60,9 @@ export interface NotificationTap {
 
 const messaging = getMessaging(getApp());
 const database = getDatabase(getApp());
+const get = (...args: Parameters<typeof firebaseGet>) => baseApi(() => firebaseGet(...args));
+const set = (...args: Parameters<typeof firebaseSet>) => baseApi(() => firebaseSet(...args));
+const update = (...args: Parameters<typeof firebaseUpdate>) => baseApi(() => firebaseUpdate(...args));
 
 type TokenEntry = { token?: string; platform?: string; updatedAt?: number };
 type TokenMap = Record<string, TokenEntry | string | null>;
@@ -101,7 +106,7 @@ export async function requestNotificationPermission(): Promise<boolean> {
 /** Fetch this device's FCM registration token (null when unavailable). */
 export async function getFCMToken(): Promise<string | null> {
   try {
-    const token = await getToken(messaging);
+    const token = await baseApi(() => getToken(messaging));
     return token || null;
   } catch (error) {
     console.log('[Push] getFCMToken FAILED:', error);
@@ -225,12 +230,12 @@ export function setupTokenRefreshListener(onRefresh: () => void): () => void {
   });
 }
 
-/** Notification tapped while the app was in the background (still running). */
+/** Notification tapped while the app was in the background or foreground. */
 export function setupNotificationTapListener(
   onTap: (tap: NotificationTap) => void,
 ): () => void {
-  return onNotificationOpenedApp(messaging, remoteMessage => {
-    console.log('[Push] NOTIFICATION TAPPED (app was in BACKGROUND):', {
+  const unsubscribeFcm = onNotificationOpenedApp(messaging, remoteMessage => {
+    console.log('[Push] NOTIFICATION TAPPED (FCM background):', {
       messageId: remoteMessage?.messageId,
       title: remoteMessage?.notification?.title,
       data: remoteMessage?.data,
@@ -244,6 +249,21 @@ export function setupNotificationTapListener(
       bookingId: typeof data.bookingId === 'string' ? data.bookingId : undefined,
     });
   });
+
+  const unsubscribeNotifee = notifee.onForegroundEvent(({ type, detail }) => {
+    if (type === EventType.PRESS && detail.notification?.data?.bookingId) {
+      console.log('[Push] NOTIFICATION TAPPED (Notifee foreground):', detail.notification.data);
+      onTap({
+        bookingId: String(detail.notification.data.bookingId),
+        type: typeof detail.notification.data.type === 'string' ? detail.notification.data.type : undefined,
+      });
+    }
+  });
+
+  return () => {
+    unsubscribeFcm();
+    unsubscribeNotifee();
+  };
 }
 
 /** Notification that opened the app from a fully-quit state (cold start). */
@@ -251,19 +271,28 @@ export async function getInitialNotificationTap(): Promise<NotificationTap | nul
   try {
     const remoteMessage = await getInitialNotification(messaging);
     const data = remoteMessage?.data;
-    if (!data) {
-      console.log('[Push] cold start: no notification launch recorded');
-      return null;
+    if (data && (data.bookingId || data.type)) {
+      console.log('[Push] NOTIFICATION TAPPED (COLD START — FCM):', {
+        messageId: remoteMessage?.messageId,
+        title: remoteMessage?.notification?.title,
+        data,
+      });
+      return {
+        type: typeof data.type === 'string' ? data.type : undefined,
+        bookingId: typeof data.bookingId === 'string' ? data.bookingId : undefined,
+      };
     }
-    console.log('[Push] NOTIFICATION TAPPED (COLD START — opened the app):', {
-      messageId: remoteMessage?.messageId,
-      title: remoteMessage?.notification?.title,
-      data,
-    });
-    return {
-      type: typeof data.type === 'string' ? data.type : undefined,
-      bookingId: typeof data.bookingId === 'string' ? data.bookingId : undefined,
-    };
+
+    const notifeeInitial = await notifee.getInitialNotification();
+    if (notifeeInitial?.notification?.data?.bookingId) {
+      console.log('[Push] NOTIFICATION TAPPED (COLD START — Notifee):', notifeeInitial.notification.data);
+      return {
+        bookingId: String(notifeeInitial.notification.data.bookingId),
+        type: typeof notifeeInitial.notification.data.type === 'string' ? notifeeInitial.notification.data.type : undefined,
+      };
+    }
+
+    return null;
   } catch (error) {
     console.log('[Push] getInitialNotification FAILED:', error);
     return null;

@@ -13,6 +13,7 @@ import { getEmailError, getFullNameError, getPasswordError, getPhoneError, getRe
 import { styles } from './styles';
 import { createUserWithEmailAndPassword, sendEmailVerification } from '@react-native-firebase/auth';
 import { firebaseAuth, saveUserProfile } from '../../../services/firebase';
+import { baseApi } from '../../../services/baseApi';
 import { storage } from '../../../services/storage';
 import storageKeys from '../../../constants/storageKeys';
 import { UserRole } from '../../../types/user';
@@ -135,11 +136,11 @@ export default function SignUp({ navigation, route }: SignUpProps) {
 
     try {
       console.log('[SignUp] creating Firebase account');
-      const userCredential = await createUserWithEmailAndPassword(
+      const userCredential = await baseApi(() => createUserWithEmailAndPassword(
         firebaseAuth,
         email.trim(),
         password,
-      );
+      ));
 
       const { uid } = userCredential.user;
       console.log('[SignUp] Firebase account created | uid:', uid);
@@ -159,7 +160,7 @@ export default function SignUp({ navigation, route }: SignUpProps) {
       console.log('[SignUp] profile saved | uid:', uid);
 
       console.log('[SignUp] sending verification email | uid:', uid);
-      await sendEmailVerification(userCredential.user);
+      await baseApi(() => sendEmailVerification(userCredential.user));
       console.log('[SignUp] verification email sent | uid:', uid);
 
       navigation.navigate(navigationStrings.VERIFICATION, {

@@ -8,8 +8,8 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ICON_TYPE, IconX, CustomHeader } from '../../../../components';
-import { colors, strings } from '../../../../constants';
-import { markNotificationRead, 
+import { colors, navigationStrings, strings } from '../../../../constants';
+import { getBooking, markNotificationRead, 
   subscribeToNotifications } from '../../../../services/firebase';
 import { useAppSelector } from '../../../../store';
 import { styles } from './styles';
@@ -28,12 +28,11 @@ type NotificationItem = {
   icon: string;
   iconColor: string;
   bgColor: string;
+  bookingId?: string;
 };
 
 type CustomerNotificationsProps = {
-  navigation: {
-    goBack: () => void;
-  };
+  navigation: any;
 };
 
 export default function CustomerNotifications({navigation}: CustomerNotificationsProps) {
@@ -45,8 +44,41 @@ export default function CustomerNotifications({navigation}: CustomerNotification
   useEffect(() => {
     if (!profile?.uid) return;
     setNotifications([]);
-    return subscribeToNotifications(profile.uid, items => setNotifications(items.map(item => ({ id: item.id, type: 'Bookings', title: item.title, message: item.body, time: new Date(item.createdAt).toLocaleString(), unread: !item.isRead, icon: 'notifications', iconColor: colors.purple[700], bgColor: colors.grey[100] }))));
+    return subscribeToNotifications(profile.uid, items => {
+      const sorted = [...items].sort((a, b) => b.createdAt - a.createdAt);
+      setNotifications(
+        sorted.map(item => ({
+          id: item.id,
+          type: 'Bookings',
+          title: item.title,
+          message: item.body,
+          time: new Date(item.createdAt).toLocaleString(),
+          unread: !item.isRead,
+          icon: 'notifications',
+          iconColor: colors.purple[700],
+          bgColor: colors.grey[100],
+          bookingId: item.bookingId,
+        }))
+      );
+    });
   }, [profile?.uid]);
+
+  const handlePressNotification = async (notif: NotificationItem) => {
+    if (profile?.uid && notif.unread) {
+      markNotificationRead(profile.uid, notif.id);
+      setNotifications(prev => prev.map(n => n.id === notif.id ? { ...n, unread: false } : n));
+    }
+    if (notif.bookingId) {
+      try {
+        const booking = await getBooking(notif.bookingId);
+        navigation.navigate(navigationStrings.CUSTOMER_BOOKING_DETAILS, {
+          booking,
+        });
+      } catch (e) {
+        console.log('Failed to open booking details from notification:', e);
+      }
+    }
+  };
 
   const unreadCount = notifications.filter(n => n.unread).length;
 
@@ -108,7 +140,12 @@ export default function CustomerNotifications({navigation}: CustomerNotification
         <View style={styles.notificationsList}>
           {filteredNotifications.length > 0 ? (
             filteredNotifications.map((notif) => (
-              <TouchableOpacity key={notif.id} style={styles.notificationCard} activeOpacity={0.8}>
+              <TouchableOpacity
+                key={notif.id}
+                style={styles.notificationCard}
+                activeOpacity={0.8}
+                onPress={() => handlePressNotification(notif)}
+              >
                 <View style={[styles.iconContainer, { backgroundColor: notif.bgColor }]}>
                   <IconX name={notif.icon} origin={ICON_TYPE.MATERIAL_ICONS} size={24} color={notif.iconColor} />
                 </View>

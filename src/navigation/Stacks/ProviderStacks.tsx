@@ -51,6 +51,10 @@ const ProviderHomeStack: React.FC<NavigationProps> = ({ navigation, route }) => 
         component={ProviderHome}
       />
       <Stack.Screen
+        name={navigationStrings.ADD_EDIT_SERVICES}
+        component={AddEditServices}
+      />
+      <Stack.Screen
         name={navigationStrings.PROVIDER_SEARCH_BOOKINGS}
         component={ProviderSearchBookings}
       />

@@ -28,9 +28,7 @@ export async function navigateToBookingIfAddressExists(
         title: 'Add a service address',
         message: 'Save an address before booking a service.',
       });
-      navigation.navigate(navigationStrings.CUSTOMER_PROFILE_STACK, {
-        screen: navigationStrings.CUSTOMER_SAVED_ADDRESSES,
-      });
+      navigation.navigate(navigationStrings.CUSTOMER_SAVED_ADDRESSES);
       return;
     }
   } catch (error) {

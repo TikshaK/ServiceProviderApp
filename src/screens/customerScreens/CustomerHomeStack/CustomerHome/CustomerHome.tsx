@@ -104,7 +104,11 @@ export default function CustomerHome({ navigation }: { navigation: any }) {
                 {/* Top Section */}
                 <View style={styles.topSection}>
                     <View style={styles.headerRow}>
-                        <View>
+                        <View
+                            style={{
+                                width: "60%",
+                            }}
+                        >
                             <View style={styles.greetingRow}>
                                 <Text style={styles.greetingText}>
                                     Hello, {displayName}
@@ -116,9 +120,20 @@ export default function CustomerHome({ navigation }: { navigation: any }) {
                                     color={colors.yellow[400]}
                                 />
                             </View>
-                            {location ? <TouchableOpacity style={styles.locationBtn} activeOpacity={0.7}>
-                                <IconX name="location-on" origin={ICON_TYPE.MATERIAL_ICONS} size={18} color={colors.purple[700]} />
-                                <Text style={styles.locationText} numberOfLines={1}>{location}</Text>
+                            {location ? <TouchableOpacity
+                                style={styles.locationBtn}
+                                activeOpacity={0.7}
+                            >
+                                <IconX
+                                    name="location-on"
+                                    origin={ICON_TYPE.MATERIAL_ICONS}
+                                    size={18} color={colors.purple[700]}
+                                />
+                                <Text
+                                    style={styles.locationText}
+                                // numberOfLines={1}
+                                // adjustsFontSizeToFit
+                                >{location}</Text>
                             </TouchableOpacity> : null}
                         </View>
 

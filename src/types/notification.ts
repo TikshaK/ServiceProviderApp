@@ -1,4 +1,4 @@
-export type NotificationType = 'bookingCreated' | 'bookingAccepted' | 'bookingDeclined' | 'bookingCancelled' | 'bookingCompleted' | 'newReview';
+export type NotificationType = 'bookingCreated' | 'bookingAccepted' | 'bookingDeclined' | 'bookingCancelled' | 'bookingCompleted' | 'bookingCompletionRejected' | 'quoteReceived' | 'quoteAccepted' | 'quoteRejected' | 'newReview';
 
 export interface AppNotification {
   id: string;

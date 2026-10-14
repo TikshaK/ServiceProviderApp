@@ -1,5 +1,6 @@
 import { Platform } from 'react-native';
 import cloudinary from '../constants/cloudinary';
+import { baseApi } from './baseApi';
 
 export async function uploadImageToCloudinary(uri: string, fileName = 'profile.jpg', folder: string = cloudinary.folder): Promise<string> {
   if (!cloudinary.cloudName || !cloudinary.unsignedUploadPreset) {
@@ -16,10 +17,10 @@ export async function uploadImageToCloudinary(uri: string, fileName = 'profile.j
   body.append('upload_preset', cloudinary.unsignedUploadPreset);
   body.append('folder', folder);
 
-  const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudinary.cloudName}/image/upload`, {
+  const response = await baseApi(() => fetch(`https://api.cloudinary.com/v1_1/${cloudinary.cloudName}/image/upload`, {
     method: 'POST',
     body,
-  });
+  }));
   const result = await response.json();
 
   if (!response.ok || !result.secure_url) {

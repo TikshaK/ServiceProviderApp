@@ -10,6 +10,7 @@ import {
 import App from './App';
 import { name as appName } from './app.json';
 import { showBookingNotification } from './src/services/localNotifications';
+import notifee from '@notifee/react-native';
 
 // Background/terminated message handler — must be registered at the top level,
 // outside of any React component (React Native Firebase requirement).
@@ -38,5 +39,9 @@ setBackgroundMessageHandler(getMessaging(), async remoteMessage => {
 });
 
 console.log('[Push] background message handler registered');
+
+notifee.onBackgroundEvent(async ({ type, detail }) => {
+  console.log('[Notifee] background event:', type, detail?.notification?.id);
+});
 
 AppRegistry.registerComponent(appName, () => App);

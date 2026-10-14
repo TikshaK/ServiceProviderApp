@@ -1,5 +1,5 @@
 import React from 'react';
-import { ActivityIndicator, View } from 'react-native';
+import { ActivityIndicator, Text, View } from 'react-native';
 import AuthStack from './Stacks/AuthStack';
 import { ProviderTabNavigator } from './Tabs/ProviderTabNavigator';
 import { CustomerTabNavigator } from './Tabs/CustomerTabNavigator';
@@ -7,7 +7,7 @@ import { useAuth } from '../hooks/useAuth';
 import { colors, navigationStrings } from '../constants';
 
 export function RootNavigator() {
-  const { isAuthenticated, isLoading, isHydrating, emailVerified, role, email, uid } = useAuth();
+  const { isAuthenticated, isLoading, isHydrating, isLoggingOut, emailVerified, role, email, uid } = useAuth();
 
   console.log('[RootNavigator] auth state:', {
     isAuthenticated,
@@ -18,7 +18,7 @@ export function RootNavigator() {
     role,
   });
 
-  if (isLoading || isHydrating) {
+  if (isLoading || isHydrating || isLoggingOut) {
     console.log('[RootNavigator] rendering loader');
     return (
       <View style={{ 
@@ -28,6 +28,11 @@ export function RootNavigator() {
         backgroundColor: colors.purple[50] 
         }}>
         <ActivityIndicator size="large" color={colors.purple[700]} />
+        {isLoggingOut ? (
+          <Text style={{ marginTop: 12, color: colors.purple[700] }}>
+            Logging out...
+          </Text>
+        ) : null}
       </View>
     );
   }

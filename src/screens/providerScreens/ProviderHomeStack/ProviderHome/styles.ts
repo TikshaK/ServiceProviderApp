@@ -91,7 +91,7 @@ export const styles = StyleSheet.create({
     paddingVertical: verticalScale(12),
   },
   greetingTextWrap: {
-    flex: 1,
+    flex: 1
   },
   greetingRow: {
     flexDirection: 'row',
@@ -408,7 +408,7 @@ export const styles = StyleSheet.create({
     fontSize: fontSize[12],
     fontWeight: '500',
     lineHeight: verticalScale(16),
-    width:"93%"
+    width: "93%"
   },
   bookingTimeTextMuted: {
     fontFamily: fonts.Regular,

@@ -131,7 +131,7 @@ export default function ProviderQuoteModal({
         message: 'The customer can now review your price.',
       });
     } catch (error) {
-      console.error('[PROVIDER_QUOTE] submission failed', {
+      console.log('[PROVIDER_QUOTE] submission failed', {
         bookingId: booking.id,
         category: booking.category,
         providerId: profile?.uid ?? firebaseAuth.currentUser?.uid,
@@ -156,7 +156,9 @@ export default function ProviderQuoteModal({
         if (!submitting) onClose();
       }}
     >
-      <View style={styles.backdrop}>
+      <View style={[styles.backdrop,{
+ 
+      }]}>
         <View style={styles.modal}>
           <Text style={styles.title}>Send a quote</Text>
           <Text style={styles.subtitle}>

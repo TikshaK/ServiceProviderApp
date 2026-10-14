@@ -11,6 +11,7 @@ import {
   useAppDispatch,
 } from '../store';
 import { firebaseAuth, getUserProfile } from '../services/firebase';
+import { baseApi } from '../services/baseApi';
 import { storage } from '../services/storage';
 import storageKeys from '../constants/storageKeys';
 import { UserProfile } from '../types/user';
@@ -29,7 +30,7 @@ export async function syncAuthenticatedUser(
   dispatch: ReturnType<typeof useAppDispatch>,
   firebaseUser: User,
 ) {
-  await firebaseUser.reload();
+  await baseApi(() => firebaseUser.reload());
 
   if (!firebaseUser.emailVerified) {
     console.log('[AuthListener] user is unverified; keeping the app signed out | uid:', firebaseUser.uid);
@@ -58,7 +59,7 @@ export async function syncAuthenticatedUser(
       storage.remove(storageKeys.USER_DATA);
     }
   } catch (error: any) {
-    console.error('[AuthListener] profile load failed:', error?.message ?? error);
+    console.log('[AuthListener] profile load failed:', error?.message ?? error);
     dispatch(clearUserProfile());
     dispatch(setRole(null));
     storage.remove(storageKeys.USER_DATA);
@@ -127,7 +128,14 @@ export function useAuthListener() {
 
         if (isInitialAuthEvent) {
           isInitialAuthEvent = false;
-          await firebaseUser.reload();
+          try {
+            await baseApi(() => firebaseUser.reload());
+          } catch (error) {
+            console.error('[AuthListener] unable to refresh authentication state', error);
+            dispatch(setAuthLoading(false));
+            dispatch(setHydrating(false));
+            return;
+          }
           if (!firebaseUser.emailVerified) {
             console.log('[AuthListener] unverified session restored on cold start; signing out');
             try {

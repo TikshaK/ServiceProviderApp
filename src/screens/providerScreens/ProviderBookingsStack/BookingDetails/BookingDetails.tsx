@@ -4,10 +4,12 @@ import { CustomHeader, ICON_TYPE, IconX } from '../../../../components';
 import { colors } from '../../../../constants';
 import { requestBookingCompletion, updateBookingStatus } from '../../../../services/firebase';
 import { useAppSelector } from '../../../../store';
+import { hasActiveProviderQuote } from '../../../../types/booking';
 import type { BookingItem } from '../ProviderBookings/ProviderBookings';
 import ProviderQuoteModal from '../../ProviderQuoteModal';
 import { styles } from './styles';
 import { showToast } from '../../../../utils';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type BookingDetailsProps = {
 	navigation: any;
@@ -30,6 +32,7 @@ const FALLBACK_BOOKING: BookingItem = {
 };
 
 export default function BookingDetails({ navigation, route }: BookingDetailsProps) {
+	const insets = useSafeAreaInsets();
 	const booking = route?.params?.booking ?? FALLBACK_BOOKING;
 	const profile = useAppSelector(state => state.user.profile);
 	const [decision, setDecision] = useState<'accepted' | 'rejected' | null>(null);
@@ -51,9 +54,13 @@ export default function BookingDetails({ navigation, route }: BookingDetailsProp
 	const displayDateText = booking?.dateText ?? `${booking?.scheduledDate ?? 'Scheduled'} • ${booking?.scheduledTime ?? ''}`.trim();
 	const displayAmount = booking?.amount ?? (typeof booking?.quotedAmount === 'number' ? `$${booking.quotedAmount.toFixed(2)}` : 'Awaiting quote');
 	const displayNotes = booking?.notes ?? booking?.specialInstructions;
+	const hasSentQuote = Boolean(
+		booking?.hasSentQuote
+		|| booking?.quotePending
+		|| hasActiveProviderQuote(booking, profile?.uid),
+	);
 	const canQuoteOpenBooking = isOpenBookingRequest
 		&& (normalizedStatus === 'Pending' || normalizedStatus === 'pending')
-		&& !booking?.quotePending
 		&& Boolean(booking?.id && booking?.category);
 
 	const requestCompletion = async () => {
@@ -100,7 +107,9 @@ export default function BookingDetails({ navigation, route }: BookingDetailsProp
 	};
 
 	return (
-		<View style={styles.container}>
+		<View style={[styles.container,{
+			// bottom: insets.bottom
+		}]}>
 			<StatusBar barStyle="dark-content" />
 			<CustomHeader
 				title={`Booking #${booking.id.replace('booking_', 'BK-')}`}
@@ -410,13 +419,18 @@ export default function BookingDetails({ navigation, route }: BookingDetailsProp
 			{canQuoteOpenBooking ? (
 				<View style={styles.bottomBar}>
 					<Pressable
-						style={styles.acceptButton}
+						style={[styles.acceptButton, 
+							hasSentQuote &&
+							 { backgroundColor: colors.grey[400],
+								bottom: insets.bottom
+							  }]}
+						disabled={hasSentQuote}
 						onPress={() => setQuoteBooking({
-							id: booking.id,
-							category: booking.category,
-							scheduledDate: booking.scheduledDate ?? '',
-							city: booking.city ?? displayAddress,
-						})}
+								id: booking.id,
+								category: booking.category,
+								scheduledDate: booking.scheduledDate ?? '',
+								city: booking.city ?? displayAddress,
+							})}
 					>
 						<IconX
 							name="pricetag-outline"
@@ -424,7 +438,7 @@ export default function BookingDetails({ navigation, route }: BookingDetailsProp
 							size={20}
 							color={colors.white[100]}
 						/>
-						<Text style={styles.acceptText}>Send quote</Text>
+						<Text style={styles.acceptText}>{hasSentQuote ? 'Already sent quote' : 'Send quote'}</Text>
 					</Pressable>
 				</View>
 			) : (normalizedStatus === 'Pending' || normalizedStatus === 'pending') && !decision && !booking.quotePending && !isOpenBookingRequest ? (

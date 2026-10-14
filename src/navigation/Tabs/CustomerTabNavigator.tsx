@@ -1,7 +1,7 @@
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { getFocusedRouteNameFromRoute } from '@react-navigation/native';
+import { CommonActions, getFocusedRouteNameFromRoute } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { IconX } from '../../components';
 import { colors, fonts, navigationStrings, sWidth } from '../../constants';
@@ -46,6 +46,30 @@ const noTabsRoutes: string[] = [
     navigationStrings.CUSTOMER_ADD_EDIT_ADDRESS,
 ];
 
+const handleTabPress = (navigation: any, stackName: string, rootScreen: string) => {
+    const tabRoute = navigation.getState().routes.find(
+        (r: any) => r.name === stackName,
+    );
+    const stackState = tabRoute && 'state' in tabRoute ? (tabRoute as any).state : undefined;
+
+    if (stackState?.key) {
+        const currentRouteName = stackState.routes?.[stackState.index ?? 0]?.name;
+        if (stackState.index > 0 || currentRouteName !== rootScreen) {
+            navigation.dispatch({
+                ...CommonActions.reset({
+                    index: 0,
+                    routes: [{ name: rootScreen }],
+                }),
+                target: stackState.key,
+            });
+            return;
+        }
+    }
+
+    navigation.navigate(stackName, {
+        screen: rootScreen,
+    });
+};
 
 export const CustomerTabNavigator = () => {
     const insets = useSafeAreaInsets();
@@ -121,9 +145,11 @@ export const CustomerTabNavigator = () => {
                 component={CustomerHomeStack}
                 listeners={({ navigation }) => ({
                     tabPress: () => {
-                        navigation.navigate(navigationStrings.CUSTOMER_HOME_STACK, {
-                            screen: navigationStrings.CUSTOMER_HOME,
-                        });
+                        handleTabPress(
+                            navigation,
+                            navigationStrings.CUSTOMER_HOME_STACK,
+                            navigationStrings.CUSTOMER_HOME,
+                        );
                     },
                 })}
             />
@@ -132,9 +158,11 @@ export const CustomerTabNavigator = () => {
                 component={CustomerBookingsStack}
                 listeners={({ navigation }) => ({
                     tabPress: () => {
-                        navigation.navigate(navigationStrings.CUSTOMER_BOOKINGS_STACK, {
-                            screen: navigationStrings.CUSTOMER_BOOKINGS,
-                        });
+                        handleTabPress(
+                            navigation,
+                            navigationStrings.CUSTOMER_BOOKINGS_STACK,
+                            navigationStrings.CUSTOMER_BOOKINGS,
+                        );
                     },
                 })}
             />
@@ -143,9 +171,11 @@ export const CustomerTabNavigator = () => {
                 component={CustomerNotificationsStack}
                 listeners={({ navigation }) => ({
                     tabPress: () => {
-                        navigation.navigate(navigationStrings.CUSTOMER_NOTIFICATIONS_STACK, {
-                            screen: navigationStrings.NOTIFICATIONS,
-                        });
+                        handleTabPress(
+                            navigation,
+                            navigationStrings.CUSTOMER_NOTIFICATIONS_STACK,
+                            navigationStrings.NOTIFICATIONS,
+                        );
                     },
                 })}
             />
@@ -154,9 +184,11 @@ export const CustomerTabNavigator = () => {
                 component={CustomerProfileStack}
                 listeners={({ navigation }) => ({
                     tabPress: () => {
-                        navigation.navigate(navigationStrings.CUSTOMER_PROFILE_STACK, {
-                            screen: navigationStrings.CUSTOMER_PROFILE,
-                        });
+                        handleTabPress(
+                            navigation,
+                            navigationStrings.CUSTOMER_PROFILE_STACK,
+                            navigationStrings.CUSTOMER_PROFILE,
+                        );
                     },
                 })}
             />

@@ -5,6 +5,7 @@ interface AuthState {
   isAuthenticated: boolean;
   isLoading: boolean;
   isHydrating: boolean;
+  isLoggingOut: boolean;
   emailVerified: boolean;
   uid: string | null;
   email: string | null;
@@ -15,6 +16,7 @@ const initialState: AuthState = {
   isAuthenticated: false,
   isLoading: true,
   isHydrating: false,
+  isLoggingOut: false,
   emailVerified: false,
   uid: null,
   email: null,
@@ -30,6 +32,9 @@ const authSlice = createSlice({
     },
     setHydrating: (state, action: PayloadAction<boolean>) => {
       state.isHydrating = action.payload;
+    },
+    setLoggingOut: (state, action: PayloadAction<boolean>) => {
+      state.isLoggingOut = action.payload;
     },
     setAuthUser: (
       state,
@@ -59,5 +64,5 @@ const authSlice = createSlice({
   },
 });
 
-export const { setAuthLoading, setHydrating, setAuthUser, setRole, clearAuth } = authSlice.actions;
+export const { setAuthLoading, setHydrating, setLoggingOut, setAuthUser, setRole, clearAuth } = authSlice.actions;
 export default authSlice.reducer;

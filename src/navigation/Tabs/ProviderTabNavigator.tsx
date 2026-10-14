@@ -1,7 +1,7 @@
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { getFocusedRouteNameFromRoute, StackActions } from '@react-navigation/native';
+import { CommonActions, getFocusedRouteNameFromRoute } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { IconX } from '../../components';
 import { colors, fonts, navigationStrings, sWidth } from '../../constants';
@@ -40,6 +40,31 @@ const noTabsRoutes: string[] = [
     navigationStrings.PROVIDER_NOTIFICATIONS,
     navigationStrings.PROVIDER_SEARCH_BOOKINGS
 ];
+
+const handleTabPress = (navigation: any, stackName: string, rootScreen: string) => {
+    const tabRoute = navigation.getState().routes.find(
+        (r: any) => r.name === stackName,
+    );
+    const stackState = tabRoute && 'state' in tabRoute ? (tabRoute as any).state : undefined;
+
+    if (stackState?.key) {
+        const currentRouteName = stackState.routes?.[stackState.index ?? 0]?.name;
+        if (stackState.index > 0 || currentRouteName !== rootScreen) {
+            navigation.dispatch({
+                ...CommonActions.reset({
+                    index: 0,
+                    routes: [{ name: rootScreen }],
+                }),
+                target: stackState.key,
+            });
+            return;
+        }
+    }
+
+    navigation.navigate(stackName, {
+        screen: rootScreen,
+    });
+};
 
 export const ProviderTabNavigator = () => {
     const insets = useSafeAreaInsets();
@@ -111,28 +136,24 @@ export const ProviderTabNavigator = () => {
                 component={ProviderHomeStack}
                 listeners={({ navigation }) => ({
                     tabPress: () => {
-                        navigation.navigate(navigationStrings.PROVIDER_HOME_STACK, {
-                            screen: navigationStrings.PROVIDER_HOME,
-                        });
+                        handleTabPress(
+                            navigation,
+                            navigationStrings.PROVIDER_HOME_STACK,
+                            navigationStrings.PROVIDER_HOME,
+                        );
                     },
                 })} />
 
             <Tab.Screen
                 name={navigationStrings.PROVIDER_BOOKINGS_STACK}
                 component={ProviderBookingsStack}
-                options={{ popToTopOnBlur: true }}
                 listeners={({ navigation }) => ({
                     tabPress: () => {
-                        const bookingsRoute = navigation.getState().routes.find(
-                            tabRoute => tabRoute.name === navigationStrings.PROVIDER_BOOKINGS_STACK,
+                        handleTabPress(
+                            navigation,
+                            navigationStrings.PROVIDER_BOOKINGS_STACK,
+                            navigationStrings.PROVIDER_BOOKINGS,
                         );
-                        const stackKey = bookingsRoute?.state?.key;
-                        if (stackKey) {
-                            navigation.dispatch({
-                                ...StackActions.popToTop(),
-                                target: stackKey,
-                            });
-                        }
                     },
                 })}
             />
@@ -141,9 +162,11 @@ export const ProviderTabNavigator = () => {
                 component={ProviderServicesStack}
                 listeners={({ navigation }) => ({
                     tabPress: () => {
-                        navigation.navigate(navigationStrings.PROVIDER_SERVICES_STACK, {
-                            screen: navigationStrings.PROVIDER_SERVICES,
-                        });
+                        handleTabPress(
+                            navigation,
+                            navigationStrings.PROVIDER_SERVICES_STACK,
+                            navigationStrings.PROVIDER_SERVICES,
+                        );
                     },
                 })}
             />
@@ -152,9 +175,11 @@ export const ProviderTabNavigator = () => {
                 component={ProviderProfileStack}
                 listeners={({ navigation }) => ({
                     tabPress: () => {
-                        navigation.navigate(navigationStrings.PROVIDER_PROFILE_STACK, {
-                            screen: navigationStrings.PROVIDER_PROFILE,
-                        });
+                        handleTabPress(
+                            navigation,
+                            navigationStrings.PROVIDER_PROFILE_STACK,
+                            navigationStrings.PROVIDER_PROFILE,
+                        );
                     },
                 })}
             />

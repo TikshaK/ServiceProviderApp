@@ -28,6 +28,7 @@ export {
 	subscribeToOpenBookings,
 	subscribeToAllOpenBookings,
 	requestBookingCompletion,
+	rejectBookingCompletion,
 	respondToOpenBookingQuote,
 	submitOpenBookingQuote,
 	updateBookingStatus,

@@ -1,5 +1,6 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { ActivityIndicator, Image, Platform, Pressable, StatusBar, Text, TextInput, View } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { CalendarInput, CustomHeader, ICON_TYPE, IconX } from '../../../../components';
 import { colors, navigationStrings, SERVICE_CATEGORIES, strings } from '../../../../constants';
@@ -50,19 +51,21 @@ export default function CustomerBookService({ navigation, route }: Props) {
 	const minimumDate = useMemo(() => startOfDay(new Date()), []);
 	const minimumTime = useMemo(() => getMinimumTime(selectedDate), [selectedDate]);
 
-	useEffect(() => {
-		if (!customer?.uid) {
-			setAddress(null);
-			return;
-		}
+	useFocusEffect(
+		useCallback(() => {
+			if (!customer?.uid) {
+				setAddress(null);
+				return;
+			}
 
-		getAddresses(customer.uid)
-			.then(addresses => {
-				const savedAddress = addresses.find(item => item.isDefault) ?? addresses[0];
-				setAddress(savedAddress ?? null);
-			})
-			.catch(() => setAddress(null));
-	}, [customer?.uid]);
+			getAddresses(customer.uid)
+				.then(addresses => {
+					const savedAddress = addresses.find(item => item.isDefault) ?? addresses[0];
+					setAddress(savedAddress ?? null);
+				})
+				.catch(() => setAddress(null));
+		}, [customer?.uid])
+	);
 
 	const handleDateChange = (date: Date) => {
 		const normalizedDate = startOfDay(date);
@@ -145,7 +148,7 @@ export default function CustomerBookService({ navigation, route }: Props) {
 			}
 			const providerId = storedService.providerId || service.providerId;
 			if (!providerId) {
-				console.error('[DIRECT_BOOKING] service has no provider ID', { serviceId: service.id });
+				console.log('[DIRECT_BOOKING] service has no provider ID', { serviceId: service.id });
 				showToast({ type: 'error', title: 'Service unavailable', message: 'This service is missing its provider information.' });
 				return;
 			}
@@ -180,7 +183,7 @@ export default function CustomerBookService({ navigation, route }: Props) {
 				price,
 			});
 		} catch (error: any) {
-			console.error('Booking Error:', error);
+			console.log('Booking Error:', error);
 
 			// Extract custom error message from backend response if available, or fall back to default
 			const errorMessage = error?.response?.data?.message || error?.message || strings.alerts.tryAgain;
@@ -243,7 +246,7 @@ export default function CustomerBookService({ navigation, route }: Props) {
 
 				<View style={styles.section}><View style={styles.sectionTitleRow}><IconX name="chatbubble-ellipses-outline" origin={ICON_TYPE.IONICONS} size={20} color={colors.purple[700]} /><Text style={styles.sectionTitle}>Special Instructions</Text></View><Text style={styles.helper}>Any delicate surfaces, focus areas, or pet instructions?</Text><TextInput value={instructions} onChangeText={setInstructions} multiline numberOfLines={3} placeholder="Add notes for your service provider..." placeholderTextColor={colors.grey[700]} style={styles.instructionsInput} textAlignVertical="top" /></View>
 
-				<View style={styles.section}><View style={styles.sectionTitleRow}><IconX name="location-outline" origin={ICON_TYPE.IONICONS} size={20} color={colors.purple[700]} /><Text style={styles.sectionTitle}>Service Address</Text><Pressable style={styles.changeButton} onPress={() => showToast({ type: 'info', title: 'Address', message: 'Address management will be available soon.' })}><Text style={styles.changeText}>Change</Text></Pressable></View><View style={styles.addressCard}><View style={styles.addressTop}><Text style={styles.homeBadge}>{address ? 'Saved address' : 'Address required'}</Text>{address ? <IconX name="checkmark-circle" origin={ICON_TYPE.IONICONS} size={18} color={colors.purple[700]} /> : null}</View><Text style={styles.addressValue}>{address?.street ?? 'No saved address found'}</Text><Text style={styles.helper}>{address ? `${address.city}${address.state ? `, ${address.state}` : ''} ${address.postalCode}` : 'Add an address before booking.'}</Text></View></View>
+				<View style={styles.section}><View style={styles.sectionTitleRow}><IconX name="location-outline" origin={ICON_TYPE.IONICONS} size={20} color={colors.purple[700]} /><Text style={styles.sectionTitle}>Service Address</Text><Pressable style={styles.changeButton} onPress={() => navigation.navigate(navigationStrings.CUSTOMER_SAVED_ADDRESSES)}><Text style={styles.changeText}>{address ? 'Change' : 'Add'}</Text></Pressable></View><View style={styles.addressCard}><View style={styles.addressTop}><Text style={styles.homeBadge}>{address ? 'Saved address' : 'Address required'}</Text>{address ? <IconX name="checkmark-circle" origin={ICON_TYPE.IONICONS} size={18} color={colors.purple[700]} /> : null}</View><Text style={styles.addressValue}>{address?.street ?? 'No saved address found'}</Text><Text style={styles.helper}>{address ? `${address.city}${address.state ? `, ${address.state}` : ''} ${address.postalCode}` : 'Add an address before booking.'}</Text></View></View>
 			</KeyboardAwareScrollView>
 
 			<View

@@ -12,22 +12,116 @@ import {
   type NotificationTap,
 } from '../services/notifications';
 import { showBookingNotification } from '../services/localNotifications';
-import { ref, onValue, getDatabase } from '@react-native-firebase/database';
+import { ref, onValue as firebaseOnValue, getDatabase } from '@react-native-firebase/database';
 import { getApp } from '@react-native-firebase/app';
+import { subscribeWhenOnline } from '../services/baseApi';
 import { Booking } from '../types/booking';
 import { showToast } from '../utils';
 import { useAuth } from './useAuth';
 
 const delay = (ms: number) => new Promise<void>(resolve => setTimeout(resolve, ms));
 
-/** Track the previous status of each booking to detect actual changes (not initial load). */
-const previousBookingStatuses = new Map<string, string>;
+function onValue(
+  queryRef: Parameters<typeof firebaseOnValue>[0],
+  callback: Parameters<typeof firebaseOnValue>[1],
+  cancelCallback?: Parameters<typeof firebaseOnValue>[2],
+  options?: Parameters<typeof firebaseOnValue>[3],
+) {
+  return subscribeWhenOnline(() => {
+    if (cancelCallback && options) {
+      return firebaseOnValue(queryRef, callback, cancelCallback, options);
+    }
+    if (cancelCallback) {
+      return firebaseOnValue(queryRef, callback, cancelCallback);
+    }
+    return firebaseOnValue(queryRef, callback);
+  });
+}
 
-/** Flag to track if this is the initial data load. */
+/** Track the previous status of each booking to detect actual changes (not initial load). */
+const previousBookingStatuses = new Map<string, string>();
+
+/** Track known quote IDs per booking to detect newly submitted quotes. */
+const previousBookingQuotes = new Map<string, Set<string>>();
+
+/** Track known notification IDs under notifications/${uid}. */
+const seenNotificationIds = new Set<string>();
+
+/** Flag to track if this is the initial bookings data load. */
 let isInitialLoad = true;
+
+/** Flag to track if this is the initial user notifications data load. */
+let isInitialNotificationsLoad = true;
 
 /** Track bookings that need new-booking notifications. */
 const newBookingNotifications = new Map<string, boolean>();
+
+/** Deduplication map to prevent repeated notifications for the same event within 5s. */
+const recentlyNotified = new Map<string, number>();
+
+function notifyUser(title: string, body: string, bookingId?: string) {
+  const key = `${bookingId || ''}_${title}_${body}`;
+  const now = Date.now();
+  const lastTime = recentlyNotified.get(key) || 0;
+  if (now - lastTime < 5000) {
+    return;
+  }
+  recentlyNotified.set(key, now);
+
+  if (bookingId) {
+    showBookingNotification(title, body, bookingId);
+  }
+  showToast({
+    type: 'info',
+    title,
+    message: body,
+  });
+}
+
+function formatBookingForDetails(rawBooking: any): any {
+  if (!rawBooking) return null;
+  const rawQuotes = rawBooking.quotes;
+  const quotesArray: any[] = Array.isArray(rawQuotes)
+    ? rawQuotes
+    : rawQuotes && typeof rawQuotes === 'object'
+    ? Object.values(rawQuotes)
+    : [];
+
+  const hasPendingQuote = quotesArray.some(quote => quote?.status === 'pending');
+
+  let formattedStatus = rawBooking.status;
+  if (rawBooking.status === 'completed') formattedStatus = 'Completed';
+  else if (rawBooking.status === 'completionRequested') formattedStatus = 'Completion requested';
+  else if (rawBooking.status === 'quotePending' || hasPendingQuote) formattedStatus = 'Quote pending';
+  else if (rawBooking.status === 'accepted' || rawBooking.status === 'inProgress') formattedStatus = 'Accepted';
+  else if (rawBooking.status === 'cancelled' || rawBooking.status === 'declined') formattedStatus = 'Cancelled';
+  else if (rawBooking.status === 'pending') formattedStatus = hasPendingQuote ? 'Quote pending' : 'Pending';
+
+  return {
+    id: rawBooking.id,
+    date: rawBooking.date ?? (rawBooking.scheduledDate ? `${rawBooking.scheduledDate} • ${rawBooking.scheduledTime}` : 'Date pending'),
+    status: formattedStatus ?? 'Pending',
+    title: rawBooking.title ?? rawBooking.serviceSnapshot?.title ?? 'Service Request',
+    provider: rawBooking.provider ?? rawBooking.providerSnapshot?.serviceName ?? rawBooking.providerSnapshot?.fullName ?? 'Waiting for quotes',
+    specialist: rawBooking.specialist ?? rawBooking.providerSnapshot?.fullName ?? 'Not assigned',
+    location: rawBooking.location ?? rawBooking.addressSnapshot?.street ?? 'Location pending',
+    price: rawBooking.price ?? (rawBooking.bookingType === 'open' && rawBooking.status === 'pending' && !rawBooking.quotedAmount
+      ? 'Awaiting quote'
+      : `$${rawBooking.quotedAmount ?? rawBooking.baseAmount ?? 0}`),
+    image: rawBooking.image ?? rawBooking.serviceSnapshot?.imageUrls?.[0] ?? '',
+    providerId: rawBooking.providerId ?? undefined,
+    bookingType: rawBooking.bookingType,
+    category: rawBooking.category,
+    quoteAmount: rawBooking.quoteAmount ?? rawBooking.quotedAmount,
+    totalAmount: rawBooking.totalAmount,
+    platformFee: rawBooking.platformFee,
+    quotes: quotesArray,
+    serviceSnapshot: rawBooking.serviceSnapshot,
+    customerSnapshot: rawBooking.customerSnapshot,
+    providerSnapshot: rawBooking.providerSnapshot,
+    addressSnapshot: rawBooking.addressSnapshot,
+  };
+}
 
 /**
  * Push-notification lifecycle (add-on — the existing in-app notification
@@ -40,8 +134,9 @@ const newBookingNotifications = new Map<string, boolean>();
  *  4. Notification tapped -> fetch the booking and open the right
  *                   BookingDetails screen for the user's role, waiting until
  *                   navigation is ready and the session is hydrated.
- *  5. Database listener -> listens to bookings node for status changes and
- *                   shows local notifications when a booking is accepted/declined/completed/cancelled.
+ *  5. Database listener -> listens to bookings node for status changes and quotes,
+ *                   and notifications/${uid} for newly arrived notifications,
+ *                   and shows local notifications and in-app toasts.
  *
  * Local notifications are handled entirely in the app — no Cloud Functions needed.
  */
@@ -102,11 +197,11 @@ export function usePushNotifications() {
     };
   }, [uid]);
 
-  // 5. Listen to bookings node for status changes and show local notifications.
-  // This replaces the need for Cloud Functions.
+  // 5a. Listen to bookings node for status changes & quotes, and show notifications.
   useEffect(() => {
     if (!uid) {
       previousBookingStatuses.clear();
+      previousBookingQuotes.clear();
       isInitialLoad = true;
       return;
     }
@@ -125,20 +220,45 @@ export function usePushNotifications() {
         const isCustomerBooking = b.customerId === uid;
         const previousStatus = previousBookingStatuses.get(bookingId);
 
+        const rawQuotes = b.quotes;
+        const currentQuoteIds = new Set<string>(
+          rawQuotes && typeof rawQuotes === 'object' ? Object.keys(rawQuotes) : []
+        );
+        const previousQuoteIds = previousBookingQuotes.get(bookingId);
+
         if (isInitialLoad) {
-          // First load — record all existing statuses, don't show notifications.
+          // First load — record all existing statuses and quotes, don't trigger alerts
           if (isFinalStatus) {
             previousBookingStatuses.set(bookingId, currentStatus);
           }
-          // Track pending bookings so they don't trigger new notifications on reload
           if (currentStatus === 'pending') {
             previousBookingStatuses.set(bookingId, currentStatus);
             newBookingNotifications.set(bookingId, true);
           }
+          previousBookingQuotes.set(bookingId, currentQuoteIds);
           return;
         }
 
-        // On subsequent updates: notify when status transitions to a final state.
+        // Detect new quotes submitted for customer bookings
+        if (isCustomerBooking && rawQuotes) {
+          if (previousQuoteIds) {
+            Object.entries(rawQuotes).forEach(([quoteId, quote]: [string, any]) => {
+              if (!previousQuoteIds.has(quoteId) && quote?.status !== 'rejected') {
+                const providerName = quote?.providerSnapshot?.fullName ?? 'A service provider';
+                const amountStr = typeof quote?.amount === 'number' ? ` of $${quote.amount.toFixed(2)}` : '';
+                const serviceTitle = b.serviceSnapshot?.title ? ` for ${b.serviceSnapshot.title}` : '';
+                notifyUser(
+                  'New Quote Received',
+                  `${providerName} sent a quote${amountStr}${serviceTitle}.`,
+                  bookingId,
+                );
+              }
+            });
+          }
+          previousBookingQuotes.set(bookingId, currentQuoteIds);
+        }
+
+        // Provider: status transitions to a final state
         if (isFinalStatus && isProviderBooking && currentStatus !== previousStatus) {
           previousBookingStatuses.set(bookingId, currentStatus);
 
@@ -165,11 +285,11 @@ export function usePushNotifications() {
           }
 
           if (title && body) {
-            showBookingNotification(title, body, bookingId);
+            notifyUser(title, body, bookingId);
           }
         }
 
-        // Notify the customer when their booking status changes to a final state.
+        // Customer: status transitions to a final state
         if (isFinalStatus && isCustomerBooking && currentStatus !== previousStatus) {
           previousBookingStatuses.set(bookingId, currentStatus);
 
@@ -196,21 +316,19 @@ export function usePushNotifications() {
           }
 
           if (title && body) {
-            showBookingNotification(title, body, bookingId);
+            notifyUser(title, body, bookingId);
           }
         }
 
-        // NEW: Send notification when a pending booking is newly created (customer booked)
+        // Provider: new pending booking created by customer
         if (currentStatus === 'pending' && isProviderBooking && !previousStatus) {
-          // This is a new pending booking - notify the provider
           previousBookingStatuses.set(bookingId, currentStatus);
 
-          showBookingNotification(
+          notifyUser(
             'New Booking Received',
             `${b.customerSnapshot?.fullName ?? 'Customer'} booked a service for you.`,
-            bookingId
+            bookingId,
           );
-          // Remove from tracking so it doesn't notify again
           newBookingNotifications.delete(bookingId);
         }
       });
@@ -219,6 +337,43 @@ export function usePushNotifications() {
       if (isInitialLoad) {
         isInitialLoad = false;
       }
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [uid, db]);
+
+  // 5b. Listen to user notifications node (notifications/${uid}) in Realtime Database.
+  useEffect(() => {
+    if (!uid) {
+      seenNotificationIds.clear();
+      isInitialNotificationsLoad = true;
+      return;
+    }
+
+    isInitialNotificationsLoad = true;
+    const userNotifRef = ref(db, `notifications/${uid}`);
+
+    const unsubscribe = onValue(userNotifRef, (snapshot) => {
+      const data = snapshot.val() as Record<string, any> | null;
+      if (!data) return;
+
+      if (isInitialNotificationsLoad) {
+        Object.keys(data).forEach(id => seenNotificationIds.add(id));
+        isInitialNotificationsLoad = false;
+        return;
+      }
+
+      Object.entries(data).forEach(([id, item]) => {
+        if (!seenNotificationIds.has(id)) {
+          seenNotificationIds.add(id);
+          const title = item.title ?? 'New Notification';
+          const body = item.body ?? '';
+          const bookingId = item.bookingId;
+          notifyUser(title, body, bookingId);
+        }
+      });
     });
 
     return () => {
@@ -254,10 +409,11 @@ export function usePushNotifications() {
           ? navigationStrings.CUSTOMER_BOOKING_DETAILS
           : navigationStrings.PROVIDER_BOOKING_DETAILS;
 
-        let booking: Booking | null = null;
+        let rawBooking: any = null;
         if (pendingTap.bookingId) {
-          booking = await getBooking(pendingTap.bookingId);
+          rawBooking = await getBooking(pendingTap.bookingId);
         }
+        const booking = formatBookingForDetails(rawBooking);
 
         navigationRef.navigate(
           stack,

@@ -6,6 +6,7 @@ import { CustomHeader, ICON_TYPE, IconX } from '../../../components';
 import CustomButton from '../../../components/CustomButton';
 import { colors, navigationStrings, strings } from '../../../constants';
 import { firebaseAuth } from '../../../services/firebase';
+import { baseApi } from '../../../services/baseApi';
 import { useAuth } from '../../../hooks/useAuth';
 import { useAppSelector } from '../../../store';
 import { styles } from './styles';
@@ -77,7 +78,7 @@ export default function Verification({
         return;
       }
 
-      await user.reload();
+      await baseApi(() => user.reload());
 
       if (!firebaseAuth.currentUser?.emailVerified) {
         showToast({

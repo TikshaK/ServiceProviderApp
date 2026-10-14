@@ -299,6 +299,33 @@ export const styles = StyleSheet.create({
 		borderRadius: scale(12),
 		backgroundColor: colors.white[100],
 	},
+	quoteCard: {
+		gap: scale(8),
+		paddingVertical: scale(10),
+		borderTopWidth: StyleSheet.hairlineWidth,
+		borderTopColor: colors.purple[200],
+	},
+	quoteRow: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		justifyContent: 'space-between',
+		gap: scale(8),
+	},
+	quoteName: {
+		flex: 1,
+		fontFamily: fonts.SemiBold,
+		fontSize: fontSize[14],
+		color: colors.black[250],
+	},
+	quoteAmount: {
+		fontFamily: fonts.Bold,
+		fontSize: fontSize[16],
+		color: colors.purple[700],
+	},
+	quoteActions: {
+		flexDirection: 'row',
+		gap: scale(8),
+	},
 	approvalHint: {
 		fontFamily: fonts.Regular,
 		fontSize: fontSize[12],
@@ -307,10 +334,12 @@ export const styles = StyleSheet.create({
 	},
 	approveButton: {
 		minHeight: verticalScale(46),
+		minWidth: scale(110),
 		alignItems: 'center',
 		justifyContent: 'center',
 		borderRadius: scale(10),
 		backgroundColor: colors.purple[700],
+		paddingHorizontal: scale(12)
 	},
 	approveButtonText: {
 		fontFamily: fonts.SemiBold,
@@ -319,10 +348,12 @@ export const styles = StyleSheet.create({
 	},
 	rejectButton: {
 		minHeight: verticalScale(44),
+		minWidth: scale(72),
 		alignItems: 'center',
 		justifyContent: 'center',
 		borderRadius: scale(10),
 		backgroundColor: '#FDEBEC',
+		paddingHorizontal: scale(12),
 	},
 	rejectButtonText: {
 		fontFamily: fonts.SemiBold,

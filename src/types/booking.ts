@@ -29,6 +29,38 @@ export interface BookingAddress {
   postalCode: string;
 }
 
+export interface BookingQuote {
+  quoteId?: string;
+  providerId: string;
+  providerName?: string | null;
+  providerSnapshot?: Pick<UserProfile, 'uid' | 'fullName' | 'serviceName'> | null;
+  amount: number;
+  fee: number;
+  status: 'pending' | 'accepted' | 'rejected';
+  createdAt: number;
+}
+
+export function hasActiveProviderQuote(
+  booking: {
+    quotes?: Record<string, BookingQuote>;
+    quoteHistory?: Record<string, BookingQuote>;
+  },
+  providerId?: string | null,
+): boolean {
+  if (!providerId) return false;
+
+  const currentQuote = booking.quotes?.[providerId];
+  if (currentQuote) {
+    return currentQuote.status !== 'rejected';
+  }
+
+  const latestHistoricalQuote = Object.values(booking.quoteHistory ?? {})
+    .filter(quote => quote.providerId === providerId)
+    .sort((first, second) => second.createdAt - first.createdAt)[0];
+
+  return Boolean(latestHistoricalQuote && latestHistoricalQuote.status !== 'rejected');
+}
+
 export interface Booking {
   id: string;
   customerId: string;
@@ -48,6 +80,8 @@ export interface Booking {
   specialInstructions?: string | null;
   quotedAmount?: number;
   quoteSubmittedAt?: number;
+  quotes?: Record<string, BookingQuote>;
+  quoteHistory?: Record<string, BookingQuote>;
   completionRequestedAt?: number;
   baseAmount: number;
   platformFee: number;
@@ -93,10 +127,12 @@ export interface OpenBookingListing {
   scheduledTime: string;
   scheduledAt: number;
   specialInstructions?: string;
-  status: 'pending' | 'quotePending' | 'expired';
+  status: 'pending' | 'quotePending' | 'accepted' | 'expired';
   providerId?: string | null;
   providerName?: string | null;
   quotedAmount?: number | null;
   quotedFee?: number | null;
+  quotes?: Record<string, BookingQuote>;
+  quoteHistory?: Record<string, BookingQuote>;
   createdAt: number;
 }

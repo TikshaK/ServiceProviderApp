@@ -58,6 +58,14 @@ const CustomerHomeStack: React.FC<NavigationProps> = ({ navigation, route }) => 
         name={navigationStrings.CUSTOMER_BOOKING_SUCCESS}
         component={BookingServiceSuccess}
       />
+      <Stack.Screen
+        name={navigationStrings.CUSTOMER_SAVED_ADDRESSES}
+        component={SavedAddresses}
+      />
+      <Stack.Screen
+        name={navigationStrings.CUSTOMER_ADD_EDIT_ADDRESS}
+        component={AddEditAddress}
+      />
       {commonDetailScreens()}
     </Stack.Navigator>
   );
@@ -96,6 +104,10 @@ const CustomerNotificationsStack: React.FC<NavigationProps> = ({ navigation, rou
       <Stack.Screen
         name={navigationStrings.NOTIFICATIONS}
         component={CustomerNotifications}
+      />
+      <Stack.Screen
+        name={navigationStrings.CUSTOMER_BOOKING_DETAILS}
+        component={CustomerBookingDetails}
       />
       {commonDetailScreens()}
     </Stack.Navigator>

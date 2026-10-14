@@ -1605,31 +1605,7 @@ PODS:
     - ReactCommon/turbomodule/core
     - ReactNativeDependencies
     - Yoga
-  - react-native-safe-area-context (5.10.0):
-    - hermes-engine
-    - RCTRequired
-    - RCTTypeSafety
-    - React-Core
-    - React-Core-prebuilt
-    - React-debug
-    - React-Fabric
-    - React-featureflags
-    - React-graphics
-    - React-ImageManager
-    - React-jsi
-    - react-native-safe-area-context/common (= 5.10.0)
-    - react-native-safe-area-context/fabric (= 5.10.0)
-    - React-NativeModulesApple
-    - React-RCTFabric
-    - React-renderercss
-    - React-rendererdebug
-    - React-utils
-    - ReactCodegen
-    - ReactCommon/turbomodule/bridging
-    - ReactCommon/turbomodule/core
-    - ReactNativeDependencies
-    - Yoga
-  - react-native-safe-area-context/common (5.10.0):
+  - react-native-netinfo (12.0.1):
     - hermes-engine
     - RCTRequired
     - RCTTypeSafety
@@ -1651,7 +1627,53 @@ PODS:
     - ReactCommon/turbomodule/core
     - ReactNativeDependencies
     - Yoga
-  - react-native-safe-area-context/fabric (5.10.0):
+  - react-native-safe-area-context (5.10.1):
+    - hermes-engine
+    - RCTRequired
+    - RCTTypeSafety
+    - React-Core
+    - React-Core-prebuilt
+    - React-debug
+    - React-Fabric
+    - React-featureflags
+    - React-graphics
+    - React-ImageManager
+    - React-jsi
+    - react-native-safe-area-context/common (= 5.10.1)
+    - react-native-safe-area-context/fabric (= 5.10.1)
+    - React-NativeModulesApple
+    - React-RCTFabric
+    - React-renderercss
+    - React-rendererdebug
+    - React-utils
+    - ReactCodegen
+    - ReactCommon/turbomodule/bridging
+    - ReactCommon/turbomodule/core
+    - ReactNativeDependencies
+    - Yoga
+  - react-native-safe-area-context/common (5.10.1):
+    - hermes-engine
+    - RCTRequired
+    - RCTTypeSafety
+    - React-Core
+    - React-Core-prebuilt
+    - React-debug
+    - React-Fabric
+    - React-featureflags
+    - React-graphics
+    - React-ImageManager
+    - React-jsi
+    - React-NativeModulesApple
+    - React-RCTFabric
+    - React-renderercss
+    - React-rendererdebug
+    - React-utils
+    - ReactCodegen
+    - ReactCommon/turbomodule/bridging
+    - ReactCommon/turbomodule/core
+    - ReactNativeDependencies
+    - Yoga
+  - react-native-safe-area-context/fabric (5.10.1):
     - hermes-engine
     - RCTRequired
     - RCTTypeSafety
@@ -2195,7 +2217,7 @@ PODS:
     - ReactCommon/turbomodule/core
     - ReactNativeDependencies
     - Yoga
-  - RNScreens (4.28.0):
+  - RNScreens (4.29.0):
     - hermes-engine
     - RCTRequired
     - RCTTypeSafety
@@ -2217,9 +2239,9 @@ PODS:
     - ReactCommon/turbomodule/bridging
     - ReactCommon/turbomodule/core
     - ReactNativeDependencies
-    - RNScreens/common (= 4.28.0)
+    - RNScreens/common (= 4.29.0)
     - Yoga
-  - RNScreens/common (4.28.0):
+  - RNScreens/common (4.29.0):
     - hermes-engine
     - RCTRequired
     - RCTTypeSafety
@@ -2311,6 +2333,7 @@ DEPENDENCIES:
   - React-mutationobservernativemodule (from `../node_modules/react-native/ReactCommon/react/nativemodule/mutationobserver`)
   - react-native-date-picker (from `../node_modules/react-native-date-picker`)
   - react-native-image-picker (from `../node_modules/react-native-image-picker`)
+  - "react-native-netinfo (from `../node_modules/@react-native-community/netinfo`)"
   - react-native-safe-area-context (from `../node_modules/react-native-safe-area-context`)
   - React-NativeModulesApple (from `../node_modules/react-native/ReactCommon/react/nativemodule/core/platform/ios`)
   - React-networking (from `../node_modules/react-native/ReactCommon/react/networking`)
@@ -2467,6 +2490,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native-date-picker"
   react-native-image-picker:
     :path: "../node_modules/react-native-image-picker"
+  react-native-netinfo:
+    :path: "../node_modules/@react-native-community/netinfo"
   react-native-safe-area-context:
     :path: "../node_modules/react-native-safe-area-context"
   React-NativeModulesApple:
@@ -2620,7 +2645,8 @@ SPEC CHECKSUMS:
   React-mutationobservernativemodule: 012f3688a7e96d459e5d787264724875939f6f43
   react-native-date-picker: 906b5bc157f9c2b1bba2a841470581b9f73cb452
   react-native-image-picker: 09cea417bef3ee25008ad21d4426f9a1fc54ad84
-  react-native-safe-area-context: 678f254e77e69986ae9d9e62721f152e73dbc76b
+  react-native-netinfo: a05f9b897e76ad24b53f615fed1cbb731932363d
+  react-native-safe-area-context: 7a07ea6aba7be03a32428b14b334ff9afe3773cf
   React-NativeModulesApple: 2b658272ca69df0694cf5d54f9510aa7c33977bc
   React-networking: 8ff98fbf96752706ec66ccc1d0089c1005a5be11
   React-oscompat: cea7c66df8076bd97e95885d7f584b86afffde41
@@ -2663,7 +2689,7 @@ SPEC CHECKSUMS:
   RNFBMessaging: 0963b5a4a84b8cfdb42024a8461fc21522c25973
   RNNotifee: 5e3b271e8ea7456a36eec994085543c9adca9168
   RNPermissions: e7a32e3fcd4614c0778a1aebf789304547e23c2f
-  RNScreens: 8708989f700bdc3dc5abc3c77aa3b5f3e73ce2b2
+  RNScreens: aa6c7036d9651c6242f2585b3efdc106a2662bda
   RNVectorIcons: bd88db8836a8611aff4b44f061364c07002a6c2a
   Yoga: 269d501078efa6b25cd57f7f326fc3da213580be
 

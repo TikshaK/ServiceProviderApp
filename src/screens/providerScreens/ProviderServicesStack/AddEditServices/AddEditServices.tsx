@@ -89,12 +89,20 @@ export default function AddEditServices({ navigation, route }: AddEditServicesPr
 		if (savingRef.current) return;
 
 		if (!name.trim() || !price.trim()) {
-			showToast({ type: 'error', title: strings.alerts.missingInformation, message: 'Add a service name and starting price before saving.' });
+			showToast({
+				type: 'error',
+				title: strings.alerts.missingInformation,
+				message: 'Add a service name and starting price before saving.'
+			});
 			return;
 		}
 
 		if (!profile?.uid) {
-			showToast({ type: 'error', title: strings.alerts.sessionExpired, message: 'Please sign in again before saving a service.' });
+			showToast({
+				type: 'error',
+				title: strings.alerts.sessionExpired,
+				message: 'Please sign in again before saving a service.'
+			});
 			return;
 		}
 
@@ -202,7 +210,7 @@ export default function AddEditServices({ navigation, route }: AddEditServicesPr
 					showBackButton
 					onLeftPress={() => navigation.goBack()}
 				/>
-				
+
 				<Section
 					title={strings.servicesForm.basicInformation}
 					step="Step 1 of 4"
@@ -292,10 +300,16 @@ export default function AddEditServices({ navigation, route }: AddEditServicesPr
 					/>
 				</Section>
 
-				<Section title={strings.servicesForm.pricingTiming}
-					step="Step 2 of 4">
-					<View style={styles.twoColumn}>
-						<View style={styles.column}>
+				<Section
+					title={strings.servicesForm.pricingTiming}
+					step="Step 2 of 4"
+				>
+					<View
+						style={styles.twoColumn}
+					>
+						<View
+							style={styles.column}
+						>
 							<FieldLabel
 								text={strings.servicesForm.startingPrice}
 								required
@@ -323,7 +337,9 @@ export default function AddEditServices({ navigation, route }: AddEditServicesPr
 								{strings.servicesForm.baseBilling}
 							</Text>
 						</View>
-						<View style={styles.column}>
+						<View
+							style={styles.column}
+						>
 							<FieldLabel
 								text="Duration"
 								required
@@ -412,20 +428,67 @@ export default function AddEditServices({ navigation, route }: AddEditServicesPr
 						onPress={saveService}
 						style={[styles.saveButton, isSaving && styles.saveButtonDisabled]}
 					>
-						<IconX name="save-outline" origin={ICON_TYPE.IONICONS} size={20} color={colors.white[100]} />
-						<Text style={styles.saveText}>{service?.id ? strings.commonForms.saveChanges : strings.commonForms.createService}</Text>
+						<IconX
+							name="save-outline"
+							origin={ICON_TYPE.IONICONS}
+							size={20}
+							color={colors.white[100]}
+						/>
+						<Text
+							style={styles.saveText}
+						>
+							{service?.id ? strings.commonForms.saveChanges : strings.commonForms.createService}
+						</Text>
 					</Pressable>
-					<Pressable accessibilityRole="button" disabled={isSaving} onPress={() => navigation.goBack()} style={styles.cancelButton}>
-						<Text style={styles.cancelText}>{strings.commonForms.cancel}</Text>
+					<Pressable
+						accessibilityRole="button"
+						disabled={isSaving}
+						onPress={() => navigation.goBack()}
+						style={styles.cancelButton}
+					>
+						<Text
+							style={styles.cancelText}
+						>
+							{strings.commonForms.cancel}
+						</Text>
 					</Pressable>
-					{service ? <Pressable accessibilityRole="button" disabled={isSaving} onPress={confirmDelete} style={styles.deleteButton}><IconX name="trash-outline" origin={ICON_TYPE.IONICONS} size={18} color={colors.red[200]} /><Text style={styles.deleteText}>{strings.servicesForm.deleteService}</Text></Pressable> : null}
+					{service ? <Pressable
+						accessibilityRole="button"
+						disabled={isSaving}
+						onPress={confirmDelete}
+						style={styles.deleteButton}
+					>
+						<IconX
+							name="trash-outline"
+							origin={ICON_TYPE.IONICONS}
+							size={18}
+							color={colors.red[200]}
+						/>
+						<Text
+							style={styles.deleteText}
+						>
+							{strings.servicesForm.deleteService}
+						</Text>
+					</Pressable> : null}
 				</View>
 			</KeyboardAwareScrollView>
 
-			<Modal visible={isSaving} transparent statusBarTranslucent>
-				<View style={styles.savingOverlay}>
-					<ActivityIndicator size="large" color={colors.white[100]} />
-					<Text style={styles.savingText}>{service?.id ? 'Updating service...' : 'Creating service...'}</Text>
+			<Modal
+				visible={isSaving}
+				transparent
+				statusBarTranslucent
+			>
+				<View
+					style={styles.savingOverlay}
+				>
+					<ActivityIndicator
+						size="large"
+						color={colors.white[100]}
+					/>
+					<Text
+						style={styles.savingText}
+					>
+						{service?.id ? 'Updating service...' : 'Creating service...'}</Text>
 				</View>
 			</Modal>
 
@@ -476,13 +539,29 @@ export default function AddEditServices({ navigation, route }: AddEditServicesPr
 }
 
 function Section({ title, step, children }: { title: string; step: string; children: React.ReactNode }) {
-	return <View style={styles.section}>
-		<View style={styles.sectionHeader}>
-			<View style={styles.headingGroup}>
-				<View style={styles.headingMark} />
-				<Text style={styles.sectionTitle}>{title}</Text>
+	return <View
+		style={styles.section}
+	>
+		<View
+			style={styles.sectionHeader}
+		>
+			<View
+				style={styles.headingGroup}
+			>
+				<View
+					style={styles.headingMark}
+				/>
+				<Text
+					style={styles.sectionTitle}
+				>
+					{title}
+				</Text>
 			</View>
-			<Text style={styles.step}>{step}</Text>
+			<Text
+				style={styles.step}
+			>
+				{step}
+			</Text>
 		</View>{children}
 		ƒ</View>;
 }

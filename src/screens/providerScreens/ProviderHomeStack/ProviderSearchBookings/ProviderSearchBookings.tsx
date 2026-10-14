@@ -4,11 +4,13 @@ import { useFocusEffect } from '@react-navigation/native';
 import { CustomHeader, CustomSearchBar, EmptyState, ICON_TYPE, IconX } from '../../../../components';
 import { colors, navigationStrings } from '../../../../constants';
 import { subscribeToAllOpenBookings } from '../../../../services/firebase';
-import type { OpenBookingListing } from '../../../../types/booking';
+import { useAppSelector } from '../../../../store';
+import { hasActiveProviderQuote, type OpenBookingListing } from '../../../../types/booking';
 import ProviderQuoteModal from '../../ProviderQuoteModal';
 import { styles } from './styles';
 
 export default function ProviderSearchBookings({ navigation }: { navigation: any }) {
+  const profile = useAppSelector(state => state.user.profile);
   const [bookings, setBookings] = useState<OpenBookingListing[]>([]);
   const [quoteBooking, setQuoteBooking] = useState<OpenBookingListing | null>(null);
   const [query, setQuery] = useState('');
@@ -62,6 +64,9 @@ export default function ProviderSearchBookings({ navigation }: { navigation: any
         amount: 'Awaiting quote',
         notes: booking.specialInstructions,
         isOpenBooking: true,
+        quotes: booking.quotes,
+        quoteHistory: booking.quoteHistory,
+        hasSentQuote: hasActiveProviderQuote(booking, profile?.uid),
       },
     });
   };
@@ -190,19 +195,23 @@ export default function ProviderSearchBookings({ navigation }: { navigation: any
                   <Text style={styles.amountText}>
                     Awaiting quote
                   </Text>
-                  <Pressable
-                    style={styles.sendQuoteButton}
-                    onPress={event => {
-                      event.stopPropagation();
-                      setQuoteBooking(booking);
-                    }}
-                    accessibilityRole="button"
-                  >
-                    <Text style={styles.sendQuoteText}
-                    >
-                      Send quote
-                    </Text>
-                  </Pressable>
+                  {(() => {
+                    const hasQuoted = hasActiveProviderQuote(booking, profile?.uid);
+                    return (
+                      <Pressable
+                        style={[styles.sendQuoteButton, hasQuoted && { backgroundColor: colors.grey[400] }]}
+                        onPress={event => {
+                          event.stopPropagation();
+                          if (!hasQuoted) setQuoteBooking(booking);
+                        }}
+                        accessibilityRole="button"
+                      >
+                        <Text style={styles.sendQuoteText}>
+                          {hasQuoted ? 'Already sent' : 'Send quote'}
+                        </Text>
+                      </Pressable>
+                    );
+                  })()}
                 </View>
               </Pressable>
             ))}
@@ -212,7 +221,7 @@ export default function ProviderSearchBookings({ navigation }: { navigation: any
       <ProviderQuoteModal
         booking={quoteBooking}
         onClose={() => setQuoteBooking(null)}
-        onQuoteSent={bookingId => setBookings(current => current.filter(item => item.id !== bookingId))}
+        onQuoteSent={() => setQuoteBooking(null)}
       />
     </View>
   );

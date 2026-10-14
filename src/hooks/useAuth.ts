@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 import { signOut } from '@react-native-firebase/auth';
-import { clearAuth, clearUserProfile, useAppDispatch, useAppSelector } from '../store';
+import { clearAuth, clearUserProfile, setLoggingOut, useAppDispatch, useAppSelector } from '../store';
 import { firebaseAuth } from '../services/firebase';
 import { removeFCMToken } from '../services/notifications';
 import { clearAllNotifications } from '../services/localNotifications';
@@ -22,6 +22,7 @@ export function useAuth() {
   }, [dispatch]);
 
   const handleSignOut = useCallback(async () => {
+    dispatch(setLoggingOut(true));
     try {
       const uid = firebaseAuth.currentUser?.uid;
       if (uid) {
@@ -33,6 +34,7 @@ export function useAuth() {
       dispatch(clearAuth());
       dispatch(clearUserProfile());
       storage.remove(storageKeys.USER_DATA);
+      dispatch(setLoggingOut(false));
     }
   }, [dispatch]);
 
